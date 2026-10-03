@@ -74,6 +74,7 @@ The whole plan rests on what the Gateway actually supports. Check it before writ
 - [x] **Check whether Perplexity Sonar models are listed.** Only `perplexity/sonar` is, so the Accurate preset goes through Perplexity's own API.
 - [x] Write a throwaway script (`scripts/spike.ts`) that sends one prompt to each engine with web search on and prints the answer text, the citations, token usage and `providerMetadata.gateway.cost`.
 - [ ] Run `npm run spike` (and once with `--country IN`).
+- [ ] Create a free Bright Data account (5,000 answers a month, no card) and add a Bright Data path to the spike: the same prompt on ChatGPT, Gemini and Perplexity, compared side by side with the API answers.
 - [ ] Record per-call costs, including search tool fees, for the Accurate and Budget model of each engine.
 - [ ] Write `docs/providers.md` covering: model IDs, how each engine returns citations, whether it accepts a user location, and the measured cost per call. (Drafted; fill in the measured results table.)
 
@@ -165,12 +166,15 @@ This is the key piece of the architecture. Self-hosters plug in their own keys, 
 - [ ] Grok: native xAI search through the Gateway.
 - [ ] Perplexity: Sonar through the Gateway if Day 1 confirmed it, otherwise a direct Perplexity API adapter. **Don't use the Gateway's "Perplexity Search" tool**, which only feeds Perplexity results to other models.
 - [ ] Wrap every call with a timeout and typed errors (`RateLimited`, `Timeout`, `ProviderError`) so the worker can decide whether to retry.
+- [ ] Bright Data adapter for the consumer apps (ChatGPT, Gemini, Perplexity; Grok, Copilot and AI Mode later). It's asynchronous: trigger a batch, poll for progress, download the results. Map each platform's fields into `QueryResult`.
+- [ ] Make the data source a per-engine setting: `consumer` (Bright Data) or `api` (Gateway or direct). Claude is always `api`.
 
-**Done when:** all five engines work through one `getProvider(engine)` call.
+**Done when:** all five engines work through one `getProvider(engine)` call, and ChatGPT, Gemini and Perplexity work through both sources.
 
 ### Day 9: Bring your own keys (BYOK)
 
-- [ ] Support three key sources per workspace: Vercel AI Gateway, OpenRouter, or direct provider keys.
+- [ ] Support these key sources per workspace: Bright Data (consumer apps), Vercel AI Gateway, OpenRouter, or direct provider keys.
+- [ ] Show the Bright Data free-tier usage (5,000 answers a month, resets on the 1st) and warn before a run would go past it.
 - [ ] Add `provider_credentials` (workspace_id, source, encrypted_key, created_at). Encrypt with AES-256-GCM using a master key from the environment, and never return keys to the client.
 - [ ] Build a settings page where you add a key, test it with a cheap call, and delete it.
 - [ ] Resolve the provider at call time: the workspace's own key first, then the platform key (hosted mode only).
@@ -546,12 +550,15 @@ Record decisions here as you make them, with the date and the reason.
 | | License: AGPL-3.0 (alternative: MIT, if adoption matters more) | Proposed in plan |
 | | Hosted margin: 7% (plan says 5–10%) | Placeholder on landing page |
 | 2026-10-03 | Perplexity: Budget uses `perplexity/sonar` on the Gateway; Accurate uses Perplexity's own API (only Sonar is on the Gateway) | Decided; direct-API preset still to pick |
-| | Google AI Overviews: version 2 through a SERP API, or skip | Deferred |
+| 2026-10-03 | Data source for self-hosting: Bright Data's consumer-app scrapers for ChatGPT, Gemini and Perplexity (Grok, Copilot and AI Mode available too); Claude through the official API. The free 5,000 answers a month cover 15 prompts daily, asked 3×. This reverses the plan's "API only" rule, so get legal advice before launch. | Decided |
+| | Data source for the hosted version: Bright Data Scale ($1.30 per 1,000) or DataForSEO ($1.20 per 1,000, also covers Claude and AI Overviews) | Decide before Day 38 |
+| | Google AI Overviews: version 2 through a SERP API, or skip | Deferred (Bright Data's AI Mode scraper may cover part of it) |
 | | Web hosting: Vercel or VPS | Decide on Day 45 |
 
 ## Risks to keep in view
 
 - **Usage costs grow with customers.** Enforce budget caps and the wallet from the first hosted user (Days 17 and 42), never later.
-- **API answers differ from the consumer apps.** Say so in onboarding, on the dashboard and in exports (Days 12 and 33).
+- **Scraping breaks the AI companies' terms of service.** Bright Data does the scraping, but OpenVisibility depends on it. Keep the official API as a fallback for every engine and get legal advice before launch.
+- **Scraped answers are logged-out answers,** and API answers differ from the apps too. Label every result with its source (consumer app or API) in the dashboard and exports (Days 12 and 33).
 - **Competitors can cut prices.** The lasting advantage is the cheap architecture (Day 19) and the underserved audience, not the price alone.
 - **Provider details change often.** Keep model IDs and costs in one registry file (Day 10) and re-check them before launch.
