@@ -6,9 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "models": "tsx scripts/models.ts",
+    "spike": "tsx --env-file-if-exists=.env.local scripts/spike.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.71",
+    "@ai-sdk/google": "^4.0.87",
+    "@ai-sdk/openai": "^4.0.83",
+    "@ai-sdk/perplexity": "^5.0.5",
+    "@ai-sdk/xai": "^5.0.14",
+    "ai": "^7.0.127",
     "next": "15.5.4",
     "react": "19.1.1",
     "react-dom": "19.1.1"
@@ -17,6 +25,7 @@
     "@types/node": "22.15.0",
     "@types/react": "19.1.9",
     "@types/react-dom": "19.1.7",
+    "tsx": "^4.23.15",
     "typescript": "5.8.3"
   }
 }
