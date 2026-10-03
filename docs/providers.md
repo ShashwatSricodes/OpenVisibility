@@ -14,6 +14,40 @@ How OpenVisibility reaches each AI engine, what each one returns, and what a cal
 
 Search prices come from the `web_search` field of the public model list (`GET https://ai-gateway.vercel.sh/v1/models`). The figure is US dollars per 1,000 searches, and it's charged on top of token costs.
 
+## Search pricing, checked against each provider
+
+All search fees are per **1,000** searches, so $10 means **$0.01 per search**. Checked on 3 October 2026.
+
+| Engine | Gateway lists | Provider's own price | Search result tokens |
+| --- | --- | --- | --- |
+| ChatGPT | $10 / 1k | $10 / 1k calls | Billed at model rates on reasoning models (GPT-5 and later); free on non-reasoning models |
+| Claude | $10 / 1k | $10 / 1k searches | Billed as input tokens, often ~6,000 per search |
+| Gemini 3.x | $14 / 1k | $14 / 1k **queries** (one prompt can run several) | Normal token rates |
+| Gemini 2.5 | $35 / 1k | $35 / 1k **prompts** | Normal token rates |
+| Grok | $5 / 1k | $5 / 1k calls | Normal token rates |
+| Perplexity Sonar | $2.50 / 1k, tokens $0.25 / $2.50 per M | **$5–12 / 1k requests** (by search context size), tokens $1 / $1 per M | Included |
+
+**The search fee is not the biggest cost.** Search results are pasted into the model's input, so a single Claude search can add thousands of input tokens. Rough per-call estimates for one search and a ~1,000-token answer:
+
+| Engine | Accurate | Budget |
+| --- | --- | --- |
+| ChatGPT | ~$0.03 | ~$0.011 |
+| Claude | ~$0.03 | ~$0.02 |
+| Gemini | ~$0.02–0.03 | ~$0.015–0.03 |
+| Grok | ~$0.02 | ~$0.015 |
+| Perplexity | n/a | ~$0.004 |
+
+These are estimates; the spike replaces them with measured numbers.
+
+Consequences:
+
+- **The search fee sets a floor** of about $0.005–0.014 per call that Budget models can't get below. Budget saves on tokens, not on search.
+- **The landing page estimator is probably too low.** It assumes $0.018 (Accurate) and $0.006 (Budget) per call; $0.006 is below the search fee alone for ChatGPT, Claude and Gemini. Update it from the spike results.
+- **Cost levers:** cap Claude's searches with `maxUses` (1–2 is enough for one prompt), set OpenAI's `searchContextSize: "low"`, and watch Gemini 3.x, which bills per query and may run several per prompt.
+- **Perplexity mismatch:** the Gateway's Sonar price is well below Perplexity's own published price. The spike's measured cost will show which is real.
+
+Sources: [OpenAI pricing](https://developers.openai.com/api/docs/pricing), [Anthropic web search tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool), [Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing), [Perplexity pricing](https://docs.perplexity.ai/getting-started/pricing), [xAI pricing guide (third-party)](https://mem0.ai/blog/xai-grok-api-pricing).
+
 ## Findings
 
 ### 1. Perplexity: only Sonar is on the Gateway
@@ -21,7 +55,7 @@ Search prices come from the `web_search` field of the public model list (`GET ht
 The Gateway lists `perplexity/sonar` and no other Perplexity chat model. That settles the open question in the product plan:
 
 - **Budget preset:** `perplexity/sonar` through the Gateway. It's cheap ($0.25/M input, $2.50/M output, $2.50 per 1k requests) and searches on every call.
-- **Accurate preset:** needs Perplexity's own API. The current `@ai-sdk/perplexity` package (v5) targets Perplexity's **Agent API**, which takes presets (`fast`, `low`, `medium`, `high`, `xhigh`) rather than named Sonar Pro models. Which preset best matches the Perplexity app still has to be decided.
+- **Accurate preset:** needs Perplexity's own API, where Sonar Pro is still sold ($3 / $15 per M tokens plus $6–14 per 1k requests). The current `@ai-sdk/perplexity` package (v5) targets Perplexity's **Agent API**, which also offers presets (`fast` to `xhigh`). The spike tries `sonar-pro` first; if the Agent API rejects that name, try a preset via `PERPLEXITY_DIRECT_MODEL`.
 - `perplexity/sonar` has **no zero-data-retention** support (`"zdr": "none"`). Keep that in mind for the hosted ZDR option on Day 44.
 - Don't use `gateway.tools.perplexitySearch()`: it gives *other* models Perplexity's search results, so it doesn't measure Perplexity at all.
 
