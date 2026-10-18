@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "models": "tsx scripts/models.ts",
-    "spike": "tsx --env-file-if-exists=.env.local scripts/spike.ts"
+    "spike": "tsx --env-file-if-exists=.env.local scripts/spike.ts",
+    "spike:bd": "tsx --env-file-if-exists=.env.local scripts/spike-brightdata.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.71",
