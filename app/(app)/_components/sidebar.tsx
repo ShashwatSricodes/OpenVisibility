@@ -17,6 +17,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { AppIcon } from "@/components/brand/Mascot";
 import { cn } from "../_lib/cn";
 import { BRAND, FREE_TIER } from "../_lib/sample-data";
 
@@ -42,17 +43,7 @@ const GROUPS: { label: string; items: Item[] }[] = [
 function Wordmark() {
   return (
     <Link href="/dashboard" className="flex items-center gap-2 px-2 py-1">
-      <svg viewBox="0 0 24 24" className="size-6" aria-hidden="true">
-        <rect width="24" height="24" rx="6" className="fill-inverted" />
-        <path
-          d="M17.4 8.6A6.2 6.2 0 1 0 18.2 12"
-          className="stroke-on-inverted"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          fill="none"
-        />
-        <circle cx="12" cy="12" r="2.1" className="fill-on-inverted" />
-      </svg>
+      <AppIcon size={24} tile="var(--inverted)" ink="var(--on-inverted)" />
       <span className="font-display text-[15px] font-semibold tracking-tight">OpenVisibility</span>
     </Link>
   );

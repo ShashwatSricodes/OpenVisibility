@@ -1,18 +1,8 @@
-/* 24px logo mark, white rounded square with the OpenVisibility glyph:
-   an open ring (the "O") with a focal dot, read as a lens */
+import { AppIcon } from "./brand/Mascot";
+
+/* 24px logo mark for the dark landing page: the mascot app icon on a white tile */
 export function BrandMark() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect width="24" height="24" rx="5" fill="#fff" />
-      <path
-        d="M17.4 8.6A6.2 6.2 0 1 0 18.2 12"
-        stroke="#000"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <circle cx="12" cy="12" r="2.1" fill="#000" />
-    </svg>
-  );
+  return <AppIcon size={24} tile="#ffffff" ink="#0a0a0a" />;
 }
 
 /* 16px circle-check used in the pricing lists */
