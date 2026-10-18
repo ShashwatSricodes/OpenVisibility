@@ -27,7 +27,7 @@ export type BrightDataEngine = keyof typeof BRIGHT_DATA_DATASETS;
 
 export type BrightDataInput = {
   prompt: string;
-  /** two-letter country code, e.g. "us" or "in" */
+  /** two-letter country code, e.g. "US" or "IN" (Bright Data wants uppercase) */
   country?: string;
   /** ChatGPT only: allow web search (a permission, not a guarantee) */
   webSearch?: boolean;
@@ -91,7 +91,7 @@ export class BrightDataClient {
     }
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      throw new BrightDataError(`Bright Data ${res.status} on ${path}: ${body.slice(0, 300)}`, res.status);
+      throw new BrightDataError(`Bright Data ${res.status} on ${path}: ${body.slice(0, 1500)}`, res.status);
     }
     return res;
   }
@@ -103,7 +103,7 @@ export class BrightDataClient {
       url,
       prompt: it.prompt,
       index,
-      ...(it.country ? { country: it.country.toLowerCase() } : {}),
+      ...(it.country ? { country: it.country.toUpperCase() } : {}),
       ...(engine === "chatgpt" && it.webSearch !== undefined ? { web_search: it.webSearch } : {}),
     }));
 
@@ -188,6 +188,37 @@ const stripHtml = (html: string) =>
   html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
 /**
+ * ChatGPT often shows its sources only as small chips ("IndieToolkit +1")
+ * and Bright Data leaves `citations` empty. Each chip renders as a favicon
+ * image, so the cited domain can be recovered from the favicon URL.
+ * "+1" means more sources are hidden behind the chip; those aren't recoverable.
+ */
+function sourceChipsFromMarkdown(md: string | undefined): Citation[] {
+  if (!md) return [];
+  const domains = new Set<string>();
+  for (const m of md.matchAll(/google\.com\/s2\/favicons\?domain=([^&)\s]+)/g)) {
+    try {
+      domains.add(new URL(decodeURIComponent(m[1])).hostname.replace(/^www\./, ""));
+    } catch {
+      /* not a URL; skip */
+    }
+  }
+  return [...domains].map((d, i) => ({ url: `https://${d}`, title: d, position: i + 1 }));
+}
+
+/** Fields that hold the full page HTML (1 MB+) or page chrome; never worth storing. */
+const BULKY_FIELDS = new Set([
+  "answer_html",
+  "answer_section_html",
+  "response_raw",
+  "response_raw_additional_prompt",
+  "additional_answer_text_markdown",
+]);
+
+const slim = (r: Record<string, unknown>) =>
+  Object.fromEntries(Object.entries(r).filter(([k]) => !BULKY_FIELDS.has(k)));
+
+/**
  * Each platform names its fields slightly differently:
  * ChatGPT and Gemini use `citations`, Perplexity uses `sources`.
  */
@@ -199,7 +230,8 @@ export function normalize(engine: BrightDataEngine, r: Record<string, unknown>):
     (str(r.answer_html) ? stripHtml(str(r.answer_html)!) : "") ??
     "";
 
-  const citations = toCitations(r.citations).length ? toCitations(r.citations) : toCitations(r.sources);
+  const listed = toCitations(r.citations).length ? toCitations(r.citations) : toCitations(r.sources);
+  const citations = listed.length ? listed : sourceChipsFromMarkdown(str(r.answer_text_markdown));
 
   return {
     engine,
@@ -213,6 +245,6 @@ export function normalize(engine: BrightDataEngine, r: Record<string, unknown>):
     model: str(r.model),
     webSearchTriggered: typeof r.web_search_triggered === "boolean" ? r.web_search_triggered : undefined,
     country: str(r.country),
-    raw: r,
+    raw: slim(r),
   };
 }

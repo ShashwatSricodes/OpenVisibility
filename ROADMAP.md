@@ -75,7 +75,8 @@ The whole plan rests on what the Gateway actually supports. Check it before writ
 - [x] Write a throwaway script (`scripts/spike.ts`) that sends one prompt to each engine with web search on and prints the answer text, the citations, token usage and `providerMetadata.gateway.cost`.
 - [ ] Run `npm run spike` (and once with `--country IN`).
 - [x] Add a Bright Data path to the spike (`npm run spike:bd`), built on the real client in `core/providers/brightdata.ts`.
-- [ ] Create a free Bright Data account (5,000 answers a month, no card), add `BRIGHT_DATA_API_KEY` to `.env.local`, and run `npm run spike:bd`. Compare with the API answers if you also run `npm run spike`.
+- [x] Create a free Bright Data account, add `BRIGHT_DATA_API_KEY` to `.env.local`, and run `npm run spike:bd`. ChatGPT and Gemini work; Perplexity is currently blocked (see `docs/providers.md`).
+- [ ] Get a Gateway key and run `npm run spike -- --engine claude,perplexity` for Claude and the Perplexity fallback.
 - [ ] Record per-call costs, including search tool fees, for the Accurate and Budget model of each engine.
 - [ ] Write `docs/providers.md` covering: model IDs, how each engine returns citations, whether it accepts a user location, and the measured cost per call. (Drafted; fill in the measured results table.)
 

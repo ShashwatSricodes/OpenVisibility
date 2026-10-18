@@ -33,6 +33,27 @@ Caveats:
 - Scraped answers come from logged-out sessions, which may use a different model from a paying subscriber's.
 - Speed isn't published. Jobs are asynchronous, so plan for minutes per batch.
 
+### Measured: Bright Data, 18 October 2026
+
+Prompt: "What is the best invoicing software for freelancers?", country `IN`. Fixtures are in `scripts/fixtures/brightdata-*.json`.
+
+| Engine | Result | Time | Model reported | Searched? | Citations | Brand links | Mentioned Zoho |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ChatGPT | ✅ 2,616-character answer | 90 s | not reported | `false` | 1 (from a source chip) | 5 "Official website" links | Yes, as the top pick |
+| Gemini | ✅ 2,761-character answer | 199 s | **Flash-Lite** | not reported | 0 | 0 | Yes |
+| Perplexity | ❌ `crawl_error`: Perplexity returned "too many requests" to Bright Data | 13 s | n/a | n/a | n/a | n/a | n/a |
+
+What we learned:
+
+- **Country codes must be uppercase** (`IN`, not `in`); lowercase is rejected with a validation error.
+- **ChatGPT hides its sources behind chips.** Bright Data's `citations` field came back empty even though the answer showed an "IndieToolkit +1" source chip. The client recovers the chip's domain from its favicon URL in `answer_text_markdown`. Sources hidden behind "+1" can't be recovered.
+- **ChatGPT's "Official website" links** (`links_attached`) name every brand it recommended. Track these separately from citations; they're direct evidence of a recommendation.
+- **ChatGPT reported `web_search_triggered: false`** yet still showed a source chip, so don't treat that flag alone as proof of whether it searched.
+- **Logged-out Gemini answers with Flash-Lite** and returned no citations for this prompt. Paying Gemini users get a stronger model, so label Gemini results as "logged-out Gemini".
+- **Perplexity is currently blocking Bright Data.** It failed three times, with and without a country. Failed records aren't billed. This is exactly why each engine needs an API fallback: Perplexity Sonar through the Gateway costs about $0.005 a call.
+- **Answers are slow and uneven:** 13 s to 199 s per job. Fine for scheduled runs; the dashboard must show runs as "in progress".
+- **The raw records are huge** (1 MB+ of page HTML for ChatGPT). The client drops the HTML fields and keeps text and markdown.
+
 Alternative for the hosted version: [DataForSEO](https://dataforseo.com/apis/ai-optimization-api) scrapes ChatGPT, Gemini and Perplexity for $0.0012 per answer, and reaches Claude through its official-API endpoint. There's no free tier ($1 credit, then a $50 minimum top-up), which is why it isn't the self-hosted default.
 
 ## Search pricing, checked against each provider
