@@ -83,12 +83,12 @@ The whole plan rests on what the Gateway actually supports. Check it before writ
 
 ### Day 2: Restructure the repo
 
-- [ ] Move the landing page into `app/(marketing)/` (its own `layout.tsx` and `globals.css`) and create an empty `app/(app)/` group with its own root layout.
-- [ ] Add ESLint and Prettier, plus `typecheck`, `lint` and `test` scripts in `package.json`.
-- [ ] Add `core/env.ts`: load and validate environment variables with Zod, and fail fast on missing ones.
-- [ ] Add `.env.example` listing every variable, with comments.
-- [ ] Add `LICENSE` (AGPL-3.0), a short `README.md`, and `CONTRIBUTING.md` mentioning the CLA.
-- [ ] Delete leftovers from the template: `reference/standalone.html` and any unused images in `public/tpl/`.
+- [x] Move the landing page into `app/(marketing)/` (its own `layout.tsx` and `globals.css`) and create an empty `app/(app)/` group with its own root layout.
+- [x] Add ESLint and Prettier, plus `typecheck`, `lint` and `test` scripts in `package.json`. (Vitest, with the first tests on the Day 1 fixtures.)
+- [x] Add `core/env.ts`: load and validate environment variables with Zod, and fail fast on missing ones.
+- [x] Add `.env.example` listing every variable, with comments.
+- [x] Add `LICENSE` (AGPL-3.0), a short `README.md`, and `CONTRIBUTING.md` mentioning the CLA.
+- [x] Delete leftovers from the template: `reference/standalone.html` and any unused images in `public/tpl/`.
 
 **Done when:** `/` still renders the landing page, `/dashboard` renders a placeholder, and lint, typecheck and build all pass.
 
@@ -547,7 +547,7 @@ Record decisions here as you make them, with the date and the reason.
 
 | Date | Decision | Status |
 | --- | --- | --- |
-| | License: AGPL-3.0 (alternative: MIT, if adoption matters more) | Proposed in plan |
+| 2026-10-18 | License: AGPL-3.0, to stop cheap hosted clones; hosted-only code in `ee/` under a commercial license. MIT was considered (OpenSEO grew fast on it). | Decided |
 | | Hosted margin: 7% (plan says 5–10%) | Placeholder on landing page |
 | 2026-10-03 | Perplexity: Budget uses `perplexity/sonar` on the Gateway; Accurate uses Perplexity's own API (only Sonar is on the Gateway) | Decided; direct-API preset still to pick |
 | 2026-10-03 | Data source for self-hosting: Bright Data's consumer-app scrapers for ChatGPT, Gemini and Perplexity (Grok, Copilot and AI Mode available too); Claude through the official API. The free 5,000 answers a month cover 15 prompts daily, asked 3×. This reverses the plan's "API only" rule, so get legal advice before launch. | Decided |
