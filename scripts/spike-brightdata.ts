@@ -21,6 +21,7 @@ import {
   type BrightDataEngine,
   type Citation,
 } from "../core/providers/brightdata";
+import { requireEnv } from "../core/env";
 
 type Outcome = {
   engine: string;
@@ -44,11 +45,7 @@ function arg(name: string) {
 }
 
 async function main() {
-  const key = process.env.BRIGHT_DATA_API_KEY;
-  if (!key) {
-    console.error("Set BRIGHT_DATA_API_KEY in .env.local first (see .env.example).");
-    process.exit(1);
-  }
+  const key = requireEnv("BRIGHT_DATA_API_KEY");
 
   const prompt = arg("prompt") ?? "What is the best invoicing software for freelancers?";
   const country = arg("country");
