@@ -340,7 +340,7 @@ img {
 .brand {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   font-family: var(--display);
   font-size: 20px;
   font-weight: 400;
@@ -349,8 +349,8 @@ img {
 }
 
 .brand svg {
-  width: 24px;
   height: 24px;
+  width: auto;
   display: block;
 }
 
