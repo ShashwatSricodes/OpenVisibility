@@ -1,0 +1,32 @@
+{
+  "capturedAt": "2026-10-18T07:04:11.917Z",
+  "engine": "ai_mode",
+  "prompt": "What is the best invoicing software for freelancers?",
+  "country": null,
+  "snapshotId": "sd_mvdh75x41we2jgeo5l",
+  "seconds": 13,
+  "answers": [
+    {
+      "engine": "ai_mode",
+      "prompt": "",
+      "index": -1,
+      "ok": false,
+      "error": "Browser disconnected",
+      "text": "",
+      "citations": [],
+      "links": [],
+      "raw": {
+        "timestamp": "2026-10-18T07:00:20.754Z",
+        "input": {
+          "url": "https://www.google.com/",
+          "prompt": "What is the best invoicing software for freelancers?",
+          "index": 0,
+          "country": "",
+          "hl": ""
+        },
+        "error": "Browser disconnected",
+        "error_code": "cdp_disconnect"
+      }
+    }
+  ]
+}
