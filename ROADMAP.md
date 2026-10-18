@@ -70,17 +70,15 @@ docs/                 self-hosting and provider docs
 The whole plan rests on what the Gateway actually supports. Check it before writing any product code.
 
 - [x] Confirm the model list for each engine: OpenAI, Anthropic, Google, xAI and Perplexity. (`npm run models`; xAI is listed as `spacexai/`)
-- [ ] Create a Gateway key and put it in `.env.local`.
 - [x] **Check whether Perplexity Sonar models are listed.** Only `perplexity/sonar` is, so the Accurate preset goes through Perplexity's own API.
 - [x] Write a throwaway script (`scripts/spike.ts`) that sends one prompt to each engine with web search on and prints the answer text, the citations, token usage and `providerMetadata.gateway.cost`.
-- [ ] Run `npm run spike` (and once with `--country IN`).
 - [x] Add a Bright Data path to the spike (`npm run spike:bd`), built on the real client in `core/providers/brightdata.ts`.
-- [x] Create a free Bright Data account, add `BRIGHT_DATA_API_KEY` to `.env.local`, and run `npm run spike:bd`. ChatGPT and Gemini work; Perplexity is currently blocked (see `docs/providers.md`).
-- [ ] Get a Gateway key and run `npm run spike -- --engine claude,perplexity` for Claude and the Perplexity fallback.
-- [ ] Record per-call costs, including search tool fees, for the Accurate and Budget model of each engine.
-- [ ] Write `docs/providers.md` covering: model IDs, how each engine returns citations, whether it accepts a user location, and the measured cost per call. (Drafted; fill in the measured results table.)
+- [x] Create a free Bright Data account, add `BRIGHT_DATA_API_KEY` to `.env.local`, and run `npm run spike:bd`. ChatGPT, Gemini, Google AI Mode and Google AI Overviews work (see `docs/providers.md`).
+- [x] Copilot: researched and deferred. Copilot chat requires a login since 31 August 2026; options are recorded in `docs/providers.md`.
+- [x] Write `docs/providers.md`: data sources, search pricing, model IDs, citation formats, location support, and measured Bright Data results.
+- [ ] **Carried forward:** get a Gateway key and run `npm run spike -- --engine claude,perplexity` for Claude and the Perplexity fallback, and record their per-call costs. Do this before Day 7 (Claude adapter).
 
-**Done when:** you have real answers with citations and a real cost from every engine, written down.
+**Done when:** you have real answers with citations and a real cost from every engine, written down. (Done for the Bright Data engines on 18 October 2026; Claude and Perplexity carried forward.)
 **Watch for:** citation formats differ a lot between providers. Save raw responses to `scripts/fixtures/` now, because they become your test fixtures on Day 10.
 
 ### Day 2: Restructure the repo
@@ -553,6 +551,8 @@ Record decisions here as you make them, with the date and the reason.
 | | Hosted margin: 7% (plan says 5–10%) | Placeholder on landing page |
 | 2026-10-03 | Perplexity: Budget uses `perplexity/sonar` on the Gateway; Accurate uses Perplexity's own API (only Sonar is on the Gateway) | Decided; direct-API preset still to pick |
 | 2026-10-03 | Data source for self-hosting: Bright Data's consumer-app scrapers for ChatGPT, Gemini and Perplexity (Grok, Copilot and AI Mode available too); Claude through the official API. The free 5,000 answers a month cover 15 prompts daily, asked 3×. This reverses the plan's "API only" rule, so get legal advice before launch. | Decided |
+| 2026-10-18 | Copilot: deferred. Copilot chat requires a login since 31 August 2026. Options if revisited: SerpApi `bing_copilot` (Copilot Search on Bing, no login, 250 free a month) or Apify's Copilot scraper (test first; may rely on signed-in accounts). | Deferred |
+| 2026-10-18 | Google AI Overviews and AI Mode move into version 1, through Bright Data's free scrapers (US for now). | Decided |
 | | Data source for the hosted version: Bright Data Scale ($1.30 per 1,000) or DataForSEO ($1.20 per 1,000, also covers Claude and AI Overviews) | Decide before Day 38 |
 | | Google AI Overviews: version 2 through a SERP API, or skip | Deferred (Bright Data's AI Mode scraper may cover part of it) |
 | | Web hosting: Vercel or VPS | Decide on Day 45 |
