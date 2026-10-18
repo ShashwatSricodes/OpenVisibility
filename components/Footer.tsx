@@ -17,8 +17,7 @@ export function Footer() {
         <div className="foot-l">
           <div className="foot-top">
             <Link className="brand" href="/#hero">
-              <BrandMark />
-              OpenVisibility
+              <BrandMark id="footer" />
             </Link>
             <p className="t-small">
               Open-source AI visibility tracking, priced for the rest of us.

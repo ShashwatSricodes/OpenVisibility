@@ -1,8 +1,8 @@
-import { AppIcon } from "./brand/Mascot";
+import { Logotype } from "./brand/Logo";
 
-/* 24px logo mark for the dark landing page: the mascot app icon on a white tile */
-export function BrandMark() {
-  return <AppIcon size={24} tile="#ffffff" ink="#0a0a0a" />;
+/* logotype for the landing page: the mark is the "O"; inherits the white text colour */
+export function BrandMark({ id }: { id: string }) {
+  return <Logotype id={id} height={24} />;
 }
 
 /* 16px circle-check used in the pricing lists */

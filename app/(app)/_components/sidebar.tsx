@@ -17,7 +17,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { AppIcon } from "@/components/brand/Mascot";
+import { Logotype } from "@/components/brand/Logo";
 import { cn } from "../_lib/cn";
 import { BRAND, FREE_TIER } from "../_lib/sample-data";
 
@@ -40,11 +40,14 @@ const GROUPS: { label: string; items: Item[] }[] = [
   },
 ];
 
-function Wordmark() {
+function Wordmark({ id }: { id: string }) {
   return (
     <Link href="/dashboard" className="flex items-center gap-2 px-2 py-1">
-      <AppIcon size={24} tile="var(--inverted)" ink="var(--on-inverted)" />
-      <span className="font-display text-[15px] font-semibold tracking-tight">OpenVisibility</span>
+      <Logotype
+        id={id}
+        height={19}
+        textClassName="font-display text-[15px] font-semibold tracking-tight"
+      />
     </Link>
   );
 }
@@ -99,7 +102,7 @@ export function MobileNav() {
   return (
     <div className="sticky top-0 z-40 border-b border-line bg-frame/90 backdrop-blur lg:hidden">
       <div className="flex h-14 items-center justify-between px-3">
-        <Wordmark />
+        <Wordmark id="mobile" />
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -127,7 +130,7 @@ export function Sidebar() {
 
   return (
     <aside className="sticky top-0 hidden h-screen flex-col gap-5 px-3 py-4 lg:flex">
-      <Wordmark />
+      <Wordmark id="sidebar" />
 
       <button
         type="button"

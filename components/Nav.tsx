@@ -21,8 +21,7 @@ export function Nav() {
       <div className="nav-in">
         <div className="nav-links">
           <Link className="brand" href="/#hero" onClick={() => setOpen(false)}>
-            <BrandMark />
-            OpenVisibility
+            <BrandMark id="nav" />
           </Link>
           <div className="nav-menu">
             {LINKS.map((l) => (
