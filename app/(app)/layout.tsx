@@ -36,7 +36,7 @@ export default function AppLayout({ children }: Readonly<{ children: React.React
           <MobileNav />
           <Sidebar />
           <div className="lg:py-2 lg:pr-2">
-            <div className="min-h-screen bg-panel lg:min-h-[calc(100vh-1rem)] lg:rounded-md lg:border lg:border-line">
+            <div className="min-h-screen bg-panel lg:min-h-[calc(100vh-1rem)] lg:rounded-xl lg:border lg:border-line">
               {children}
             </div>
           </div>

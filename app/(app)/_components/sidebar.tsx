@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -12,7 +12,9 @@ import {
   MessageSquareText,
   ListChecks,
   Menu,
+  Moon,
   Settings,
+  Sun,
   Swords,
   X,
   type LucideIcon,
@@ -52,6 +54,34 @@ function Wordmark({ id }: { id: string }) {
   );
 }
 
+function ThemeToggle() {
+  const [dark, setDark] = useState(false);
+  useEffect(() => setDark(document.documentElement.classList.contains("dark")), []);
+
+  const toggle = () => {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    try {
+      localStorage.setItem("ov-theme", next ? "dark" : "light");
+    } catch {
+      /* private mode: the theme just won't persist */
+    }
+  };
+
+  const Icon = dark ? Sun : Moon;
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className="flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-sm text-fg-default transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+    >
+      <Icon className="size-4 text-fg-subtle" strokeWidth={1.75} />
+      {dark ? "Light mode" : "Dark mode"}
+    </button>
+  );
+}
+
 function NavLink({ item, active }: { item: Item; active: boolean }) {
   const Icon = item.icon;
   return (
@@ -59,7 +89,7 @@ function NavLink({ item, active }: { item: Item; active: boolean }) {
       href={item.href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex h-8 items-center gap-2.5 rounded px-2.5 text-sm transition-colors",
+        "flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors",
         active
           ? "bg-panel font-medium text-fg ring-1 ring-line"
           : "text-fg-default hover:bg-black/5 dark:hover:bg-white/5",
@@ -108,7 +138,7 @@ export function MobileNav() {
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-label={open ? "Close menu" : "Open menu"}
-          className="flex size-9 items-center justify-center rounded border border-line bg-panel text-fg-default"
+          className="flex size-9 items-center justify-center rounded-lg border border-line bg-panel text-fg-default"
         >
           {open ? <X className="size-4" /> : <Menu className="size-4" />}
         </button>
@@ -134,9 +164,9 @@ export function Sidebar() {
 
       <button
         type="button"
-        className="flex items-center gap-2.5 rounded border border-line bg-panel px-2.5 py-2 text-left transition-colors hover:bg-hover"
+        className="flex items-center gap-2.5 rounded-lg border border-line bg-panel px-2.5 py-2 text-left transition-colors hover:bg-hover"
       >
-        <span className="flex size-7 items-center justify-center rounded-xs bg-linear-to-br from-blue-500 to-violet-500 text-xs font-semibold text-white">
+        <span className="flex size-7 items-center justify-center rounded-md bg-linear-to-br from-blue-500 to-violet-500 text-xs font-semibold text-white">
           {BRAND.name[0]}
         </span>
         <span className="min-w-0 flex-1">
@@ -154,9 +184,10 @@ export function Sidebar() {
           active={pathname === "/settings"}
         />
         <NavLink item={{ href: "/help", label: "Help", icon: CircleHelp }} active={false} />
+        <ThemeToggle />
       </div>
 
-      <div className="rounded border border-line bg-panel p-3">
+      <div className="rounded-lg border border-line bg-panel p-3">
         <div className="flex items-baseline justify-between text-xs">
           <span className="font-medium text-fg">Free answers</span>
           <span className="tabular text-fg-subtle">
