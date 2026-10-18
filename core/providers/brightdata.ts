@@ -18,6 +18,8 @@ const API = "https://api.brightdata.com/datasets/v3";
  * Dataset IDs from https://docs.brightdata.com/scrapers.json.
  * Most scrapers take the app's home page; AI Mode needs the full search URL
  * with the prompt and `udm=50` (the AI Mode tab), plus an interface language.
+ * AI Overviews come from the Google search results scraper, which returns
+ * the overview as `aio_text` / `aio_citations` and takes a `keyword`.
  */
 export const BRIGHT_DATA_DATASETS = {
   chatgpt: { datasetId: "gd_m7aof0k82r803d5bjm", url: () => "https://chatgpt.com/" },
@@ -28,6 +30,7 @@ export const BRIGHT_DATA_DATASETS = {
     datasetId: "gd_mcswdt6z2elth3zqr2",
     url: (prompt: string) => `https://www.google.com/search?udm=50&q=${encodeURIComponent(prompt)}`,
   },
+  ai_overviews: { datasetId: "gd_mfz5x93lmsjjjylob", url: () => "https://www.google.com/" },
 } as const;
 
 export type BrightDataEngine = keyof typeof BRIGHT_DATA_DATASETS;
@@ -57,6 +60,8 @@ export type BrightDataAnswer = {
   model?: string;
   /** whether the app actually searched; ChatGPT reports this */
   webSearchTriggered?: boolean;
+  /** AI Overviews only: whether Google showed an overview for this query */
+  shown?: boolean;
   country?: string;
   raw: Record<string, unknown>;
 };
@@ -106,14 +111,24 @@ export class BrightDataClient {
   /** Start a collection for many prompts on one engine. Returns the snapshot ID. */
   async trigger(engine: BrightDataEngine, inputs: BrightDataInput[]): Promise<string> {
     const { datasetId, url } = BRIGHT_DATA_DATASETS[engine];
-    const input = inputs.map((it, index) => ({
-      url: url(it.prompt),
-      prompt: it.prompt,
-      index,
-      ...(it.country ? { country: it.country.toUpperCase() } : {}),
-      ...(engine === "chatgpt" && it.webSearch !== undefined ? { web_search: it.webSearch } : {}),
-      ...(engine === "ai_mode" ? { hl: "en" } : {}),
-    }));
+    const input = inputs.map((it, index) =>
+      engine === "ai_overviews"
+        ? {
+            url: url(it.prompt),
+            keyword: it.prompt,
+            index,
+            language: "en",
+            ...(it.country ? { country: it.country.toUpperCase() } : {}),
+          }
+        : {
+            url: url(it.prompt),
+            prompt: it.prompt,
+            index,
+            ...(it.country ? { country: it.country.toUpperCase() } : {}),
+            ...(engine === "chatgpt" && it.webSearch !== undefined ? { web_search: it.webSearch } : {}),
+            ...(engine === "ai_mode" ? { hl: "en" } : {}),
+          },
+    );
 
     const res = await this.request(
       `/trigger?dataset_id=${datasetId}&format=json&include_errors=true`,
@@ -216,6 +231,7 @@ function sourceChipsFromMarkdown(md: string | undefined): Citation[] {
 
 /** Fields that hold the full page HTML (1 MB+) or page chrome; never worth storing. */
 const BULKY_FIELDS = new Set([
+  "page_html",
   "answer_html",
   "answer_section_html",
   "response_raw",
@@ -232,6 +248,31 @@ const slim = (r: Record<string, unknown>) =>
  */
 export function normalize(engine: BrightDataEngine, r: Record<string, unknown>): BrightDataAnswer {
   const error = str(r.error) ?? str(r.error_code) ?? str(r.warning_code);
+
+  if (engine === "ai_overviews") {
+    // no overview is a normal outcome, not an error: Google shows one only for some queries
+    // drop the labels Google puts before the overview ("AI Overview", "AI Mode replied:")
+    const text = (str(r.aio_text) ?? str(r.aio_markdown) ?? "")
+      .replace(/^\s*AI Overview\s*/, "")
+      .replace(/^\s*AI Mode replied:\s*/, "");
+    return {
+      engine,
+      prompt: str(r.keyword) ?? "",
+      index: typeof r.index === "number" ? r.index : -1,
+      ok: !error,
+      error,
+      text,
+      // titles carry Google's screen-reader suffix ". Opens in new tab."
+      citations: toCitations(r.aio_citations).map((c) => ({
+        ...c,
+        title: c.title?.replace(/\.?\s*Opens in new tab\.?$/, "").trim(),
+      })),
+      links: [],
+      shown: text.length > 0,
+      country: str(r.country),
+      raw: slim(r),
+    };
+  }
   const text =
     str(r.answer_text) ??
     str(r.answer_text_markdown) ??

@@ -1,7 +1,7 @@
 /**
  * Day 1 spike, consumer-app route: run a prompt through Bright Data's
- * scrapers (ChatGPT, Gemini, Google AI Mode, Perplexity, Copilot) and
- * Google AI Overviews (SERP API), and show what comes back.
+ * scrapers (ChatGPT, Gemini, Google AI Mode, Google AI Overviews,
+ * Perplexity, Copilot) and show what comes back.
  * Raw results are saved to scripts/fixtures/ for the Day 10 tests.
  *
  *   npm run spike:bd
@@ -10,14 +10,12 @@
  *
  * Each prompt × engine uses one record of the free 5,000 a month
  * (failed records aren't billed).
- * Needs BRIGHT_DATA_API_KEY in .env.local; `ai_overviews` also needs
- * BRIGHT_DATA_SERP_ZONE (a SERP API zone from the control panel).
+ * Needs BRIGHT_DATA_API_KEY in .env.local.
  */
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { BrightDataClient, BRIGHT_DATA_DATASETS, type BrightDataEngine, type Citation } from "../core/providers/brightdata";
-import { fetchAiOverview } from "../core/providers/brightdata-serp";
 
 type Outcome = {
   engine: string;
@@ -33,7 +31,7 @@ type Outcome = {
   shown?: boolean;
 };
 
-const ENGINES = [...Object.keys(BRIGHT_DATA_DATASETS), "ai_overviews"];
+const ENGINES = Object.keys(BRIGHT_DATA_DATASETS);
 
 function arg(name: string) {
   const i = process.argv.indexOf(`--${name}`);
@@ -58,11 +56,6 @@ async function main() {
       process.exit(1);
     }
   }
-  const serpZone = process.env.BRIGHT_DATA_SERP_ZONE;
-  if (engines.includes("ai_overviews") && !serpZone) {
-    console.error("ai_overviews needs BRIGHT_DATA_SERP_ZONE in .env.local (a SERP API zone from the Bright Data control panel).");
-    process.exit(1);
-  }
 
   const client = new BrightDataClient(key);
   const outDir = join(process.cwd(), "scripts", "fixtures");
@@ -81,11 +74,6 @@ async function main() {
     const started = Date.now();
     const elapsed = () => Math.round((Date.now() - started) / 1000);
     try {
-      if (engine === "ai_overviews") {
-        const r = await fetchAiOverview(key!, serpZone!, { query: prompt, country: country ?? "US" });
-        save(engine, { seconds: elapsed(), result: r });
-        return { engine, seconds: elapsed(), ok: r.ok, error: r.error, text: r.text, citations: r.citations, shown: r.present };
-      }
       const { snapshotId, answers } = await client.run(engine as BrightDataEngine, [{ prompt, country, webSearch: true }], {
         onStatus: (s) => console.log(`  ${engine.padEnd(12)} ${s} (${elapsed()}s)`),
       });
@@ -102,6 +90,7 @@ async function main() {
         links: a.links.length,
         model: a.model,
         searched: a.webSearchTriggered,
+        shown: a.shown,
       };
     } catch (err) {
       return { engine, seconds: elapsed(), ok: false, error: err instanceof Error ? err.message : String(err), text: "", citations: [] };
