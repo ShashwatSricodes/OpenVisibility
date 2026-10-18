@@ -7,8 +7,7 @@ import { POSTS, formatDate } from "@/lib/posts";
 
 export const metadata: Metadata = {
   title: "Blog — OpenVisibility",
-  description:
-    "Notes on AI search visibility, measurement, and keeping API costs honest.",
+  description: "Notes on AI search visibility, measurement, and keeping API costs honest.",
 };
 
 export default function BlogIndex() {

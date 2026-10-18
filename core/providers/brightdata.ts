@@ -76,7 +76,15 @@ export class BrightDataError extends Error {
   }
 }
 
-type ProgressStatus = "running" | "ready" | "failed" | "canceled" | "starting" | "building" | "collecting" | "digesting";
+type ProgressStatus =
+  | "running"
+  | "ready"
+  | "failed"
+  | "canceled"
+  | "starting"
+  | "building"
+  | "collecting"
+  | "digesting";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -103,7 +111,10 @@ export class BrightDataClient {
     }
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      throw new BrightDataError(`Bright Data ${res.status} on ${path}: ${body.slice(0, 1500)}`, res.status);
+      throw new BrightDataError(
+        `Bright Data ${res.status} on ${path}: ${body.slice(0, 1500)}`,
+        res.status,
+      );
     }
     return res;
   }
@@ -125,7 +136,9 @@ export class BrightDataClient {
             prompt: it.prompt,
             index,
             ...(it.country ? { country: it.country.toUpperCase() } : {}),
-            ...(engine === "chatgpt" && it.webSearch !== undefined ? { web_search: it.webSearch } : {}),
+            ...(engine === "chatgpt" && it.webSearch !== undefined
+              ? { web_search: it.webSearch }
+              : {}),
             ...(engine === "ai_mode" ? { hl: "en" } : {}),
           },
     );
@@ -135,14 +148,19 @@ export class BrightDataClient {
       { method: "POST", body: JSON.stringify({ input }) },
     );
     const json = (await res.json()) as { snapshot_id?: string };
-    if (!json.snapshot_id) throw new BrightDataError(`No snapshot_id in trigger response: ${JSON.stringify(json)}`);
+    if (!json.snapshot_id)
+      throw new BrightDataError(`No snapshot_id in trigger response: ${JSON.stringify(json)}`);
     return json.snapshot_id;
   }
 
   /** Poll until the snapshot is ready. Polls every 10 seconds by default. */
   async waitForSnapshot(
     snapshotId: string,
-    { intervalMs = 10_000, timeoutMs = 15 * 60_000, onStatus }: {
+    {
+      intervalMs = 10_000,
+      timeoutMs = 15 * 60_000,
+      onStatus,
+    }: {
       intervalMs?: number;
       timeoutMs?: number;
       onStatus?: (status: string) => void;
@@ -155,18 +173,23 @@ export class BrightDataClient {
       onStatus?.(progress.status ?? "unknown");
       if (progress.status === "ready") return;
       if (progress.status === "failed" || progress.status === "canceled") {
-        throw new BrightDataError(`Snapshot ${snapshotId} ${progress.status}: ${progress.error_message ?? "no details"}`);
+        throw new BrightDataError(
+          `Snapshot ${snapshotId} ${progress.status}: ${progress.error_message ?? "no details"}`,
+        );
       }
       await sleep(intervalMs);
     }
-    throw new BrightDataError(`Snapshot ${snapshotId} not ready after ${Math.round(timeoutMs / 1000)}s`);
+    throw new BrightDataError(
+      `Snapshot ${snapshotId} not ready after ${Math.round(timeoutMs / 1000)}s`,
+    );
   }
 
   /** Download a ready snapshot's records. */
   async download(snapshotId: string): Promise<Record<string, unknown>[]> {
     const res = await this.request(`/snapshot/${snapshotId}?format=json`);
     const json = (await res.json()) as unknown;
-    if (!Array.isArray(json)) throw new BrightDataError(`Unexpected snapshot shape: ${JSON.stringify(json).slice(0, 300)}`);
+    if (!Array.isArray(json))
+      throw new BrightDataError(`Unexpected snapshot shape: ${JSON.stringify(json).slice(0, 300)}`);
     return json as Record<string, unknown>[];
   }
 
@@ -208,7 +231,10 @@ function toCitations(v: unknown): Citation[] {
 }
 
 const stripHtml = (html: string) =>
-  html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
 /**
  * ChatGPT often shows its sources only as small chips ("IndieToolkit +1")
@@ -279,7 +305,9 @@ export function normalize(engine: BrightDataEngine, r: Record<string, unknown>):
     (str(r.answer_html) ? stripHtml(str(r.answer_html)!) : "") ??
     "";
 
-  const listed = toCitations(r.citations).length ? toCitations(r.citations) : toCitations(r.sources);
+  const listed = toCitations(r.citations).length
+    ? toCitations(r.citations)
+    : toCitations(r.sources);
   const citations = listed.length ? listed : sourceChipsFromMarkdown(str(r.answer_text_markdown));
 
   return {
@@ -292,7 +320,8 @@ export function normalize(engine: BrightDataEngine, r: Record<string, unknown>):
     citations,
     links: toCitations(r.links_attached),
     model: str(r.model),
-    webSearchTriggered: typeof r.web_search_triggered === "boolean" ? r.web_search_triggered : undefined,
+    webSearchTriggered:
+      typeof r.web_search_triggered === "boolean" ? r.web_search_triggered : undefined,
     country: str(r.country),
     raw: slim(r),
   };

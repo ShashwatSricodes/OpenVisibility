@@ -15,7 +15,12 @@
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { BrightDataClient, BRIGHT_DATA_DATASETS, type BrightDataEngine, type Citation } from "../core/providers/brightdata";
+import {
+  BrightDataClient,
+  BRIGHT_DATA_DATASETS,
+  type BrightDataEngine,
+  type Citation,
+} from "../core/providers/brightdata";
 
 type Outcome = {
   engine: string;
@@ -63,7 +68,11 @@ async function main() {
   const save = (engine: string, data: object) =>
     writeFileSync(
       join(outDir, `brightdata-${engine}.json`),
-      JSON.stringify({ capturedAt: new Date().toISOString(), engine, prompt, country: country ?? null, ...data }, null, 2),
+      JSON.stringify(
+        { capturedAt: new Date().toISOString(), engine, prompt, country: country ?? null, ...data },
+        null,
+        2,
+      ),
     );
 
   console.log(`Prompt:  ${prompt}`);
@@ -74,12 +83,24 @@ async function main() {
     const started = Date.now();
     const elapsed = () => Math.round((Date.now() - started) / 1000);
     try {
-      const { snapshotId, answers } = await client.run(engine as BrightDataEngine, [{ prompt, country, webSearch: true }], {
-        onStatus: (s) => console.log(`  ${engine.padEnd(12)} ${s} (${elapsed()}s)`),
-      });
+      const { snapshotId, answers } = await client.run(
+        engine as BrightDataEngine,
+        [{ prompt, country, webSearch: true }],
+        {
+          onStatus: (s) => console.log(`  ${engine.padEnd(12)} ${s} (${elapsed()}s)`),
+        },
+      );
       save(engine, { snapshotId, seconds: elapsed(), answers });
       const a = answers[0];
-      if (!a) return { engine, seconds: elapsed(), ok: false, error: "no records returned", text: "", citations: [] };
+      if (!a)
+        return {
+          engine,
+          seconds: elapsed(),
+          ok: false,
+          error: "no records returned",
+          text: "",
+          citations: [],
+        };
       return {
         engine,
         seconds: elapsed(),
@@ -93,7 +114,14 @@ async function main() {
         shown: a.shown,
       };
     } catch (err) {
-      return { engine, seconds: elapsed(), ok: false, error: err instanceof Error ? err.message : String(err), text: "", citations: [] };
+      return {
+        engine,
+        seconds: elapsed(),
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+        text: "",
+        citations: [],
+      };
     }
   }
 
@@ -107,12 +135,14 @@ async function main() {
     if (r.text) console.log(r.text.slice(0, 600) + (r.text.length > 600 ? " …" : ""));
     if (r.citations.length) {
       console.log("\nCitations:");
-      for (const c of r.citations.slice(0, 8)) console.log(`  ${c.position ?? "-"}. ${c.title ?? ""} ${c.url}`);
+      for (const c of r.citations.slice(0, 8))
+        console.log(`  ${c.position ?? "-"}. ${c.title ?? ""} ${c.url}`);
       if (r.citations.length > 8) console.log(`  … ${r.citations.length - 8} more`);
     }
   }
 
-  const mentions = (text: string) => (brand ? new RegExp(`\\b${brand}\\b`, "i").test(text) : undefined);
+  const mentions = (text: string) =>
+    brand ? new RegExp(`\\b${brand}\\b`, "i").test(text) : undefined;
 
   console.log("\nSummary");
   console.table(

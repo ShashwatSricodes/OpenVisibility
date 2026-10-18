@@ -29,8 +29,8 @@ export function Hero() {
             <Words text={HEADLINE} />
           </h1>
           <p className="hero-sub t-body">
-            Open-source visibility tracking across ChatGPT, Claude, Gemini,
-            Perplexity and Grok. Pay for the calls you run, nothing more.
+            Open-source visibility tracking across ChatGPT, Claude, Gemini, Perplexity and Grok. Pay
+            for the calls you run, nothing more.
           </p>
         </div>
         <div className="hero-cta">
@@ -54,12 +54,7 @@ export function Hero() {
             stroke="currentColor"
             strokeWidth="1.3"
           />
-          <path
-            d="M10 6v3"
-            stroke="currentColor"
-            strokeWidth="1.3"
-            strokeLinecap="round"
-          />
+          <path d="M10 6v3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
         </svg>
         <span>Scroll to explore</span>
       </div>

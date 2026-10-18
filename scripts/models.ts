@@ -24,8 +24,7 @@ type Model = {
   pricing?: { input?: string; output?: string; web_search?: string };
 };
 
-const perMillion = (v?: string) =>
-  v === undefined ? "-" : `$${(Number(v) * 1e6).toFixed(2)}`;
+const perMillion = (v?: string) => (v === undefined ? "-" : `$${(Number(v) * 1e6).toFixed(2)}`);
 
 async function main() {
   const all = process.argv.includes("--all");

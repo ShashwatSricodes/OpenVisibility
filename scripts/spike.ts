@@ -217,7 +217,14 @@ async function main() {
         console.log(`✓ ${engine}/${preset} (${t.label}): ${ms} ms, ${sources.length} sources`);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        rows.push({ engine, preset, model: t.label, ok: false, ms: Date.now() - started, error: message });
+        rows.push({
+          engine,
+          preset,
+          model: t.label,
+          ok: false,
+          ms: Date.now() - started,
+          error: message,
+        });
         console.log(`✗ ${engine}/${preset} (${t.label}): ${message}`);
       }
     }
