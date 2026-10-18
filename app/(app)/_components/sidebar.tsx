@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
-  ChevronsUpDown,
   CircleHelp,
   Clock,
   Link2,
@@ -21,7 +20,7 @@ import {
 } from "lucide-react";
 import { Logotype } from "@/components/brand/Logo";
 import { cn } from "../_lib/cn";
-import { BRAND, FREE_TIER } from "../_lib/sample-data";
+import { FREE_TIER } from "../_lib/sample-data";
 
 type Item = { href: string; label: string; icon: LucideIcon };
 
@@ -44,11 +43,11 @@ const GROUPS: { label: string; items: Item[] }[] = [
 
 function Wordmark({ id }: { id: string }) {
   return (
-    <Link href="/dashboard" className="flex items-center gap-2 px-2 py-1">
+    <Link href="/dashboard" className="flex items-center gap-2 px-2 py-1.5">
       <Logotype
         id={id}
-        height={19}
-        textClassName="font-display text-[15px] font-semibold tracking-tight"
+        height={16}
+        textClassName="font-display text-[14px] font-semibold tracking-tight"
       />
     </Link>
   );
@@ -74,9 +73,9 @@ function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-sm text-fg-default transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+      className="flex h-7 items-center gap-2 rounded-md px-2 text-[13px] text-fg-default transition-colors hover:bg-black/5 dark:hover:bg-white/5"
     >
-      <Icon className="size-4 text-fg-subtle" strokeWidth={1.75} />
+      <Icon className="size-3.5 text-fg-subtle" strokeWidth={1.75} />
       {dark ? "Light mode" : "Dark mode"}
     </button>
   );
@@ -89,13 +88,13 @@ function NavLink({ item, active }: { item: Item; active: boolean }) {
       href={item.href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors",
+        "flex h-7 items-center gap-2 rounded-md px-2 text-[13px] transition-colors",
         active
           ? "bg-panel font-medium text-fg ring-1 ring-line"
           : "text-fg-default hover:bg-black/5 dark:hover:bg-white/5",
       )}
     >
-      <Icon className={cn("size-4", active ? "text-fg" : "text-fg-subtle")} strokeWidth={1.75} />
+      <Icon className={cn("size-3.5", active ? "text-fg" : "text-fg-subtle")} strokeWidth={1.75} />
       {item.label}
     </Link>
   );
@@ -111,10 +110,10 @@ function NavGroups({
   onNavigate?: () => void;
 }) {
   return (
-    <nav className={cn("flex flex-col gap-6", className)} onClick={onNavigate}>
+    <nav className={cn("flex flex-col gap-5", className)} onClick={onNavigate}>
       {GROUPS.map((g) => (
         <div key={g.label} className="flex flex-col gap-0.5">
-          <p className="mb-1 px-2.5 text-xs font-medium text-fg-muted">{g.label}</p>
+          <p className="mb-1 px-2 text-[11px] font-medium text-fg-muted">{g.label}</p>
           {g.items.map((item) => (
             <NavLink key={item.href} item={item} active={pathname === item.href} />
           ))}
@@ -159,22 +158,8 @@ export function Sidebar() {
   const pct = Math.round((FREE_TIER.used / FREE_TIER.limit) * 100);
 
   return (
-    <aside className="sticky top-0 hidden h-screen flex-col gap-5 px-3 py-4 lg:flex">
+    <aside className="sticky top-0 hidden h-screen flex-col gap-4 px-2.5 py-3.5 lg:flex">
       <Wordmark id="sidebar" />
-
-      <button
-        type="button"
-        className="flex items-center gap-2.5 rounded-lg border border-line bg-panel px-2.5 py-2 text-left transition-colors hover:bg-hover"
-      >
-        <span className="flex size-7 items-center justify-center rounded-md bg-linear-to-br from-blue-500 to-violet-500 text-xs font-semibold text-white">
-          {BRAND.name[0]}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium">{BRAND.name}</span>
-          <span className="block truncate text-xs text-fg-subtle">{BRAND.domain}</span>
-        </span>
-        <ChevronsUpDown className="size-4 text-fg-muted" />
-      </button>
 
       <NavGroups pathname={pathname} className="flex-1 overflow-y-auto scrollbar-hide" />
 
@@ -187,7 +172,7 @@ export function Sidebar() {
         <ThemeToggle />
       </div>
 
-      <div className="rounded-lg border border-line bg-panel p-3">
+      <div className="rounded-lg border border-line bg-panel p-2.5">
         <div className="flex items-baseline justify-between text-xs">
           <span className="font-medium text-fg">Free answers</span>
           <span className="tabular text-fg-subtle">
@@ -204,7 +189,7 @@ export function Sidebar() {
         >
           <div className="h-full rounded-full bg-fg" style={{ width: `${pct}%` }} />
         </div>
-        <p className="mt-2 text-xs text-fg-subtle">Bright Data · resets {FREE_TIER.resets}</p>
+        <p className="mt-1.5 text-[11px] text-fg-subtle">Bright Data · resets {FREE_TIER.resets}</p>
       </div>
     </aside>
   );

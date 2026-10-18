@@ -60,13 +60,13 @@ function seriesFor(metric: MetricId, engine: EngineId | "all") {
 /* ── filter controls, Dub style ───────────────────────────── */
 
 const triggerClass =
-  "flex h-9 items-center gap-2 rounded-lg border border-line bg-panel px-3 text-sm text-fg outline-none transition-colors hover:bg-hover focus-visible:ring-2 focus-visible:ring-line-strong data-[state=open]:bg-hover";
+  "flex h-8 items-center gap-1.5 rounded-lg border border-line bg-panel px-2.5 text-[13px] text-fg outline-none transition-colors hover:bg-hover focus-visible:ring-2 focus-visible:ring-line-strong data-[state=open]:bg-hover";
 
 const contentClass =
-  "z-50 min-w-52 rounded-lg border border-line bg-panel p-1 text-sm text-fg shadow-[0_8px_24px_rgb(0_0_0/0.08)]";
+  "z-50 min-w-48 rounded-lg border border-line bg-panel p-1 text-[13px] text-fg shadow-[0_8px_24px_rgb(0_0_0/0.08)]";
 
 const itemClass =
-  "flex h-8 cursor-default items-center justify-between gap-6 rounded-md px-2 outline-none data-[highlighted]:bg-hover";
+  "flex h-7 cursor-default items-center justify-between gap-6 rounded-md px-2 outline-none data-[highlighted]:bg-hover";
 
 function FilterMenu({
   engine,
@@ -83,7 +83,7 @@ function FilterMenu({
   return (
     <Menu.Root>
       <Menu.Trigger className={triggerClass}>
-        <ListFilter className="size-4" />
+        <ListFilter className="size-3.5" />
         Filter
         {active > 0 && (
           <span className="tabular rounded bg-fg px-1.5 text-[11px] font-medium text-panel">
@@ -118,9 +118,9 @@ function FilterMenu({
 function DateMenu({ range, setRange }: { range: string; setRange: (r: string) => void }) {
   return (
     <Menu.Root>
-      <Menu.Trigger className={cn(triggerClass, "min-w-40 justify-between")}>
+      <Menu.Trigger className={cn(triggerClass, "min-w-36 justify-between")}>
         <span className="flex items-center gap-2">
-          <Calendar className="size-4" />
+          <Calendar className="size-3.5" />
           {range}
         </span>
         <ChevronDown className="size-4 text-fg-muted" />
@@ -168,17 +168,17 @@ function KpiTabs({
             aria-selected={active}
             title={m.hint}
             onClick={() => onSelect(m.id)}
-            className="relative min-w-40 flex-none border-r border-line px-5 py-4 text-left transition-colors last:border-r-0 hover:bg-hover focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-fg-subtle sm:min-w-60 sm:px-8 sm:py-6 sm:first:rounded-tl-xl"
+            className="relative min-w-36 flex-none border-r border-line px-4 py-3 text-left transition-colors last:border-r-0 hover:bg-hover focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-fg-subtle sm:min-w-48 sm:px-5 sm:py-4 sm:first:rounded-tl-xl"
           >
-            <span className="flex items-center gap-2.5 text-sm text-fg-default">
+            <span className="flex items-center gap-2 text-xs text-fg-default">
               <span
                 className="size-2 rounded-sm shadow-[inset_0_0_0_1px_rgb(0_0_0/0.1)]"
                 style={{ background: METRIC_COLOR[m.id], opacity: 0.5 }}
               />
               {m.label}
             </span>
-            <span className="mt-1 flex h-12 items-center">
-              <span className="tabular text-2xl font-medium sm:text-3xl">{m.format(current)}</span>
+            <span className="mt-1 flex h-8 items-center">
+              <span className="tabular text-xl font-medium sm:text-2xl">{m.format(current)}</span>
             </span>
             <span
               aria-hidden="true"
@@ -205,9 +205,9 @@ function ChartTooltip({
   if (!active || !payload?.length) return null;
   const p = payload[0].payload as { date: string; value: number };
   return (
-    <div className="min-w-44 rounded-lg border border-line bg-panel text-sm shadow-[0_8px_24px_rgb(0_0_0/0.08)]">
-      <p className="border-b border-line px-4 py-3 text-fg">{longDate(p.date)}</p>
-      <div className="flex items-center justify-between gap-6 px-4 py-3">
+    <div className="min-w-40 rounded-lg border border-line bg-panel text-[13px] shadow-[0_8px_24px_rgb(0_0_0/0.08)]">
+      <p className="border-b border-line px-3 py-2 text-fg">{longDate(p.date)}</p>
+      <div className="flex items-center justify-between gap-6 px-3 py-2">
         <span className="flex items-center gap-2 text-fg-default">
           <span className="size-2 rounded-sm" style={{ background: color, opacity: 0.5 }} />
           {metric.label}
@@ -235,8 +235,8 @@ export function OverviewTop({ title, subtitle }: { title: string; subtitle: stri
     <>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-lg font-semibold">{title}</h1>
-          <p className="truncate text-sm text-fg-subtle">{subtitle}</p>
+          <h1 className="text-base font-semibold">{title}</h1>
+          <p className="truncate text-xs text-fg-subtle">{subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <FilterMenu
@@ -248,9 +248,9 @@ export function OverviewTop({ title, subtitle }: { title: string; subtitle: stri
           <DateMenu range={range} setRange={setRange} />
           <button
             type="button"
-            className="flex h-9 items-center gap-2 rounded-lg bg-inverted px-3 text-sm font-medium text-on-inverted transition-opacity hover:opacity-90"
+            className="flex h-8 items-center gap-1.5 rounded-lg bg-inverted px-2.5 text-[13px] font-medium text-on-inverted transition-opacity hover:opacity-90"
           >
-            <Play className="size-3.5 fill-current" />
+            <Play className="size-3 fill-current" />
             Run now
           </button>
         </div>
@@ -259,7 +259,7 @@ export function OverviewTop({ title, subtitle }: { title: string; subtitle: stri
       <section className="overflow-hidden rounded-xl border border-line bg-panel">
         <KpiTabs engine={engine} selected={metricId} onSelect={setMetricId} />
         <div
-          className="h-80 px-2 pb-4 pt-6 sm:h-96 sm:px-6"
+          className="h-60 px-2 pb-3 pt-4 sm:h-64 sm:px-5"
           role="img"
           aria-label={`${metric.label}${engine === "all" ? " across all engines" : ` on ${ENGINES.find((e) => e.id === engine)?.name}`}, ${range.toLowerCase()}`}
         >
@@ -285,7 +285,7 @@ export function OverviewTop({ title, subtitle }: { title: string; subtitle: stri
                     y={y}
                     dy={10}
                     textAnchor={payload.value === first ? "start" : "end"}
-                    fontSize={12}
+                    fontSize={11}
                     fill={payload.value === last ? "var(--fg)" : "var(--fg-muted)"}
                     fontWeight={payload.value === last ? 500 : 400}
                   >
@@ -294,10 +294,10 @@ export function OverviewTop({ title, subtitle }: { title: string; subtitle: stri
                 )}
               />
               <YAxis
-                width={40}
+                width={36}
                 tickLine={false}
                 axisLine={false}
-                tick={{ fill: "var(--fg-muted)", fontSize: 12 }}
+                tick={{ fill: "var(--fg-muted)", fontSize: 11 }}
                 tickFormatter={(v: number) => (metric.invert ? `#${v}` : `${v}%`)}
                 reversed={metric.invert}
                 domain={metric.invert ? [1, "auto"] : [0, "auto"]}

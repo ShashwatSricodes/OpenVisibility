@@ -95,10 +95,10 @@ export function BarListCard({
     <section
       className={cn(
         "relative z-0 overflow-hidden rounded-xl border border-line bg-panel",
-        expanded ? "h-auto" : "h-100",
+        expanded ? "h-auto" : "h-80",
       )}
     >
-      <div className="flex items-center justify-between border-b border-line px-4">
+      <div className="flex items-center justify-between border-b border-line px-3">
         <div role="tablist" className="scrollbar-hide flex overflow-x-auto">
           {tabs.map((t) => (
             <button
@@ -107,11 +107,11 @@ export function BarListCard({
               role="tab"
               aria-selected={t.id === tab.id}
               onClick={() => selectTab(t)}
-              className="relative overflow-hidden px-1 py-2.5 focus:outline-none"
+              className="relative overflow-hidden px-0.5 py-1.5 focus:outline-none"
             >
               <span
                 className={cn(
-                  "block whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-hover",
+                  "block whitespace-nowrap rounded-md px-2 py-1 text-[13px] transition-colors hover:bg-hover",
                   t.id === tab.id ? "text-fg" : "text-fg-subtle",
                 )}
               >
@@ -129,12 +129,12 @@ export function BarListCard({
         </div>
         <p className="hidden shrink-0 items-center gap-1 pl-2 text-fg-subtle sm:flex">
           {captionIcon}
-          <span className="text-xs uppercase">{caption}</span>
+          <span className="text-[11px] uppercase">{caption}</span>
         </p>
       </div>
 
       {tab.subTabs && (
-        <div className="flex gap-1 border-b border-line bg-hover px-4 py-2">
+        <div className="flex gap-1 border-b border-line bg-hover px-3 py-1.5">
           {tab.subTabs.map((s) => (
             <button
               key={s.id}
@@ -157,14 +157,14 @@ export function BarListCard({
         </div>
       )}
 
-      <ul className="grid auto-rows-min py-4" role="tabpanel">
+      <ul className="grid auto-rows-min py-2.5" role="tabpanel">
         {list.map((item) => {
           const ratio = tab.invert ? min / item.value : item.value / max;
           return (
             <li
               key={item.key}
               className={cn(
-                "group block min-w-0 border-l-2 border-transparent px-4 py-1 transition-all",
+                "group block min-w-0 border-l-2 border-transparent px-3 py-0.5 transition-all",
                 TINTS[tint].hover,
               )}
             >
@@ -176,16 +176,16 @@ export function BarListCard({
                   )}
                   style={{ width: `${Math.max(1, ratio * 100)}%` }}
                 />
-                <div className="relative z-10 flex h-8 min-w-0 items-center gap-3 px-3">
+                <div className="relative z-10 flex h-7 min-w-0 items-center gap-2.5 px-2.5">
                   {item.icon}
-                  <span className="truncate text-sm text-fg">{item.label}</span>
+                  <span className="truncate text-[13px] text-fg">{item.label}</span>
                   {item.tag && (
                     <span className="shrink-0 rounded-md border border-line bg-panel px-1.5 text-[11px] text-fg-subtle">
                       {item.tag}
                     </span>
                   )}
                 </div>
-                <span className="tabular z-10 shrink-0 px-2 text-sm text-fg-default">
+                <span className="tabular z-10 shrink-0 px-2 text-[13px] text-fg-default">
                   {FORMATTERS[tab.format](item.value)}
                 </span>
               </div>
@@ -194,20 +194,20 @@ export function BarListCard({
         })}
       </ul>
 
-      {list.length > 7 && (
+      {list.length > 6 && (
         <div
           className={cn(
-            "flex w-full justify-center py-4",
+            "flex w-full justify-center py-3",
             !expanded && "absolute bottom-0 left-0 z-10 items-end",
           )}
         >
           {!expanded && (
-            <div className="pointer-events-none absolute bottom-0 left-0 h-48 w-full bg-linear-to-t from-panel" />
+            <div className="pointer-events-none absolute bottom-0 left-0 h-32 w-full bg-linear-to-t from-panel" />
           )}
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="relative h-8 rounded-lg border border-line bg-panel px-3 text-sm text-fg-default transition-colors hover:bg-hover active:border-line-strong"
+            className="relative h-7 rounded-lg border border-line bg-panel px-2.5 text-[13px] text-fg-default transition-colors hover:bg-hover active:border-line-strong"
           >
             {expanded ? "Show less" : "View All"}
           </button>

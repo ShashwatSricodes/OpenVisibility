@@ -17,8 +17,8 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-/* Applies the saved or system theme before first paint, so dark mode never flashes white. */
-const themeScript = `try{var t=localStorage.getItem("ov-theme");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark")}catch(e){}`;
+/* Dark by default; a saved "light" choice wins. Runs before first paint so there is no flash. */
+const themeScript = `try{if(localStorage.getItem("ov-theme")!=="light")document.documentElement.classList.add("dark")}catch(e){document.documentElement.classList.add("dark")}`;
 
 /* Root layout for the product; the landing page has its own in (marketing). */
 export default function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -32,7 +32,7 @@ export default function AppLayout({ children }: Readonly<{ children: React.React
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-screen">
-        <div className="min-h-screen lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
+        <div className="min-h-screen lg:grid lg:grid-cols-[216px_minmax(0,1fr)]">
           <MobileNav />
           <Sidebar />
           <div className="lg:py-2 lg:pr-2">
