@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { BrandMark } from "./BrandMark";
 
 const LINKS = [
@@ -19,21 +20,21 @@ export function Nav() {
     <nav className={`nav${open ? " open" : ""}`}>
       <div className="nav-in">
         <div className="nav-links">
-          <a className="brand" href="/#hero" onClick={() => setOpen(false)}>
+          <Link className="brand" href="/#hero" onClick={() => setOpen(false)}>
             <BrandMark />
             OpenVisibility
-          </a>
+          </Link>
           <div className="nav-menu">
             {LINKS.map((l) => (
-              <a key={l.href} href={l.href} onClick={() => setOpen(false)}>
+              <Link key={l.href} href={l.href} onClick={() => setOpen(false)}>
                 {l.label}
-              </a>
+              </Link>
             ))}
           </div>
           <div className="nav-cta">
-            <a className="btn btn-text btn-sm" href="/#pricing">
+            <Link className="btn btn-text btn-sm" href="/#pricing">
               Start tracking
-            </a>
+            </Link>
           </div>
         </div>
 

@@ -115,8 +115,7 @@ export function Benefits() {
         </Reveal>
         <Reveal delay={0.1}>
           <h2 className="t-h2">
-            The insights that matter{" "}
-            <span className="dim">without the enterprise price tag.</span>
+            The insights that matter <span className="dim">without the enterprise price tag.</span>
           </h2>
         </Reveal>
       </div>

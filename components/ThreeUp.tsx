@@ -7,21 +7,36 @@ function MockEngines() {
       <span className="ui-pill">
         <svg viewBox="0 0 14 14" fill="none">
           <circle cx="6.2" cy="6.2" r="4" stroke="currentColor" strokeWidth="1.2" />
-          <path d="m9.2 9.2 2.6 2.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <path
+            d="m9.2 9.2 2.6 2.6"
+            stroke="currentColor"
+            strokeWidth="1.3"
+            strokeLinecap="round"
+          />
         </svg>
         ChatGPT · web search
       </span>
       <span className="ui-pill">
         <svg viewBox="0 0 14 14" fill="none">
           <circle cx="6.2" cy="6.2" r="4" stroke="currentColor" strokeWidth="1.2" />
-          <path d="m9.2 9.2 2.6 2.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <path
+            d="m9.2 9.2 2.6 2.6"
+            stroke="currentColor"
+            strokeWidth="1.3"
+            strokeLinecap="round"
+          />
         </svg>
         Claude · web search
       </span>
       <span className="ui-pill">
         <svg viewBox="0 0 14 14" fill="none">
           <circle cx="6.2" cy="6.2" r="4" stroke="currentColor" strokeWidth="1.2" />
-          <path d="m9.2 9.2 2.6 2.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <path
+            d="m9.2 9.2 2.6 2.6"
+            stroke="currentColor"
+            strokeWidth="1.3"
+            strokeLinecap="round"
+          />
         </svg>
         Gemini · Google grounding
       </span>
@@ -72,14 +87,27 @@ function MockEstimate() {
     <div className="ab-ui" aria-hidden="true">
       <span className="ui-pill">
         <svg viewBox="0 0 14 14" fill="none">
-          <path d="M2 11.5h10M3.5 9V6M7 9V3.5M10.5 9V5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <path
+            d="M2 11.5h10M3.5 9V6M7 9V3.5M10.5 9V5"
+            stroke="currentColor"
+            strokeWidth="1.3"
+            strokeLinecap="round"
+          />
         </svg>
         Estimate · 1,260 calls · $8.42
       </span>
       <span className="ui-line" />
       <span className="ui-pill">
         <svg viewBox="0 0 14 14" fill="none">
-          <rect x="2" y="3.5" width="10" height="7.5" rx="1.6" stroke="currentColor" strokeWidth="1.2" />
+          <rect
+            x="2"
+            y="3.5"
+            width="10"
+            height="7.5"
+            rx="1.6"
+            stroke="currentColor"
+            strokeWidth="1.2"
+          />
           <path d="M2 6h10" stroke="currentColor" strokeWidth="1.2" />
         </svg>
         Budget cap $25 / month · ok
@@ -133,9 +161,7 @@ export function ThreeUp() {
         <Reveal delay={0.1}>
           <h2 className="t-h2">
             AI visibility tracking you can afford{" "}
-            <span className="dim">
-              and read the source code of.
-            </span>
+            <span className="dim">and read the source code of.</span>
           </h2>
         </Reveal>
       </div>
@@ -144,14 +170,7 @@ export function ThreeUp() {
         {ITEMS.map((it, i) => (
           <Reveal key={it.title} delay={0.1 * i} className="ab" as="article">
             <div className="ab-img">
-              <img
-                src={it.img}
-                alt=""
-                width={1456}
-                height={816}
-                loading="lazy"
-                decoding="async"
-              />
+              <img src={it.img} alt="" width={1456} height={816} loading="lazy" decoding="async" />
               {it.ui}
             </div>
             <div className="ab-txt">

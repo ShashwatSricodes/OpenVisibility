@@ -39,8 +39,8 @@ export function OpenCore() {
             <span className="pill">AGPL-3.0</span>
           </div>
           <p className="t-body">
-            Everything you need to track AI visibility yourself. Read it,
-            fork it, and run it on a cheap VPS.
+            Everything you need to track AI visibility yourself. Read it, fork it, and run it on a
+            cheap VPS.
           </p>
           <ul className="inc">
             {OPEN.map((f) => (
@@ -54,8 +54,7 @@ export function OpenCore() {
             <code>
               <span className="c"># clone, add a key, start</span>
               {"\n"}git clone github.com/ShashwatSricodes/OpenVisibility
-              {"\n"}cp .env.example .env{" "}
-              <span className="c"># AI_GATEWAY_API_KEY=…</span>
+              {"\n"}cp .env.example .env <span className="c"># AI_GATEWAY_API_KEY=…</span>
               {"\n"}docker compose up -d
             </code>
           </pre>
@@ -67,8 +66,8 @@ export function OpenCore() {
             <span className="pill">/ee</span>
           </div>
           <p className="t-body">
-            The parts that only make sense when we run it for you, under a
-            commercial license. Hosted-only modules sit behind feature flags.
+            The parts that only make sense when we run it for you, under a commercial license.
+            Hosted-only modules sit behind feature flags.
           </p>
           <ul className="inc">
             {HOSTED.map((f) => (
@@ -79,8 +78,8 @@ export function OpenCore() {
             ))}
           </ul>
           <div className="oc-note t-small">
-            Releases ship on a regular schedule. Contributions are welcome
-            under a contributor license agreement.
+            Releases ship on a regular schedule. Contributions are welcome under a contributor
+            license agreement.
           </div>
         </Reveal>
       </div>

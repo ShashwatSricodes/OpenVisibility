@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BrandMark } from "./BrandMark";
 
 const NAV = [
@@ -15,10 +16,10 @@ export function Footer() {
       <div className="wrap foot-in">
         <div className="foot-l">
           <div className="foot-top">
-            <a className="brand" href="/#hero">
+            <Link className="brand" href="/#hero">
               <BrandMark />
               OpenVisibility
-            </a>
+            </Link>
             <p className="t-small">
               Open-source AI visibility tracking, priced for the rest of us.
             </p>
@@ -75,9 +76,9 @@ export function Footer() {
           <div className="foot-col">
             <h4>Navigation</h4>
             {NAV.map((l) => (
-              <a key={l.href} href={l.href}>
+              <Link key={l.href} href={l.href}>
                 {l.label}
-              </a>
+              </Link>
             ))}
           </div>
         </div>

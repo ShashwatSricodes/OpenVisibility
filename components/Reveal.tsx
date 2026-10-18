@@ -54,9 +54,7 @@ export function Reveal({
       ref={ref as React.RefObject<HTMLDivElement>}
       id={id}
       className={`rv ${className}`.trim()}
-      style={
-        { "--d": `${delay}s`, "--y": `${y}px`, ...style } as CSSProperties
-      }
+      style={{ "--d": `${delay}s`, "--y": `${y}px`, ...style } as CSSProperties}
     >
       {children}
     </Tag>

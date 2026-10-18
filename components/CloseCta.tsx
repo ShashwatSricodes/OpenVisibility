@@ -8,8 +8,8 @@ export function CloseCta() {
           <div>
             <h2 className="t-h2">Find out what AI says about you this week</h2>
             <p className="t-body">
-              Add your brand and competitors, review the estimate, and get
-              your first answers in minutes. Self-hosting is free.
+              Add your brand and competitors, review the estimate, and get your first answers in
+              minutes. Self-hosting is free.
             </p>
           </div>
           <a className="btn btn-primary" href="#pricing">

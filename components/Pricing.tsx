@@ -89,7 +89,9 @@ function Estimator() {
 
   const toggle = (e: string) =>
     setEngines((cur) =>
-      cur.includes(e) ? cur.filter((x) => x !== e) : ENGINES.filter((x) => x === e || cur.includes(x)),
+      cur.includes(e)
+        ? cur.filter((x) => x !== e)
+        : ENGINES.filter((x) => x === e || cur.includes(x)),
     );
 
   return (
@@ -213,8 +215,8 @@ function Estimator() {
           </span>
         </div>
         <p className="est-fine">
-          Illustrative averages, search fees included. Every real run is
-          estimated first, then billed from the exact cost the provider reports.
+          Illustrative averages, search fees included. Every real run is estimated first, then
+          billed from the exact cost the provider reports.
         </p>
       </div>
     </div>
@@ -296,9 +298,7 @@ export function Pricing() {
               <div className="price">
                 <span className="amt">Custom</span>
               </div>
-              <p className="t-small plan-desc">
-                For agencies reporting on many client brands.
-              </p>
+              <p className="t-small plan-desc">For agencies reporting on many client brands.</p>
             </div>
             <a className="btn btn-text" href="#final-cta">
               Join the waitlist

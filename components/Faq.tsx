@@ -8,10 +8,10 @@ const QA: Array<{ q: string; a: ReactNode; open?: boolean }> = [
     open: true,
     a: (
       <>
-        It&rsquo;s open source, and you pay for usage instead of a contract.
-        The architecture is built to be cheap: bring your own keys, smart
-        sampling, cheap models for parsing answers, and caching. It&rsquo;s
-        aimed at small businesses, freelancers, agencies and emerging markets.
+        It&rsquo;s open source, and you pay for usage instead of a contract. The architecture is
+        built to be cheap: bring your own keys, smart sampling, cheap models for parsing answers,
+        and caching. It&rsquo;s aimed at small businesses, freelancers, agencies and emerging
+        markets.
       </>
     ),
   },
@@ -19,10 +19,9 @@ const QA: Array<{ q: string; a: ReactNode; open?: boolean }> = [
     q: "Do API answers match what people see in the ChatGPT app?",
     a: (
       <>
-        Not exactly, and we won&rsquo;t pretend otherwise. We query the models
-        through their APIs with web search on, so we measure how the models
-        respond. The consumer apps add their own layers on top. Treat the
-        results as a strong signal, not a screenshot.
+        Not exactly, and we won&rsquo;t pretend otherwise. We query the models through their APIs
+        with web search on, so we measure how the models respond. The consumer apps add their own
+        layers on top. Treat the results as a strong signal, not a screenshot.
       </>
     ),
   },
@@ -30,9 +29,8 @@ const QA: Array<{ q: string; a: ReactNode; open?: boolean }> = [
     q: "Do you scrape ChatGPT or Perplexity?",
     a: (
       <>
-        No. Everything goes through official APIs, which keeps tracking within
-        each provider&rsquo;s terms, stable from week to week, and predictable
-        in cost.
+        No. Everything goes through official APIs, which keeps tracking within each provider&rsquo;s
+        terms, stable from week to week, and predictable in cost.
       </>
     ),
   },
@@ -40,10 +38,9 @@ const QA: Array<{ q: string; a: ReactNode; open?: boolean }> = [
     q: "What does a run actually cost?",
     a: (
       <>
-        You see an estimate before every run. Afterwards, each response&rsquo;s
-        exact cost is stored against the run, so you get a per-engine
-        breakdown. On hosted, you top up a wallet and tracking pauses when it
-        runs out, so there&rsquo;s never a surprise invoice.
+        You see an estimate before every run. Afterwards, each response&rsquo;s exact cost is stored
+        against the run, so you get a per-engine breakdown. On hosted, you top up a wallet and
+        tracking pauses when it runs out, so there&rsquo;s never a surprise invoice.
       </>
     ),
   },
@@ -51,9 +48,9 @@ const QA: Array<{ q: string; a: ReactNode; open?: boolean }> = [
     q: "Can I self-host with my own API keys?",
     a: (
       <>
-        Yes. Run the Docker image and plug in a Vercel AI Gateway key, an
-        OpenRouter key, or keys for each provider directly. The tracking
-        engine, metrics, dashboard, scheduling and exports are all AGPL-3.0.
+        Yes. Run the Docker image and plug in a Vercel AI Gateway key, an OpenRouter key, or keys
+        for each provider directly. The tracking engine, metrics, dashboard, scheduling and exports
+        are all AGPL-3.0.
       </>
     ),
   },
@@ -61,9 +58,8 @@ const QA: Array<{ q: string; a: ReactNode; open?: boolean }> = [
     q: "Do you track Google AI Overviews?",
     a: (
       <>
-        Not yet. AI Overviews has no official API, so it&rsquo;s planned for
-        version 2 through a SERP data provider, alongside GA4 and Search
-        Console integration.
+        Not yet. AI Overviews has no official API, so it&rsquo;s planned for version 2 through a
+        SERP data provider, alongside GA4 and Search Console integration.
       </>
     ),
   },
