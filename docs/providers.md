@@ -42,8 +42,8 @@ Prompt: "What is the best invoicing software for freelancers?", country `IN`. Fi
 | ChatGPT | ✅ 2,616-character answer | 90 s | not reported | `false` | 1 (from a source chip) | 5 "Official website" links | Yes, as the top pick |
 | Gemini | ✅ 2,761-character answer | 199 s | **Flash-Lite** | not reported | 0 | 0 | Yes |
 | Perplexity | ❌ `crawl_error`: Perplexity returned "too many requests" to Bright Data | 13 s | n/a | n/a | n/a | n/a | n/a |
-| Copilot | ❌ "Sign in page shown": Microsoft now asks logged-out visitors to sign in | 218 s | n/a | n/a | n/a | n/a | n/a |
-| Google AI Mode | ❌ "Browser disconnected", twice (with and without a country) | 13–186 s | n/a | n/a | n/a | n/a | n/a |
+| Copilot | ❌ "Sign in page shown" with `IN`, with `US`, and with the Bing Copilot Search URL | 77–218 s | n/a | n/a | n/a | n/a | n/a |
+| Google AI Mode | ✅ with `US` (3,622 characters); ❌ "Browser disconnected" with `IN` | 26 s | not reported | n/a | **16** | 9 | Yes, alongside FreshBooks and Wave |
 
 What we learned:
 
@@ -54,7 +54,8 @@ What we learned:
 - **Logged-out Gemini answers with Flash-Lite** and returned no citations for this prompt. Paying Gemini users get a stronger model, so label Gemini results as "logged-out Gemini".
 - **Perplexity is currently blocking Bright Data.** It failed three times, with and without a country. Failed records aren't billed. This is exactly why each engine needs an API fallback: Perplexity Sonar through the Gateway costs about $0.005 a call.
 - **Answers are slow and uneven:** 13 s to 199 s per job. Fine for scheduled runs; the dashboard must show runs as "in progress".
-- **Copilot and Google AI Mode failed** on the same day. Copilot now shows logged-out visitors a sign-in page, so treat it as unavailable. AI Mode may be a temporary outage; retry before ruling it out.
+- **AI Mode needs its search URL.** Send `https://www.google.com/search?udm=50&q=<prompt>` with `hl`, not the Google home page; the client builds it per prompt. It then worked with `US` and returned the most citations of any engine (16), but still failed with `IN`, so AI Mode isn't reachable for India through Bright Data yet.
+- **Copilot is blocked.** Bright Data's Copilot scraper hits Microsoft's sign-in page from India and the US, and with the Bing Copilot Search URL. Treat Copilot as unavailable; check again later.
 - **Google AI Overviews** don't need a scraper: Bright Data's SERP API returns Google results as JSON (`brd_json=1`) with a parsed `ai_overview` object (`texts[]` with `reference_indexes`, plus `references[]` with `href`, `title`, `source`). Same price ($1.50 per 1,000) and the same 5,000 free credits, but it needs a SERP API "zone" created in the Bright Data control panel. Overviews only appear for some queries. Not tested yet.
 - **The raw records are huge** (1 MB+ of page HTML for ChatGPT). The client drops the HTML fields and keeps text and markdown.
 

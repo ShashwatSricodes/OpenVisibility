@@ -1,10 +1,10 @@
 {
-  "capturedAt": "2026-10-18T07:03:50.809Z",
+  "capturedAt": "2026-10-18T07:11:52.346Z",
   "engine": "copilot",
   "prompt": "What is the best invoicing software for freelancers?",
-  "country": "IN",
-  "snapshotId": "sd_mvdh2bz01qqwc1ebw6",
-  "seconds": 218,
+  "country": "US",
+  "snapshotId": "sd_mvdhfnab1c6mwd45to",
+  "seconds": 78,
   "answers": [
     {
       "engine": "copilot",
@@ -16,11 +16,11 @@
       "citations": [],
       "links": [],
       "raw": {
-        "timestamp": "2026-10-18T06:59:53.699Z",
+        "timestamp": "2026-10-18T07:07:55.328Z",
         "input": {
           "url": "https://copilot.microsoft.com/",
           "prompt": "What is the best invoicing software for freelancers?",
-          "country": "IN",
+          "country": "US",
           "index": 0
         },
         "error": "Sign in page shown",

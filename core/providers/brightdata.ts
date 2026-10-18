@@ -14,13 +14,20 @@
 
 const API = "https://api.brightdata.com/datasets/v3";
 
-/** Dataset IDs from https://docs.brightdata.com/scrapers.json */
+/**
+ * Dataset IDs from https://docs.brightdata.com/scrapers.json.
+ * Most scrapers take the app's home page; AI Mode needs the full search URL
+ * with the prompt and `udm=50` (the AI Mode tab), plus an interface language.
+ */
 export const BRIGHT_DATA_DATASETS = {
-  chatgpt: { datasetId: "gd_m7aof0k82r803d5bjm", url: "https://chatgpt.com/" },
-  perplexity: { datasetId: "gd_m7dhdot1vw9a7gc1n", url: "https://www.perplexity.ai/" },
-  gemini: { datasetId: "gd_mbz66arm2mf9cu856y", url: "https://gemini.google.com/" },
-  copilot: { datasetId: "gd_m7di5jy6s9geokz8w", url: "https://copilot.microsoft.com/" },
-  ai_mode: { datasetId: "gd_mcswdt6z2elth3zqr2", url: "https://www.google.com/" },
+  chatgpt: { datasetId: "gd_m7aof0k82r803d5bjm", url: () => "https://chatgpt.com/" },
+  perplexity: { datasetId: "gd_m7dhdot1vw9a7gc1n", url: () => "https://www.perplexity.ai/" },
+  gemini: { datasetId: "gd_mbz66arm2mf9cu856y", url: () => "https://gemini.google.com/" },
+  copilot: { datasetId: "gd_m7di5jy6s9geokz8w", url: () => "https://copilot.microsoft.com/" },
+  ai_mode: {
+    datasetId: "gd_mcswdt6z2elth3zqr2",
+    url: (prompt: string) => `https://www.google.com/search?udm=50&q=${encodeURIComponent(prompt)}`,
+  },
 } as const;
 
 export type BrightDataEngine = keyof typeof BRIGHT_DATA_DATASETS;
@@ -100,11 +107,12 @@ export class BrightDataClient {
   async trigger(engine: BrightDataEngine, inputs: BrightDataInput[]): Promise<string> {
     const { datasetId, url } = BRIGHT_DATA_DATASETS[engine];
     const input = inputs.map((it, index) => ({
-      url,
+      url: url(it.prompt),
       prompt: it.prompt,
       index,
       ...(it.country ? { country: it.country.toUpperCase() } : {}),
       ...(engine === "chatgpt" && it.webSearch !== undefined ? { web_search: it.webSearch } : {}),
+      ...(engine === "ai_mode" ? { hl: "en" } : {}),
     }));
 
     const res = await this.request(

@@ -1,0 +1,18 @@
+{
+  "capturedAt": "2026-10-18T07:14:57.448Z",
+  "engine": "ai_overviews",
+  "prompt": "What is the best invoicing software for freelancers?",
+  "country": "US",
+  "seconds": 1,
+  "result": {
+    "query": "What is the best invoicing software for freelancers?",
+    "ok": false,
+    "error": "Bright Data SERP 400: zone \"serp_api1\" not found",
+    "present": false,
+    "text": "",
+    "citations": [],
+    "organic": [],
+    "country": "US",
+    "raw": {}
+  }
+}
