@@ -94,27 +94,29 @@ The whole plan rests on what the Gateway actually supports. Check it before writ
 
 ### Day 3: Database and the setup schema
 
-- [ ] Add `docker-compose.yml` with only Postgres for now.
-- [ ] Install Drizzle and `drizzle-kit`, and configure migrations in `db/migrations/`.
-- [ ] Create the setup tables:
-  - `workspaces`: id, name, mode (`self_hosted` / `hosted`), created_at
+- [x] Add `docker-compose.yml` with only Postgres for now.
+- [x] Install Drizzle and `drizzle-kit`, and configure migrations in `db/migrations/`.
+- [x] Create the setup tables:
+  - `workspaces`: id, name, mode (`self_hosted` / `hosted`), default_countries[], created_at
   - `brands`: workspace_id, name, description, domains[]
   - `brand_aliases`: brand_id, alias
-  - `competitors`: workspace_id, name, aliases[], domains[]
-  - `prompts`: workspace_id, text, tags[], countries[], active
-- [ ] Generate and run the first migration.
+  - `competitors`: **brand_id**, name, aliases[], domains[] (per brand, so an agency workspace can track several clients)
+  - `prompts`: **brand_id**, text, tags[], countries[], active
+- [x] Generate the first migration (`db/migrations/0000_setup_tables.sql`).
+- [ ] **Pending:** run it against a real database. Skipped on 19 October 2026; do it the first time Docker or Neon is up.
 
 **Done when:** `docker compose up -d && npm run db:migrate` creates the tables from scratch.
 
 ### Day 4: Tracking and results schema
 
-- [ ] `runs`: workspace_id, trigger (`manual` / `scheduled`), status, preset, estimated_cost, actual_cost, started_at, finished_at
-- [ ] `run_items`: one row per prompt × engine × country × sample. Fields: run_id, prompt_id, engine, model, country, sample_index, status, attempts, error
-- [ ] `answers`: run_item_id, text, raw_json, latency_ms, input_tokens, output_tokens, cost_usd
-- [ ] `mentions`: answer_id, entity (`brand` / competitor_id), position, sentiment, snippet
-- [ ] `citations`: answer_id, url, domain, title, kind (`owned` / `competitor` / `third_party`)
-- [ ] Add indexes on (workspace_id, created_at) and (run_id), plus foreign keys with cascade deletes.
-- [ ] Write `db/seed.ts` that creates a demo workspace, brand, competitors and 10 prompts.
+- [x] `runs`: workspace_id, brand_id, trigger, status, estimated_cost, actual_cost, total_items, done_items, started_at, finished_at
+- [x] `run_items`: one row per prompt × engine × country × sample, plus `source` (consumer app or official API), `external_id` (the Bright Data job) and a copy of the prompt text so history survives edits
+- [x] `answers`: text, raw (minus bulky HTML), model, web_search_triggered, shown (AI Overviews), tokens, cost_usd
+- [x] `mentions`: answer_id, competitor_id (null = the tracked brand), position, sentiment, snippet
+- [x] `citations`: answer_id, url, domain, title, position, kind (`owned` / `competitor` / `third_party`)
+- [x] Indexes on (workspace_id, created_at), (brand_id, created_at), (run_id), status and domain; cascade deletes.
+- [x] Write `db/seed.ts` (`npm run db:seed`): demo workspace, Ledgerly, 5 competitors, 10 prompts. Safe to re-run.
+- [ ] **Pending:** run migrations and the seed against a real database (see Day 3).
 
 **Done when:** the seed runs cleanly and you can query everything in Drizzle Studio.
 **Note:** store cost as `numeric(12,6)`, never as a float.
