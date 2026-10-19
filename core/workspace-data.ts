@@ -58,3 +58,24 @@ export async function workspaceCounts(db: AnyDb, workspaceId: string) {
   ]);
   return { runs: r?.n ?? 0, answers: a?.n ?? 0 };
 }
+
+export async function listRuns(db: AnyDb, workspaceId: string, limit = 50) {
+  return db
+    .select({
+      id: runs.id,
+      trigger: runs.trigger,
+      status: runs.status,
+      totalItems: runs.totalItems,
+      doneItems: runs.doneItems,
+      estimatedCost: runs.estimatedCost,
+      actualCost: runs.actualCost,
+      note: runs.note,
+      createdAt: runs.createdAt,
+      startedAt: runs.startedAt,
+      finishedAt: runs.finishedAt,
+    })
+    .from(runs)
+    .where(eq(runs.workspaceId, workspaceId))
+    .orderBy(desc(runs.createdAt))
+    .limit(limit);
+}

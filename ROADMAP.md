@@ -235,11 +235,12 @@ This is the key piece of the architecture: the worker, the analysis and the dash
 
 ### Day 15: Queue, worker and fan-out
 
-- [ ] Install pg-boss and create `worker/index.ts` as its own process (`npm run worker`).
-- [ ] `createRun(workspaceId)` expands the configuration into `run_items` (prompt × engine × country × sample) and enqueues one job per item.
-- [ ] Add a minimal job handler that marks items as done, for testing the plumbing.
+- [x] No pg-boss (decision log): `run_items` is the queue. `core/runs/worker.ts` ticks through it: submit queued items as one batch per run and engine (job ID saved on each item), check and collect running batches (answers and labelled citations stored once per item), re-queue retryable failures up to 3 tries, give up on batches stuck for 45 minutes, and close runs as completed, partial or failed with their totals and a note saying why.
+- [x] `createRun` (`core/runs/create.ts`) fans active prompts out into items: prompt × engine × country (a prompt's own countries win) × samples. One run at a time per workspace; a subset (some prompts, some engines) for small test runs.
+- [x] The worker runs inside `npm run dev` with the embedded database, and as `npm run worker` with `DATABASE_URL` (`OV_WORKER` overrides). `OV_FAKE_ANSWERS=1` answers instantly, for trying runs for free.
+- [x] Run now on the Overview and the Runs page; it asks before a run that would pass the free tier. The Runs page lists runs with progress and refreshes itself while one is in progress.
 
-**Done when:** clicking "Run now" creates a run and the worker drains its items.
+**Done when:** clicking "Run now" creates a run and the worker drains its items. ✅ 19 October 2026: Run now on the Overview created a 96-item run (fake answers); the worker submitted it in one tick and collected all 96 in the next, and the Runs page went from Running 0/96 to Completed 96/96 on its own.
 
 ### Day 16: Executing run items
 
@@ -635,6 +636,7 @@ Record decisions here as you make them, with the date and the reason.
 | 2026-10-19 | Perplexity: left for now. Bright Data's scraper is refused by Perplexity ("too many requests") from every country and URL tried; Perplexity reportedly blocks shared proxy IPs since August 2026. If revisited: cloro (also covers Copilot; 500 free credits a month) or querying.ai, as one more adapter. | Deferred |
 | 2026-10-19 | Target feature parity with Otterly.ai for version 1: alerts, GEO audit, recommendations, teams and several brands, API, query fan-out and ChatGPT ads join the plan (Phase 5b and Day 29). Agent analytics and referral traffic stay in version 2. | Decided |
 | 2026-10-19 | Prompt suggestions: built from templates by default (free, offline); an AI model writes them when a key is set. | Decided |
+| 2026-10-19 | Queue: no pg-boss. The `run_items` table is the queue, worked by a loop that submits one Bright Data batch per run and engine, checks it, and stores answers; every step is saved, so restarts resume without paying twice. It runs inside the dev server on the embedded database and as `npm run worker` with a real Postgres. Bright Data is batch-shaped (one job per item would be wrong), and pg-boss needs a real Postgres connection. | Decided |
 | | Data source for the hosted version: Bright Data Scale ($1.30 per 1,000) or DataForSEO ($1.20 per 1,000, also covers Claude and AI Overviews) | Decide before Day 38 |
 | | Google AI Overviews: version 2 through a SERP API, or skip | Deferred (Bright Data's AI Mode scraper may cover part of it) |
 | | Web hosting: Vercel or VPS | Decide on Day 45 |

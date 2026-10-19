@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import * as Menu from "@radix-ui/react-dropdown-menu";
-import { Calendar, Check, ChevronDown, ListFilter, Play } from "lucide-react";
+import { Calendar, Check, ChevronDown, ListFilter } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -14,6 +14,7 @@ import {
   type TooltipContentProps,
 } from "recharts";
 import { cn } from "../_lib/cn";
+import { RunNowButton } from "./run-now-button";
 import {
   ENGINES,
   METRICS,
@@ -246,13 +247,7 @@ export function OverviewTop({ title, subtitle }: { title: string; subtitle: stri
             setCountry={setCountry}
           />
           <DateMenu range={range} setRange={setRange} />
-          <button
-            type="button"
-            className="flex h-8 items-center gap-1.5 rounded-lg bg-inverted px-2.5 text-[13px] font-medium text-on-inverted transition-opacity hover:opacity-90"
-          >
-            <Play className="size-3 fill-current" />
-            Run now
-          </button>
+          <RunNowButton />
         </div>
       </div>
 
