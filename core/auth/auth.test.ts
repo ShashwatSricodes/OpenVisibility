@@ -12,7 +12,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import * as schema from "@/db/schema";
 import { getWorkspaceForUser } from "./session";
 import type { Email } from "../email";
-import { createAuth, type Auth } from "./auth";
+import { createAuth, isLocalOrigin, type Auth } from "./auth";
 
 const BASE = "http://localhost:3000";
 
@@ -84,6 +84,9 @@ describe("magic-link sign-in", () => {
     expect(again.headers.get("location")).toMatch(/error/);
   });
 
+  // Better Auth turns its origin check off under the test runner, so whether sign-in
+  // accepts an origin is checked against the dev server; here we test the rule itself.
+
   it("does not create a second workspace when the user signs in again", async () => {
     for (let i = 0; i < 2; i++) {
       const link = await requestLink("repeat@example.com");
@@ -98,5 +101,29 @@ describe("magic-link sign-in", () => {
       .from(schema.memberships)
       .where(eq(schema.memberships.userId, user.id));
     expect(rows).toHaveLength(1);
+  });
+});
+
+describe("isLocalOrigin", () => {
+  it("knows loopback and private networks from look-alike domains", () => {
+    const local = [
+      "http://localhost:3000",
+      "http://127.0.0.1:3001",
+      "http://10.0.0.4",
+      "http://172.20.1.1:3000",
+      "http://192.168.29.7:3000",
+      "http://[::1]:3000",
+    ];
+    const foreign = [
+      "http://172.15.0.1",
+      "http://172.32.0.1",
+      "http://192.169.0.1",
+      "http://172.evil.com",
+      "http://10.evil.com",
+      "javascript:alert(1)",
+      "not a url",
+    ];
+    for (const o of local) expect(isLocalOrigin(o), o).toBe(true);
+    for (const o of foreign) expect(isLocalOrigin(o), o).toBe(false);
   });
 });

@@ -61,9 +61,19 @@ export function prepareDb(): Promise<void> {
   if (!usesEmbedded()) return Promise.resolve();
   globalForDb.__ovDbReady ??= (async () => {
     const { migrate } = await import("drizzle-orm/pglite/migrator");
-    await migrate(getDb() as Parameters<typeof migrate>[0], {
-      migrationsFolder: "db/migrations",
-    });
+    try {
+      await migrate(getDb() as Parameters<typeof migrate>[0], {
+        migrationsFolder: "db/migrations",
+      });
+    } catch (err) {
+      // PGlite reports a damaged data folder only as "Aborted()"; say what to do
+      if (String((err as Error).cause ?? err).includes("Aborted"))
+        throw new Error(
+          `The embedded database in ${EMBEDDED_DIR} couldn't be opened. It may have been damaged when a process using it was stopped abruptly, or another process (a second dev server, npm run db:seed) has it open. Stop other processes and try again; if it still fails, rename ${EMBEDDED_DIR} to start with a fresh database.`,
+          { cause: err },
+        );
+      throw err;
+    }
     console.log(`Embedded database ready (${EMBEDDED_DIR}). Set DATABASE_URL to use your own.`);
   })();
   return globalForDb.__ovDbReady;
