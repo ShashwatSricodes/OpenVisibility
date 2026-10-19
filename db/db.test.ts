@@ -36,6 +36,7 @@ describe("migrations", () => {
       "memberships",
       "mentions",
       "prompts",
+      "provider_credentials",
       "run_items",
       "runs",
       "session",

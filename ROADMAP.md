@@ -153,11 +153,11 @@ This is the key piece of the architecture: the worker, the analysis and the dash
 
 ### Day 7: Bring your own Bright Data key
 
-- [ ] Add `provider_credentials` (workspace_id, provider, encrypted_key, last4, created_at). Encrypt with AES-256-GCM using a master key from the environment, and never send keys to the browser.
-- [ ] Settings page: add a key, test it with a free call, and delete it.
-- [ ] Resolve the key at call time: the workspace's own key first, then `BRIGHT_DATA_API_KEY` (self-hosted) or the platform key (hosted only).
+- [x] Add `provider_credentials` (workspace_id, provider, encrypted_key, last4, created_by, created_at, verified_at). Encrypted with AES-256-GCM (`core/crypto.ts`) using `ENCRYPTION_KEY`, bound to the workspace ID so a copied row won't decrypt elsewhere. Keys never reach the browser.
+- [x] Settings page (`/settings`): paste a key (it's tested with a free call before it's saved), test the key in use, and remove it. Only the workspace owner can change it.
+- [x] Resolve the key at call time (`resolveProviderKeys` in `core/credentials.ts`): the workspace's own key first, then `BRIGHT_DATA_API_KEY`. A key that can't be decrypted (changed `ENCRYPTION_KEY`) gives a clear message.
 
-**Done when:** a workspace with its own key gets answers, and deleting the key stops them with a clear message.
+**Done when:** a workspace with its own key gets answers, and deleting the key stops them with a clear message. ✅ 19 October 2026: verified in the running app (bad key refused and not saved, real key saved and tested, full key absent from the page, removal falls back to the server key). With no key anywhere, `getProvider` says to add one in Settings.
 
 ### Day 8: Engines and countries per workspace
 

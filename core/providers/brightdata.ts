@@ -163,6 +163,14 @@ export class BrightDataClient {
       );
     return json as Record<string, unknown>[];
   }
+
+  /**
+   * Check the key works, for free: listing past snapshots costs nothing and
+   * answers 401 to a bad key. Throws a ProviderError when the key is refused.
+   */
+  async verify(): Promise<void> {
+    await this.request(`/snapshots?dataset_id=${BRIGHT_DATA_DATASETS.chatgpt.datasetId}&limit=1`);
+  }
 }
 
 /* ── the provider ────────────────────────────────────────────── */

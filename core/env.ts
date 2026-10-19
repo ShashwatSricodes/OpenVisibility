@@ -30,6 +30,11 @@ const schema = z.object({
   /** Public URL of the app, used in magic links */
   BETTER_AUTH_URL: z.string().trim().url().default("http://localhost:3000"),
 
+  /** Encrypts API keys saved in the database. Required in production: `openssl rand -base64 32` */
+  ENCRYPTION_KEY: optionalString.pipe(
+    z.string().min(32, "must be at least 32 characters; use `openssl rand -base64 32`").optional(),
+  ),
+
   /** Email delivery. Without a key, emails are printed to the terminal */
   RESEND_API_KEY: optionalString,
   EMAIL_FROM: z.string().trim().default("OpenVisibility <login@openvisibility.dev>"),
