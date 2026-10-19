@@ -214,5 +214,3 @@ export const CITED_PAGES = [
   { url: "business.org/finance/accounting/best-billing-software", count: 9 },
   { url: "indietoolkit.in/best-invoicing-software", count: 6 },
 ];
-
-export const FREE_TIER = { used: 1_348, limit: 5_000, resets: "1 Nov" };

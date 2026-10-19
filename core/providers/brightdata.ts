@@ -171,6 +171,34 @@ export class BrightDataClient {
   async verify(): Promise<void> {
     await this.request(`/snapshots?dataset_id=${BRIGHT_DATA_DATASETS.chatgpt.datasetId}&limit=1`);
   }
+
+  /**
+   * Snapshots of one scraper created since a date, with how many records each
+   * delivered (`dataset_size`). Error-only snapshots have no size: they
+   * aren't billed and don't count towards the free tier.
+   */
+  async listSnapshots(
+    datasetId: string,
+    from: Date,
+  ): Promise<{ id: string; created: string; size: number }[]> {
+    let res: Response;
+    try {
+      res = await this.request(
+        `/snapshots?dataset_id=${datasetId}&from_date=${encodeURIComponent(from.toISOString())}`,
+      );
+    } catch (err) {
+      // a scraper this account has never used
+      if (err instanceof ProviderError && err.status === 404) return [];
+      throw err;
+    }
+    const json = (await res.json()) as unknown;
+    if (!Array.isArray(json)) return [];
+    return json.map((s: Record<string, unknown>) => ({
+      id: String(s.id),
+      created: String(s.created),
+      size: typeof s.dataset_size === "number" ? s.dataset_size : 0,
+    }));
+  }
 }
 
 /* ── the provider ────────────────────────────────────────────── */
