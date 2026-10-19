@@ -11,6 +11,8 @@ import {
   validateKeyShape,
 } from "@/core/credentials";
 import { ProviderError } from "@/core/providers";
+import { saveTrackingConfig } from "@/core/tracking-config";
+import { validateTrackingConfig } from "@/core/tracking-rules";
 import { getDb } from "@/db/client";
 
 export type KeyFormState = { ok: boolean; message: string } | null;
@@ -72,4 +74,19 @@ export async function removeKeyAction(): Promise<KeyFormState> {
   await deleteCredential(getDb(), workspace.id);
   revalidatePath("/settings");
   return { ok: true, message: "Key removed." };
+}
+
+/** Save which engines and countries the workspace tracks. */
+export async function saveTrackingAction(input: {
+  engines: string[];
+  countries: string[];
+}): Promise<KeyFormState> {
+  const { workspace, role } = await requireWorkspace();
+  if (role !== "owner")
+    return { ok: false, message: "Only the workspace owner can change what's tracked." };
+  const checked = validateTrackingConfig(input);
+  if (!checked.ok) return { ok: false, message: checked.message };
+  await saveTrackingConfig(getDb(), workspace.id, checked.config);
+  revalidatePath("/settings");
+  return { ok: true, message: "Saved. The next run uses these engines and countries." };
 }

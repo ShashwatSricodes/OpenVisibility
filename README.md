@@ -69,7 +69,7 @@ A Docker image with one-command setup is planned for the first release.
 | `npm run db:migrate` | Apply database migrations |
 | `npm run db:seed` | Add demo data (stop the dev server first when using the embedded database) |
 | `npm run format` | Format with Prettier |
-| `npm run try` | Ask one prompt on one or more engines and print the normalized answer |
+| `npm run try` | Ask one prompt on one or more engines and print the normalized answer; `--workspace "<name>" --dry-run` shows what a workspace's run would ask |
 | `npm run spike` | Run a prompt through the official model APIs (needs `AI_GATEWAY_API_KEY`) |
 | `npm run models` | List search-capable models and prices on the Vercel AI Gateway |
 

@@ -37,6 +37,17 @@ const textList = (name: string) =>
     .notNull()
     .default(sql`'{}'::text[]`);
 
+export const engine = pgEnum("engine", [
+  "chatgpt",
+  "gemini",
+  "ai_mode",
+  "ai_overviews",
+  "perplexity",
+  "claude",
+  "copilot",
+  "grok",
+]);
+
 export const workspaceMode = pgEnum("workspace_mode", ["self_hosted", "hosted"]);
 
 export const workspaces = pgTable("workspaces", {
@@ -45,6 +56,11 @@ export const workspaces = pgTable("workspaces", {
   mode: workspaceMode("mode").notNull().default("self_hosted"),
   /** two-letter country codes prompts run in unless a prompt overrides them */
   defaultCountries: textList("default_countries"),
+  /** the engines this workspace tracks (Settings); see core/tracking-config.ts */
+  engines: engine("engines")
+    .array()
+    .notNull()
+    .default(sql`'{chatgpt,gemini,ai_mode,ai_overviews}'::engine[]`),
   createdAt: createdAt(),
 });
 
@@ -170,17 +186,6 @@ export const prompts = pgTable(
 
 /** Cost in US dollars: exact decimal, never a float. 6 places fits $0.0015 answers. */
 const usd = (name: string) => numeric(name, { precision: 12, scale: 6 });
-
-export const engine = pgEnum("engine", [
-  "chatgpt",
-  "gemini",
-  "ai_mode",
-  "ai_overviews",
-  "perplexity",
-  "claude",
-  "copilot",
-  "grok",
-]);
 
 /** Where an answer came from: the real app (via a scraper) or the model's API. */
 export const answerSource = pgEnum("answer_source", ["consumer_app", "official_api"]);
