@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Bot, Link2, MessageSquareText, Swords } from "lucide-react";
-import { BarListCard } from "../_components/bar-list-card";
-import { OverviewTop } from "../_components/overview-top";
+import { BarListCard } from "../../_components/bar-list-card";
+import { OverviewTop } from "../../_components/overview-top";
 import {
   BRAND,
   CITED_DOMAINS,
@@ -10,7 +10,7 @@ import {
   ENGINES,
   PROMPTS,
   engineAverages,
-} from "../_lib/sample-data";
+} from "../../_lib/sample-data";
 
 export const metadata: Metadata = { title: "Overview" };
 

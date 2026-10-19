@@ -25,6 +25,15 @@ const schema = z.object({
       .optional(),
   ),
 
+  /** Signs session cookies. Required in production; `openssl rand -base64 32` makes one */
+  BETTER_AUTH_SECRET: optionalString,
+  /** Public URL of the app, used in magic links */
+  BETTER_AUTH_URL: z.string().trim().url().default("http://localhost:3000"),
+
+  /** Email delivery. Without a key, emails are printed to the terminal */
+  RESEND_API_KEY: optionalString,
+  EMAIL_FROM: z.string().trim().default("OpenVisibility <login@openvisibility.dev>"),
+
   /** Consumer-app answers (ChatGPT, Gemini, AI Mode, AI Overviews, Perplexity) */
   BRIGHT_DATA_API_KEY: optionalString,
   /** Official model APIs (Claude, and fallbacks for the other engines) */

@@ -45,11 +45,13 @@ Try the data layer: run one prompt through ChatGPT, Gemini, AI Mode and AI Overv
 npm run spike:bd -- --prompt "best invoicing software for freelancers" --brand Zoho --country US
 ```
 
-Run the web app (landing page at `/`, dashboard placeholder at `/dashboard`):
+Run the web app (landing page at `/`, product at `/dashboard`):
 
 ```bash
 npm run dev
 ```
+
+No database setup is needed in development: without `DATABASE_URL`, the app uses an embedded Postgres stored in `.data/`. Sign in at `/login`; with no `RESEND_API_KEY`, the sign-in link is printed in the terminal. To use your own Postgres instead, run `docker compose up -d` and set `DATABASE_URL` (see `.env.example`).
 
 A Docker image with one-command setup is planned for the first release.
 
@@ -61,7 +63,9 @@ A Docker image with one-command setup is planned for the first release.
 | `npm run build` | Production build |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript checks |
-| `npm test` | Unit tests (Vitest), no network calls |
+| `npm test` | Unit tests (Vitest), no network calls; database tests run on embedded Postgres |
+| `npm run db:migrate` | Apply database migrations |
+| `npm run db:seed` | Add demo data (stop the dev server first when using the embedded database) |
 | `npm run format` | Format with Prettier |
 | `npm run spike:bd` | Run a prompt through the Bright Data engines |
 | `npm run spike` | Run a prompt through the official model APIs (needs `AI_GATEWAY_API_KEY`) |

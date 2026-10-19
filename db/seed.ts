@@ -3,10 +3,13 @@
  * against real competitors. Safe to re-run; existing rows are kept.
  *
  *   npm run db:seed
+ *
+ * With the embedded database, stop the dev server first: only one process
+ * can open it at a time.
  */
 
 import { and, eq } from "drizzle-orm";
-import { getDb } from "./client";
+import { getDb, prepareDb, type AnyDb } from "./client";
 import { brandAliases, brands, competitors, prompts, workspaces } from "./schema";
 
 const WORKSPACE = { name: "Demo workspace", defaultCountries: ["US", "IN"] };
@@ -39,9 +42,8 @@ const PROMPTS: { text: string; tags: string[]; countries?: string[] }[] = [
   { text: "Is Ledgerly safe to use?", tags: ["brand"] },
 ];
 
-async function main() {
-  const db = getDb();
-
+/** Create or top up the demo data. Returns what the demo brand now has. */
+export async function seed(db: AnyDb) {
   let [workspace] = await db
     .select()
     .from(workspaces)
@@ -88,18 +90,26 @@ async function main() {
     )
     .onConflictDoNothing();
 
-  const counts = {
-    competitors: (await db.select().from(competitors).where(eq(competitors.brandId, brand.id)))
-      .length,
-    prompts: (await db.select().from(prompts).where(eq(prompts.brandId, brand.id))).length,
-  };
+  const competitorCount = (
+    await db.select().from(competitors).where(eq(competitors.brandId, brand.id))
+  ).length;
+  const promptCount = (await db.select().from(prompts).where(eq(prompts.brandId, brand.id))).length;
+  return { workspace, brand, competitors: competitorCount, prompts: promptCount };
+}
+
+async function main() {
+  await prepareDb();
+  const result = await seed(getDb());
   console.log(
-    `Seeded "${workspace.name}" → ${BRAND.name}: ${counts.competitors} competitors, ${counts.prompts} prompts.`,
+    `Seeded "${result.workspace.name}" → ${result.brand.name}: ${result.competitors} competitors, ${result.prompts} prompts.`,
   );
   process.exit(0);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// run only when executed directly (npm run db:seed), not when imported by tests
+if (process.argv[1]?.replace(/\\/g, "/").endsWith("db/seed.ts")) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

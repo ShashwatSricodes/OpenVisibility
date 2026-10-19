@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Host_Grotesk, Inter } from "next/font/google";
-import { MobileNav, Sidebar } from "./_components/sidebar";
 import "./app.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
@@ -20,7 +19,8 @@ export const metadata: Metadata = {
 /* Dark by default; a saved "light" choice wins. Runs before first paint so there is no flash. */
 const themeScript = `try{if(localStorage.getItem("ov-theme")!=="light")document.documentElement.classList.add("dark")}catch(e){document.documentElement.classList.add("dark")}`;
 
-/* Root layout for the product; the landing page has its own in (marketing). */
+/* Root layout for the product (fonts, theme); the landing page has its own in (marketing).
+   Signed-in pages add the sidebar in (workspace)/layout.tsx. */
 export default function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
@@ -31,17 +31,7 @@ export default function AppLayout({ children }: Readonly<{ children: React.React
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="min-h-screen">
-        <div className="min-h-screen lg:grid lg:grid-cols-[216px_minmax(0,1fr)]">
-          <MobileNav />
-          <Sidebar />
-          <div className="lg:py-2 lg:pr-2">
-            <div className="min-h-screen bg-panel lg:min-h-[calc(100vh-1rem)] lg:rounded-xl lg:border lg:border-line">
-              {children}
-            </div>
-          </div>
-        </div>
-      </body>
+      <body className="min-h-screen">{children}</body>
     </html>
   );
 }

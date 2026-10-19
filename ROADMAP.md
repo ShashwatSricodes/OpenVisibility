@@ -103,7 +103,7 @@ The whole plan rests on what the Gateway actually supports. Check it before writ
   - `competitors`: **brand_id**, name, aliases[], domains[] (per brand, so an agency workspace can track several clients)
   - `prompts`: **brand_id**, text, tags[], countries[], active
 - [x] Generate the first migration (`db/migrations/0000_setup_tables.sql`).
-- [ ] **Pending:** run it against a real database. Skipped on 19 October 2026; do it the first time Docker or Neon is up.
+- [x] Verified against Postgres (PGlite, in `db/db.test.ts`): migrations create every table. Run `docker compose up -d && npm run db:migrate` the first time you want a persistent local database.
 
 **Done when:** `docker compose up -d && npm run db:migrate` creates the tables from scratch.
 
@@ -116,19 +116,21 @@ The whole plan rests on what the Gateway actually supports. Check it before writ
 - [x] `citations`: answer_id, url, domain, title, position, kind (`owned` / `competitor` / `third_party`)
 - [x] Indexes on (workspace_id, created_at), (brand_id, created_at), (run_id), status and domain; cascade deletes.
 - [x] Write `db/seed.ts` (`npm run db:seed`): demo workspace, Ledgerly, 5 competitors, 10 prompts. Safe to re-run.
-- [ ] **Pending:** run migrations and the seed against a real database (see Day 3).
+- [x] Verified in `db/db.test.ts`: the seed is idempotent, costs keep six decimal places, deleting a prompt keeps its history, deleting a brand cascades.
 
 **Done when:** the seed runs cleanly and you can query everything in Drizzle Studio.
 **Note:** store cost as `numeric(12,6)`, never as a float.
 
 ### Day 5: Authentication and workspaces
 
-- [ ] Install Better Auth with email magic links (send through Resend; log the link to the console in development).
-- [ ] On first sign-in, create a workspace and make the user its owner (a `memberships` table with user_id, workspace_id, role).
-- [ ] Protect everything in `app/(app)/` with middleware that redirects to `/login`.
-- [ ] Add a `getWorkspace()` server helper that every query goes through, so workspace scoping lives in one place.
+- [x] Install Better Auth with email magic links (sent through Resend when `RESEND_API_KEY` is set; printed to the terminal otherwise).
+- [x] On first sign-in, create a workspace and make the user its owner (a `memberships` table with user_id, workspace_id, role).
+- [x] Protect the product pages: middleware redirects without a session cookie, and the `(workspace)` layout validates the session on the server.
+- [x] Add server helpers (`requireUser`, `requireWorkspace`, `getWorkspaceForUser`) that every query goes through.
+- [x] Embedded Postgres (PGlite) in development when `DATABASE_URL` is unset, migrated at startup, so the app runs with no setup.
+- [x] Tests run the full flow on PGlite: request a link, open it, get a session and an owned workspace; reused links are refused.
 
-**Done when:** you can sign in, land on an empty dashboard, and sign out.
+**Done when:** you can sign in, land on the dashboard, and sign out. (Verified on 19 October 2026 against the running app.)
 
 ---
 
