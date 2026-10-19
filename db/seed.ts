@@ -3,10 +3,13 @@
  * against real competitors. Safe to re-run; existing rows are kept.
  *
  *   npm run db:seed
+ *
+ * With the embedded database, stop the dev server first: only one process
+ * can open it at a time.
  */
 
 import { and, eq } from "drizzle-orm";
-import { getDb, type AnyDb } from "./client";
+import { getDb, prepareDb, type AnyDb } from "./client";
 import { brandAliases, brands, competitors, prompts, workspaces } from "./schema";
 
 const WORKSPACE = { name: "Demo workspace", defaultCountries: ["US", "IN"] };
@@ -95,6 +98,7 @@ export async function seed(db: AnyDb) {
 }
 
 async function main() {
+  await prepareDb();
   const result = await seed(getDb());
   console.log(
     `Seeded "${result.workspace.name}" → ${result.brand.name}: ${result.competitors} competitors, ${result.prompts} prompts.`,

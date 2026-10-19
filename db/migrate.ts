@@ -4,17 +4,24 @@
  *
  *   npm run db:migrate
  *
- * Uses drizzle-orm's migrator rather than drizzle-kit, so it also runs in the
- * production Docker image, where dev dependencies aren't installed.
+ * With DATABASE_URL set it migrates that database, using drizzle-orm's
+ * migrator (works in the production image, without dev dependencies).
+ * Without it, it prepares the embedded development database.
  */
 
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
-import { requireEnv } from "../core/env";
+import { env } from "../core/env";
+import { prepareDb } from "./client";
 
 async function main() {
-  const client = postgres(requireEnv("DATABASE_URL"), { max: 1 });
+  const url = env().DATABASE_URL;
+  if (!url) {
+    await prepareDb();
+    process.exit(0);
+  }
+  const client = postgres(url, { max: 1 });
   try {
     await migrate(drizzle(client), { migrationsFolder: "db/migrations" });
     console.log("Migrations applied.");

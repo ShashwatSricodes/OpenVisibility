@@ -26,6 +26,7 @@
     "@ai-sdk/perplexity": "^5.0.5",
     "@ai-sdk/xai": "^5.0.14",
     "@better-auth/drizzle-adapter": "^1.7.11",
+    "@electric-sql/pglite": "^0.5.10",
     "@radix-ui/react-dropdown-menu": "^2.2.1",
     "@radix-ui/react-tooltip": "^1.4.1",
     "@tailwindcss/postcss": "^4.3.3",
@@ -44,7 +45,6 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.10",
     "@eslint/eslintrc": "^3.3.7",
     "@types/node": "22.15.0",
     "@types/react": "19.1.9",

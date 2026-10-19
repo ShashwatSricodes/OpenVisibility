@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
+  LogOut,
   BarChart3,
   CircleHelp,
   Clock,
@@ -19,6 +21,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Logotype } from "@/components/brand/Logo";
+import { authClient } from "@/core/auth/client";
 import { cn } from "../_lib/cn";
 import { FREE_TIER } from "../_lib/sample-data";
 
@@ -123,8 +126,56 @@ function NavGroups({
   );
 }
 
+export type Account = { email: string; workspace: string };
+
+function AccountMenu({ account }: { account: Account }) {
+  const router = useRouter();
+  const [signingOut, setSigningOut] = useState(false);
+
+  const signOut = async () => {
+    setSigningOut(true);
+    await authClient.signOut();
+    router.push("/login");
+    router.refresh();
+  };
+
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left outline-none transition-colors hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-line-strong data-[state=open]:bg-black/5 dark:hover:bg-white/5 dark:data-[state=open]:bg-white/5">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-inverted text-[11px] font-semibold uppercase text-on-inverted">
+          {account.email[0]}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-[13px] text-fg">{account.email}</span>
+          <span className="block truncate text-[11px] text-fg-subtle">{account.workspace}</span>
+        </span>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          side="top"
+          align="start"
+          sideOffset={6}
+          className="z-50 min-w-48 rounded-lg border border-line bg-panel p-1 text-[13px] text-fg shadow-[0_8px_24px_rgb(0_0_0/0.08)]"
+        >
+          <DropdownMenu.Item
+            disabled={signingOut}
+            onSelect={(e) => {
+              e.preventDefault();
+              void signOut();
+            }}
+            className="flex h-7 cursor-default items-center gap-2 rounded-md px-2 outline-none data-[highlighted]:bg-hover data-[disabled]:opacity-50"
+          >
+            <LogOut className="size-3.5 text-fg-subtle" />
+            {signingOut ? "Signing out…" : "Sign out"}
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+}
+
 /** Top bar with a menu for screens narrower than the sidebar breakpoint. */
-export function MobileNav() {
+export function MobileNav({ account }: { account: Account }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -143,17 +194,18 @@ export function MobileNav() {
         </button>
       </div>
       {open && (
-        <NavGroups
-          pathname={pathname}
-          className="max-h-[70vh] overflow-y-auto border-t border-line px-3 py-4"
-          onNavigate={() => setOpen(false)}
-        />
+        <div className="max-h-[75vh] overflow-y-auto border-t border-line px-3 py-4">
+          <NavGroups pathname={pathname} onNavigate={() => setOpen(false)} />
+          <div className="mt-4 border-t border-line pt-3">
+            <AccountMenu account={account} />
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ account }: { account: Account }) {
   const pathname = usePathname();
   const pct = Math.round((FREE_TIER.used / FREE_TIER.limit) * 100);
 
@@ -191,6 +243,8 @@ export function Sidebar() {
         </div>
         <p className="mt-1.5 text-[11px] text-fg-subtle">Bright Data · resets {FREE_TIER.resets}</p>
       </div>
+
+      <AccountMenu account={account} />
     </aside>
   );
 }

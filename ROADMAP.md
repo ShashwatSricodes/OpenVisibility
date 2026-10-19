@@ -123,12 +123,14 @@ The whole plan rests on what the Gateway actually supports. Check it before writ
 
 ### Day 5: Authentication and workspaces
 
-- [ ] Install Better Auth with email magic links (send through Resend; log the link to the console in development).
-- [ ] On first sign-in, create a workspace and make the user its owner (a `memberships` table with user_id, workspace_id, role).
-- [ ] Protect everything in `app/(app)/` with middleware that redirects to `/login`.
-- [ ] Add a `getWorkspace()` server helper that every query goes through, so workspace scoping lives in one place.
+- [x] Install Better Auth with email magic links (sent through Resend when `RESEND_API_KEY` is set; printed to the terminal otherwise).
+- [x] On first sign-in, create a workspace and make the user its owner (a `memberships` table with user_id, workspace_id, role).
+- [x] Protect the product pages: middleware redirects without a session cookie, and the `(workspace)` layout validates the session on the server.
+- [x] Add server helpers (`requireUser`, `requireWorkspace`, `getWorkspaceForUser`) that every query goes through.
+- [x] Embedded Postgres (PGlite) in development when `DATABASE_URL` is unset, migrated at startup, so the app runs with no setup.
+- [x] Tests run the full flow on PGlite: request a link, open it, get a session and an owned workspace; reused links are refused.
 
-**Done when:** you can sign in, land on an empty dashboard, and sign out.
+**Done when:** you can sign in, land on the dashboard, and sign out. (Verified on 19 October 2026 against the running app.)
 
 ---
 
