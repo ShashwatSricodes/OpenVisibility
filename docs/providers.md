@@ -20,7 +20,7 @@ Each engine can be reached two ways. The source is a per-engine setting.
 
 | Source | What it measures | Engines | Cost per answer | Self-hosted free tier |
 | --- | --- | --- | --- | --- |
-| **Consumer app** via [Bright Data](https://brightdata.com/pricing/web-scraper) scrapers | What a logged-out user sees in the real app | ChatGPT, Gemini, Perplexity, Grok, Copilot, Google AI Mode | $0.0015 (pay as you go), $0.0013 on the $499/mo plan | **5,000 answers a month per account**, no card, resets on the 1st, no rollover |
+| **Consumer app** via [Bright Data](https://brightdata.com/pricing/web-scraper) scrapers | What a logged-out user sees in the real app | ChatGPT, Gemini, Google AI Mode, Google AI Overviews; Perplexity unreliable; Copilot behind a login; **no Grok scraper** (catalogue checked 19 October 2026) | $0.0015 (pay as you go), $0.0013 on the $499/mo plan | **5,000 answers a month per account**, no card, resets on the 1st, no rollover |
 | **Official API** via Vercel AI Gateway or direct keys | How the model responds through its API | All five, including Claude | ~$0.01–0.03 (mostly search fees and search-result tokens) | None |
 
 **Default for self-hosting** (decided 3 October 2026): consumer app for ChatGPT, Gemini and Perplexity; official API for Claude, which Bright Data can't reach because it requires a login. With each prompt asked 3× a run, 15 prompts daily on those three engines uses 4,050 answers a month, inside the free tier.

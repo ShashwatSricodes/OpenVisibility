@@ -13,7 +13,7 @@
     "format:check": "prettier --check .",
     "models": "tsx scripts/models.ts",
     "spike": "tsx --env-file-if-exists=.env.local scripts/spike.ts",
-    "spike:bd": "tsx --env-file-if-exists=.env.local scripts/spike-brightdata.ts",
+    "try": "tsx --env-file-if-exists=.env.local scripts/try.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env.local db/migrate.ts",
     "db:studio": "drizzle-kit studio",

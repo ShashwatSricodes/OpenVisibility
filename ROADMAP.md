@@ -54,7 +54,7 @@ docs/                 self-hosting and provider docs
 
 - [ ] Vercel account with AI Gateway enabled, plus a few dollars of credit (Day 1)
 - [ ] Perplexity API key, as a fallback if Sonar isn't on the Gateway (Day 1)
-- [ ] OpenRouter account, for BYOK testing (Day 9)
+- [ ] OpenRouter account, for BYOK testing (after launch, with the official-API route)
 - [ ] Resend account (Day 5)
 - [ ] Stripe account, test mode (Day 40)
 - [ ] Razorpay account, test mode (Day 41)
@@ -76,7 +76,7 @@ The whole plan rests on what the Gateway actually supports. Check it before writ
 - [x] Create a free Bright Data account, add `BRIGHT_DATA_API_KEY` to `.env.local`, and run `npm run spike:bd`. ChatGPT, Gemini, Google AI Mode and Google AI Overviews work (see `docs/providers.md`).
 - [x] Copilot: researched and deferred. Copilot chat requires a login since 31 August 2026; options are recorded in `docs/providers.md`.
 - [x] Write `docs/providers.md`: data sources, search pricing, model IDs, citation formats, location support, and measured Bright Data results.
-- [ ] **Carried forward:** get a Gateway key and run `npm run spike -- --engine claude,perplexity` for Claude and the Perplexity fallback, and record their per-call costs. Do this before Day 7 (Claude adapter).
+- [ ] **Carried forward:** get a Gateway key and run `npm run spike -- --engine claude,perplexity` for Claude and the Perplexity fallback, and record their per-call costs. Deferred with the official-API route (decision log, 19 October 2026).
 
 **Done when:** you have real answers with citations and a real cost from every engine, written down. (Done for the Bright Data engines on 18 October 2026; Claude and Perplexity carried forward.)
 **Watch for:** citation formats differ a lot between providers. Save raw responses to `scripts/fixtures/` now, because they become your test fixtures on Day 10.
@@ -136,63 +136,52 @@ The whole plan rests on what the Gateway actually supports. Check it before writ
 
 ## Phase 1: Provider abstraction (Days 6–10)
 
-This is the key piece of the architecture. Self-hosters plug in their own keys, the hosted version uses the platform key, and everything above this layer stays the same.
+This is the key piece of the architecture: the worker, the analysis and the dashboard reach AI engines only through one interface, so a new data source is one new adapter.
 
-### Day 6: The provider interface and the OpenAI adapter
+**Re-planned on 19 October 2026: Bright Data is the only data source for now.** It covers ChatGPT, Gemini, Google AI Mode and Google AI Overviews (Perplexity works only sometimes). Claude, Grok and Copilot wait for the official-API route, which moves after launch (see the decision log).
 
-- [ ] Define the contract in `core/providers/types.ts`:
-  ```ts
-  type QueryInput = { engine: EngineId; model: string; prompt: string; country?: string };
-  type QueryResult = {
-    text: string;
-    citations: { url: string; title?: string }[];
-    usage: { input: number; output: number };
-    costUsd: number | null;   // exact cost when the provider reports it
-    raw: unknown;             // kept for debugging and re-parsing
-  };
-  interface Provider { query(input: QueryInput): Promise<QueryResult> }
-  ```
-- [ ] Implement the Gateway provider for OpenAI with native web search, including user location.
-- [ ] Normalize citations into the common shape.
+### Day 6: The provider interface and the Bright Data adapter
 
-**Done when:** `npm run try -- chatgpt "best invoicing app"` prints normalized output.
+- [x] Define the contract in `core/providers/types.ts`. Providers work as jobs (`submit`, `check`, `collect`) because Bright Data does, and the job ID goes on each run item so a restarted worker never pays twice for a batch.
+- [x] Typed errors in `core/providers/errors.ts` (`auth`, `rate_limited`, `timeout`, `blocked`, `bad_input`, `unavailable`, `upstream`), each marked retryable or not.
+- [x] Engine registry in `core/providers/registry.ts`: name, maker, data source, status (available, unreliable, unavailable), verified countries, typical time, and Bright Data pricing.
+- [x] `BrightDataProvider`: one batch per engine, failed answers kept as results (and not billed), and records matched back to prompts by index, or by prompt and country where Google's scraper drops the index.
+- [x] `getProvider(engine)` and `query()` in `core/providers/index.ts`, plus a `FakeProvider` for tests and development without spending answers.
+- [x] `npm run try` replaces `npm run spike:bd`.
 
-### Day 7: Claude and Gemini adapters
+**Done when:** `npm run try -- chatgpt "best invoicing app"` prints normalized output. ✅ 19 October 2026: 142 s, 3,090 characters, 2 citations, $0.0015 at list price.
 
-- [ ] Claude: native Anthropic web search. Map its source titles and URLs to citations.
-- [ ] Gemini: grounding with Google Search. Map the grounding metadata to citations.
-- [ ] Pass the country through wherever the provider supports it, and record in `docs/providers.md` where it doesn't.
+### Day 7: Bring your own Bright Data key
 
-**Done when:** all three engines return the same `QueryResult` shape.
+- [ ] Add `provider_credentials` (workspace_id, provider, encrypted_key, last4, created_at). Encrypt with AES-256-GCM using a master key from the environment, and never send keys to the browser.
+- [ ] Settings page: add a key, test it with a free call, and delete it.
+- [ ] Resolve the key at call time: the workspace's own key first, then `BRIGHT_DATA_API_KEY` (self-hosted) or the platform key (hosted only).
 
-### Day 8: Perplexity and Grok adapters
+**Done when:** a workspace with its own key gets answers, and deleting the key stops them with a clear message.
 
-- [ ] Grok: native xAI search through the Gateway.
-- [ ] Perplexity: Sonar through the Gateway if Day 1 confirmed it, otherwise a direct Perplexity API adapter. **Don't use the Gateway's "Perplexity Search" tool**, which only feeds Perplexity results to other models.
-- [ ] Wrap every call with a timeout and typed errors (`RateLimited`, `Timeout`, `ProviderError`) so the worker can decide whether to retry.
-- [ ] Bright Data adapter for the consumer apps (ChatGPT, Gemini, Perplexity; Grok, Copilot and AI Mode later). It's asynchronous: trigger a batch, poll for progress, download the results. Map each platform's fields into `QueryResult`.
-- [ ] Make the data source a per-engine setting: `consumer` (Bright Data) or `api` (Gateway or direct). Claude is always `api`.
+### Day 8: Engines and countries per workspace
 
-**Done when:** all five engines work through one `getProvider(engine)` call, and ChatGPT, Gemini and Perplexity work through both sources.
+- [ ] Store each workspace's chosen engines (default: ChatGPT, Gemini, AI Mode, AI Overviews) and countries.
+- [ ] Settings page listing every engine from the registry with its status and note, so users see why Claude or Copilot can't be picked yet.
+- [ ] Warn when a country hasn't been verified for an engine (AI Mode and AI Overviews are verified for the US only).
 
-### Day 9: Bring your own keys (BYOK)
+**Done when:** the demo workspace's engine and country choices drive what `npm run try` and the cost estimate use.
 
-- [ ] Support these key sources per workspace: Bright Data (consumer apps), Vercel AI Gateway, OpenRouter, or direct provider keys.
-- [ ] Show the Bright Data free-tier usage (5,000 answers a month, resets on the 1st) and warn before a run would go past it.
-- [ ] Add `provider_credentials` (workspace_id, source, encrypted_key, created_at). Encrypt with AES-256-GCM using a master key from the environment, and never return keys to the client.
-- [ ] Build a settings page where you add a key, test it with a cheap call, and delete it.
-- [ ] Resolve the provider at call time: the workspace's own key first, then the platform key (hosted mode only).
+### Day 9: Free-tier usage meter
 
-**Done when:** you can switch the demo workspace from the Gateway to OpenRouter and runs still work.
-**Watch for:** OpenRouter charges about 5.5% on card credits. Mention it in the docs, not in code.
+- [ ] Count Bright Data answers delivered this calendar month from the `answers` table (failed answers don't count).
+- [ ] Show usage against the free 5,000 a month in the sidebar meter and on the settings page, with the reset date.
+- [ ] `estimateRun()`: prompts × engines × countries × samples, in answers and dollars, and whether it fits in what's left this month.
 
-### Day 10: Presets, engine registry and tests
+**Done when:** the sidebar meter shows real usage and a run that would go past the free tier is flagged before it starts.
 
-- [ ] `core/providers/registry.ts`: one entry per engine with display name, search method, Accurate model, Budget model, and an estimated cost per call (from Day 1).
-- [ ] Keep the presets in one config file so updating model IDs is a one-line change.
-- [ ] Write Vitest tests for each adapter's normalization, using the raw fixtures saved on Day 1. No network calls in tests.
+### Day 10: Resilience, live check and tests
 
-**Done when:** `npm test` passes offline.
+- [ ] Re-run `npm run try -- --save` across all engines and refresh the fixtures; update `docs/providers.md` with the results.
+- [ ] Back off on `rate_limited` and `blocked` across a whole run, not just one request, so a run never triggers Bright Data's 429 IP block.
+- [ ] Tests for every adapter path on fixtures, with no network calls.
+
+**Done when:** `npm test` passes offline and every available engine has a fresh fixture.
 
 ---
 
@@ -528,7 +517,7 @@ Everything in this phase lives in `ee/`.
 | Phase | Days | Outcome |
 | --- | --- | --- |
 | 0. Foundations | 1–5 | Verified providers, database, auth |
-| 1. Provider abstraction | 6–10 | Five engines behind one interface, plus BYOK |
+| 1. Provider abstraction | 6–10 | Bright Data engines behind one interface, own keys, usage meter |
 | 2. Setup flow | 11–14 | Onboarding, prompts, configuration |
 | 3. Tracking engine | 15–20 | Queued, scheduled, budget-capped runs |
 | 4. Analysis | 21–26 | Mentions, sentiment, citations, metrics |
@@ -557,6 +546,7 @@ Record decisions here as you make them, with the date and the reason.
 | 2026-10-03 | Data source for self-hosting: Bright Data's consumer-app scrapers for ChatGPT, Gemini and Perplexity (Grok, Copilot and AI Mode available too); Claude through the official API. The free 5,000 answers a month cover 15 prompts daily, asked 3×. This reverses the plan's "API only" rule, so get legal advice before launch. | Decided |
 | 2026-10-18 | Copilot: deferred. Copilot chat requires a login since 31 August 2026. Options if revisited: SerpApi `bing_copilot` (Copilot Search on Bing, no login, 250 free a month) or Apify's Copilot scraper (test first; may rely on signed-in accounts). | Deferred |
 | 2026-10-18 | Google AI Overviews and AI Mode move into version 1, through Bright Data's free scrapers (US for now). | Decided |
+| 2026-10-19 | Phase 1 uses Bright Data only. Claude, Grok and Copilot (and the official-API route for all engines) move after launch; Bright Data has no Grok scraper and Claude and Copilot need sign-in. OpenRouter/Gateway BYOK is dropped from Phase 1. | Decided |
 | | Data source for the hosted version: Bright Data Scale ($1.30 per 1,000) or DataForSEO ($1.20 per 1,000, also covers Claude and AI Overviews) | Decide before Day 38 |
 | | Google AI Overviews: version 2 through a SERP API, or skip | Deferred (Bright Data's AI Mode scraper may cover part of it) |
 | | Web hosting: Vercel or VPS | Decide on Day 45 |
