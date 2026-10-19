@@ -202,11 +202,13 @@ This is the key piece of the architecture: the worker, the analysis and the dash
 
 ### Day 12: Onboarding, part 1 (brand and competitors)
 
-- [ ] Wizard step 1: brand name, one-line description, owned domains and aliases (chips input).
-- [ ] Wizard step 2: competitors, each with aliases and domains.
-- [ ] Show the honest-framing notice here: *"We measure how AI models respond through their APIs. Results won't exactly match the consumer apps."*
+- [x] `/onboarding`, a full-screen wizard. New workspaces land there from the Overview until they have a brand; afterwards it's where the brand and competitors are edited (prefilled).
+- [x] Step 1: brand name, one-line description, owned domains and other names, as chips. Pasted URLs are reduced to their domain; bad domains are explained.
+- [x] Step 2: competitors, each with domains and other names. Saving matches competitors by name, so ones kept on the list keep their history; only removed ones are deleted (the wizard says so).
+- [x] Rules in `core/brand-setup.ts` (shared by the form and the server), saving in `core/brands.ts`, owners only.
+- [x] The honest-framing notice, updated for how answers are actually collected: *"We ask each engine your questions as a logged-out visitor, through Bright Data. Signed-in or paying users may see different answers…"*
 
-**Done when:** a new workspace can save its brand and three competitors.
+**Done when:** a new workspace can save its brand and three competitors. ✅ 19 October 2026: a brand-new user was sent to setup, saved Ledgerly with 3 competitors by typing into the wizard, saw them on the Competitors page, and reached the Overview.
 
 ### Day 13: AI-suggested prompts and the prompt manager
 

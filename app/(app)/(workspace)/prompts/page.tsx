@@ -30,7 +30,7 @@ export default async function PromptsPage() {
           icon={<ListChecks />}
           title="No prompts yet"
           description="Prompts are the questions your customers ask AI, like “best invoicing app for freelancers”. Setup will suggest 15–20 from your brand description, and you can add your own."
-          action={{ href: "/settings", label: "Review tracking settings" }}
+          action={{ href: "/onboarding", label: "Set up your brand" }}
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line">

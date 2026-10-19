@@ -1,4 +1,8 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { requireWorkspace } from "@/core/auth/session";
+import { hasBrand } from "@/core/brands";
+import { getDb } from "@/db/client";
 import { Bot, Info, Link2, MessageSquareText, Swords } from "lucide-react";
 import { BarListCard } from "../../_components/bar-list-card";
 import { OverviewTop } from "../../_components/overview-top";
@@ -33,7 +37,11 @@ const Swatch = ({ color }: { color: string }) => (
 
 const KIND_TAG = { owned: "Owned", competitor: "Competitor", third_party: undefined } as const;
 
-export default function OverviewPage() {
+export default async function OverviewPage() {
+  // new workspaces start in setup: there's nothing to show until a brand exists
+  const { workspace } = await requireWorkspace();
+  if (!(await hasBrand(getDb(), workspace.id))) redirect("/onboarding");
+
   const mention = engineAverages("mention");
   const position = engineAverages("position");
 
