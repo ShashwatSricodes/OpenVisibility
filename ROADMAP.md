@@ -210,14 +210,15 @@ This is the key piece of the architecture: the worker, the analysis and the dash
 
 **Done when:** a new workspace can save its brand and three competitors. ✅ 19 October 2026: a brand-new user was sent to setup, saved Ledgerly with 3 competitors by typing into the wizard, saw them on the Competitors page, and reached the Overview.
 
-### Day 13: AI-suggested prompts and the prompt manager
+### Day 13: Prompt research and the prompt manager
 
-- [ ] Use a Budget model to generate 15–20 prompts customers might ask (discovery, comparison, how-to, brand questions) from the brand description, returned as Zod-validated structured output.
-- [ ] Let the user accept, edit or reject each suggestion.
-- [ ] Build the Prompts page: create, edit, delete, tag, and activate or pause prompts.
-- [ ] Log the cost of the suggestion call.
+- [x] Brands gain a category ("invoicing software") and an audience ("freelancers"), asked in step 1 of setup.
+- [x] Suggestions (`core/prompt-suggest.ts`): 20 prompts, about two-thirds non-branded. Without a key they come from templates built on the category, audience and competitors; with `AI_GATEWAY_API_KEY` a cheap model (`PROMPT_SUGGEST_MODEL`, default `google/gemini-3.5-flash-lite`) writes them as Zod-validated structured output, falling back to templates if the call fails. The cost is logged when the gateway reports it.
+- [x] Setup step 3: accept, untick, edit or add each suggestion; prompts already tracked aren't suggested again. "Get suggestions" on the Prompts page reopens this step.
+- [x] Every prompt is tagged with its intent and, automatically, branded or non-branded (re-tagged after every edit). Otterly's funnel stage maps from the intent (`FUNNEL` in `core/prompt-rules.ts`).
+- [x] Prompts page: add, edit inline, filter (all, non-branded, branded, paused), set countries per prompt, pause or resume, delete (past answers stay). Duplicates are refused; workspaces can't touch each other's prompts.
 
-**Done when:** onboarding ends with at least 10 saved prompts.
+**Done when:** onboarding ends with at least 10 saved prompts. ✅ 19 October 2026: a new user saved 20 prompts from the suggestions (one unticked, one edited, one added), then edited, paused, deleted and filtered them on the Prompts page.
 
 ### Day 14: Countries, engines and presets
 
@@ -357,6 +358,8 @@ Catch up on anything that slipped. If you're on track, write tests for the run p
 
 - [ ] List of answers filterable by engine, prompt, country, run, and mentioned or not.
 - [ ] Detail view: full answer text with brand and competitor mentions highlighted, citations tagged owned or third-party, and metadata (model, preset, sample number, country, cost).
+- [ ] **Query fan-out** (Otterly parity): show the web searches the engine ran for the answer. Bright Data returns ChatGPT's as `web_search_query`.
+- [ ] **ChatGPT ads** (Otterly parity): show the ads shown alongside the answer (Bright Data's `ads` field), and count them per brand.
 
 **Done when:** you can find and read any answer from any run.
 
@@ -384,6 +387,54 @@ Catch up on anything that slipped. If you're on track, write tests for the run p
 - [ ] Loading and error states on every page.
 - [ ] Add the "API answers, not the consumer apps" note to the overview and to every export.
 - [ ] Make the layout usable on a phone.
+
+---
+
+## Phase 5b: Parity with Otterly (Days P1–P6)
+
+Otterly.ai is the closest affordable competitor ($29–$489 a month; checked 19 October 2026). Its core features, mapped onto this plan, are in the [parity table](#otterly-parity) below. These days cover what the plan was missing.
+
+### Day P1: Alerts
+
+- [ ] Email when a run shows a real change: brand mention rate up or down by more than a set amount, a competitor overtaking you on an engine, a new domain cited for your prompts, or a run failing.
+- [ ] Per-workspace alert settings; a weekly summary email as the default.
+
+**Done when:** a seeded drop in mention rate sends one clear email.
+
+### Day P2: GEO audit, part 1 (can AI crawlers read your pages?)
+
+- [ ] For a URL: robots.txt rules for GPTBot, OAI-SearchBot, ChatGPT-User, Google-Extended, PerplexityBot, ClaudeBot and others; meta robots and X-Robots-Tag; HTTP status, redirects and load time; whether the main text is in the HTML without JavaScript; `llms.txt`.
+- [ ] Audit every owned domain's top pages from the sitemap; cached results with a re-run button.
+
+**Done when:** the audit flags a page blocked to GPTBot and one that needs JavaScript to show its text.
+
+### Day P3: GEO audit, part 2 (is the page ready to be cited?)
+
+- [ ] Content checks: headings that answer questions, lists and tables, schema.org markup (FAQ, Product, Organization, Review), dates, author, word count, and the brand named clearly.
+- [ ] A score per page with the reasons, and a comparison with the pages AI actually cites for your prompts (from citations).
+
+**Done when:** every owned page cited or not cited has a score and a list of fixes.
+
+### Day P4: Recommendations
+
+- [ ] Weekly, from your own data: prompts where competitors appear and you don't, domains cited for competitors but not for you (outreach targets), owned pages failing the audit, engines where you're slipping.
+- [ ] Shown on the Overview and in the weekly email.
+
+**Done when:** the demo workspace gets at least five specific, data-backed recommendations.
+
+### Day P5: Teams and several brands
+
+- [ ] Invite members by email (owner or member); remove them.
+- [ ] Several brands per workspace (agencies): a brand switcher, with prompts, competitors and results kept per brand.
+
+**Done when:** a second user joins by invite, and an agency workspace tracks two brands separately.
+
+### Day P6: API and Looker Studio
+
+- [ ] A read-only REST API with workspace API keys: brands, prompts, runs, answers, citations and the metrics rollup.
+- [ ] Looker Studio through the API (or a Google Sheets export), and an MCP server over the same endpoints.
+
+**Done when:** a script with an API key pulls last week's metrics, and a Looker Studio report shows them.
 
 ---
 
@@ -528,6 +579,7 @@ Everything in this phase lives in `ee/`.
 | 3. Tracking engine | 15–20 | Queued, scheduled, budget-capped runs |
 | 4. Analysis | 21–26 | Mentions, sentiment, citations, metrics |
 | 5. Dashboard | 27–33 | Every version 1 insight, plus CSV export |
+| 5b. Otterly parity | P1–P6 | Alerts, GEO audit, recommendations, teams, API |
 | 6. Open-source release | 34–37 | Docker, docs, CI, open core boundary |
 | 7. Hosted billing | 38–44 | Wallet, Stripe, Razorpay, enforcement |
 | 8. Launch | 45–50 | Production, beta, public release |
@@ -539,6 +591,33 @@ Everything in this phase lives in `ee/`.
 - **Day 49:** public launch.
 
 ---
+
+## Otterly parity
+
+Otterly's core features (from otterly.ai and its pricing page, 19 October 2026) and where each lives in this plan.
+
+| Otterly feature | Here |
+| --- | --- |
+| ChatGPT, AI Overviews, Perplexity, Copilot; add-ons AI Mode, Gemini, Claude | ChatGPT, Gemini, AI Mode, AI Overviews done. Perplexity, Copilot, Claude deferred (decision log) |
+| Daily tracking | Day 18 |
+| Brand visibility: mentions, coverage, average position | Days 21, 24 |
+| Share of voice | Day 24 |
+| Sentiment | Day 22 |
+| Citation and link analysis, domain ranking | Days 23, 30 |
+| Competitor benchmarking | Day 31 |
+| Prompt research | Day 13 |
+| Prompt tags (branded, non-branded, funnel stage) and filters | Day 13 (auto-tagging), Day 32 |
+| Query fan-out | Day 29 |
+| Multi-country, multi-language | Day 8 (countries); prompts in any language |
+| Date ranges, engine and country filters | Day 32 |
+| Reports and export | Day 32 |
+| Alerts | Day P1 |
+| GEO audit (crawlability, content) | Days P2, P3 |
+| Weekly recommendations | Day P4 |
+| Team members, several brands | Day P5 |
+| API, MCP, Looker Studio connector | Day P6 |
+| ChatGPT ads tracking | Day 29 |
+| Agent analytics (AI bot visits), AI referral traffic | Version 2 (needs server logs or GA4) |
 
 ## Decision log
 
@@ -554,6 +633,8 @@ Record decisions here as you make them, with the date and the reason.
 | 2026-10-18 | Google AI Overviews and AI Mode move into version 1, through Bright Data's free scrapers (US for now). | Decided |
 | 2026-10-19 | Phase 1 uses Bright Data only. Claude, Grok and Copilot (and the official-API route for all engines) move after launch; Bright Data has no Grok scraper and Claude and Copilot need sign-in. OpenRouter/Gateway BYOK is dropped from Phase 1. | Decided |
 | 2026-10-19 | Perplexity: left for now. Bright Data's scraper is refused by Perplexity ("too many requests") from every country and URL tried; Perplexity reportedly blocks shared proxy IPs since August 2026. If revisited: cloro (also covers Copilot; 500 free credits a month) or querying.ai, as one more adapter. | Deferred |
+| 2026-10-19 | Target feature parity with Otterly.ai for version 1: alerts, GEO audit, recommendations, teams and several brands, API, query fan-out and ChatGPT ads join the plan (Phase 5b and Day 29). Agent analytics and referral traffic stay in version 2. | Decided |
+| 2026-10-19 | Prompt suggestions: built from templates by default (free, offline); an AI model writes them when a key is set. | Decided |
 | | Data source for the hosted version: Bright Data Scale ($1.30 per 1,000) or DataForSEO ($1.20 per 1,000, also covers Claude and AI Overviews) | Decide before Day 38 |
 | | Google AI Overviews: version 2 through a SERP API, or skip | Deferred (Bright Data's AI Mode scraper may cover part of it) |
 | | Web hosting: Vercel or VPS | Decide on Day 45 |

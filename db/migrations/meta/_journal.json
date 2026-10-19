@@ -36,6 +36,13 @@
       "when": 1792391203500,
       "tag": "0004_workspace_engines",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792408803799,
+      "tag": "0005_brand_category",
+      "breakpoints": true
     }
   ]
 }

@@ -44,6 +44,8 @@ export async function getBrandSetup(db: AnyDb, workspaceId: string): Promise<Bra
       id: brand.id,
       name: brand.name,
       description: brand.description,
+      category: brand.category ?? "",
+      audience: brand.audience,
       domains: brand.domains,
       aliases: aliasRows.map((a) => a.alias),
     },
@@ -70,7 +72,13 @@ export async function saveBrand(
       .orderBy(asc(brands.createdAt))
       .limit(1);
 
-    const values = { name: input.name, description: input.description, domains: input.domains };
+    const values = {
+      name: input.name,
+      description: input.description,
+      category: input.category,
+      audience: input.audience,
+      domains: input.domains,
+    };
     const brandId = existing
       ? (await tx.update(brands).set(values).where(eq(brands.id, existing.id)).returning())[0].id
       : (
