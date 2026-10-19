@@ -22,5 +22,7 @@ export const config = {
     "/competitors/:path*",
     "/runs/:path*",
     "/settings/:path*",
+    "/billing/:path*",
+    "/help/:path*",
   ],
 };

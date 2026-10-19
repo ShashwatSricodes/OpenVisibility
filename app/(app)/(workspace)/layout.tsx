@@ -7,7 +7,11 @@ import { MobileNav, Sidebar } from "../_components/sidebar";
    redirects to /login. The middleware only checks that a cookie exists. */
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const { user, workspace } = await requireWorkspace();
-  const account = { email: user.email, workspace: workspace.name };
+  const account = {
+    email: user.email,
+    workspace: workspace.name,
+    hosted: workspace.mode === "hosted",
+  };
   const usage = await getFreeTierUsage(getDb(), workspace.id);
 
   return (

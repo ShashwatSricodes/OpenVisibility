@@ -6,14 +6,14 @@
 
 import { asc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { getDb, type AnyDb } from "@/db/client";
 import { memberships, workspaces } from "@/db/schema";
 import { getAuth } from "./auth";
 
-export async function getSession() {
-  return getAuth().api.getSession({ headers: await headers() });
-}
+/* cached per request: the layout and the page both ask, but the database is asked once */
+export const getSession = cache(async () => getAuth().api.getSession({ headers: await headers() }));
 
 /** The signed-in user; redirects to /login when there is no valid session. */
 export async function requireUser() {
@@ -34,11 +34,11 @@ export async function getWorkspaceForUser(userId: string, db: AnyDb = getDb()) {
   return row ?? null;
 }
 
-/** The signed-in user and their workspace, or a redirect to /login. */
-export async function requireWorkspace() {
+/** The signed-in user and their workspace, or a redirect to /login. Cached per request. */
+export const requireWorkspace = cache(async () => {
   const user = await requireUser();
   const membership = await getWorkspaceForUser(user.id);
   // every user gets a workspace on sign-up; a missing one means data was deleted
   if (!membership) redirect("/login?error=no_workspace");
   return { user, workspace: membership.workspace, role: membership.role };
-}
+});
