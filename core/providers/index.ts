@@ -8,10 +8,13 @@ import { env } from "../env";
 import { BrightDataProvider } from "./brightdata";
 import { ProviderError } from "./errors";
 import { ENGINES } from "./registry";
-import type { EngineId, Provider, QueryInput, QueryResult } from "./types";
+import type { EngineId, Provider } from "./types";
 
 export * from "./errors";
 export * from "./registry";
+export * from "./query";
+export * from "./retry";
+export * from "./rate-guard";
 export type * from "./types";
 
 export type ProviderKeys = {
@@ -39,40 +42,4 @@ export function getProvider(engine: EngineId, keys: ProviderKeys = {}): Provider
         `${info.name} isn't available yet. ${info.note ?? ""}`,
       );
   }
-}
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-/**
- * Submit a batch, wait for it and return one result per input. On timeout
- * the error carries the job ID, because the job may still finish and
- * checking it again costs nothing.
- */
-export async function query(
-  provider: Provider,
-  engine: EngineId,
-  inputs: QueryInput[],
-  {
-    pollMs = 10_000,
-    timeoutMs = 15 * 60_000,
-    onState,
-  }: { pollMs?: number; timeoutMs?: number; onState?: (state: string, jobId: string) => void } = {},
-): Promise<{ jobId: string; results: QueryResult[] }> {
-  const jobId = await provider.submit(engine, inputs);
-  const deadline = Date.now() + timeoutMs;
-
-  while (true) {
-    const job = await provider.check(jobId);
-    onState?.(job.state === "pending" ? (job.detail ?? "pending") : job.state, jobId);
-    if (job.state === "ready") break;
-    if (job.state === "failed") throw new ProviderError(job.error.kind, job.error.message);
-    if (Date.now() + pollMs > deadline)
-      throw new ProviderError(
-        "timeout",
-        `Job ${jobId} not ready after ${Math.round(timeoutMs / 1000)}s; check it again later`,
-      );
-    await sleep(pollMs);
-  }
-
-  return { jobId, results: await provider.collect(engine, jobId, inputs) };
 }

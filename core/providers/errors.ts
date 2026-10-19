@@ -36,6 +36,8 @@ export class ProviderError extends Error {
     readonly kind: ProviderErrorKind,
     message: string,
     readonly status?: number,
+    /** the provider job this error belongs to, so a timed-out job can be resumed, not resubmitted */
+    readonly jobId?: string,
   ) {
     super(message);
     this.name = "ProviderError";

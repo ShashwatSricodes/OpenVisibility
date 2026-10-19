@@ -13,6 +13,7 @@
  */
 
 import { ProviderError, isRetryable, kindForStatus, type ProviderErrorKind } from "./errors";
+import { RateGuard, guardFor } from "./rate-guard";
 import { BRIGHT_DATA_PRICING } from "./registry";
 import type {
   Citation,
@@ -69,15 +70,23 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** The raw API: trigger, progress, download. The provider below builds on it. */
 export class BrightDataClient {
-  constructor(private readonly apiKey: string) {
+  private readonly guard: RateGuard;
+
+  constructor(
+    private readonly apiKey: string,
+    guard?: RateGuard,
+  ) {
     if (!apiKey)
       throw new ProviderError(
         "auth",
         "Missing Bright Data API key. Add BRIGHT_DATA_API_KEY to .env.local.",
       );
+    // every client for this key shares one guard, so all requests count together
+    this.guard = guard ?? guardFor(apiKey);
   }
 
   private async request(path: string, init?: RequestInit, retried = false): Promise<Response> {
+    await this.guard.before();
     let res: Response;
     try {
       res = await fetch(`${API}${path}`, {
@@ -92,9 +101,12 @@ export class BrightDataClient {
       throw new ProviderError("upstream", `Couldn't reach Bright Data: ${(err as Error).message}`);
     }
 
+    if (res.status === 429) this.guard.record429();
     if (res.status === 429 && !retried) {
       // one polite retry, honouring Retry-After; a second 429 is an error
-      const wait = Number(res.headers.get("retry-after")) || 10;
+      // Retry-After may be 0; only a missing or unreadable value falls back to 10s
+      const header = Number(res.headers.get("retry-after") ?? NaN);
+      const wait = Number.isFinite(header) && header >= 0 ? Math.min(header, 60) : 10;
       await sleep(wait * 1000);
       return this.request(path, init, true);
     }
