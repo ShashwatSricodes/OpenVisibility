@@ -53,7 +53,7 @@ export default async function OnboardingPage({
           }))}
           canEdit={role === "owner"}
           // "Get suggestions" on the Prompts page opens straight at the prompts step
-          initialStep={brand && step === "prompts" ? 2 : 0}
+          initialStep={!brand ? 0 : step === "prompts" ? 2 : step === "review" ? 3 : 0}
         />
       </main>
     </div>

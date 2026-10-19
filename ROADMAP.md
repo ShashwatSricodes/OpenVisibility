@@ -220,14 +220,14 @@ This is the key piece of the architecture: the worker, the analysis and the dash
 
 **Done when:** onboarding ends with at least 10 saved prompts. ✅ 19 October 2026: a new user saved 20 prompts from the suggestions (one unticked, one edited, one added), then edited, paused, deleted and filtered them on the Prompts page.
 
-### Day 14: Countries, engines and presets
+### Day 14: Samples and the setup review
 
-- [ ] Choose countries per workspace (default) and override them per prompt.
-- [ ] Toggle each engine on or off, and pick a preset (Accurate or Budget) per engine.
-- [ ] Set samples per prompt (1–10, default 3).
-- [ ] Wizard final step: a review screen. The live cost estimate gets wired in on Day 17.
+- [x] Countries per workspace with per-prompt overrides (Day 8 and the Day 13 prompt manager); engines on or off per workspace (Day 8).
+- [x] Samples: how many times each prompt is asked per engine and country, 1–10, default 3 (new `workspaces.samples`), in Settings. Every estimate now uses it.
+- [x] Setup step 4, the review: brand, competitors, prompts (and how many are non-branded), engines, countries and samples, each with an Edit link; answers per run, and whether one run and daily runs until the reset fit in the free tier, with warnings. `/onboarding?step=review` opens it directly.
+- [x] Dropped: Accurate/Budget presets per engine. They chose between paid model APIs, which Phase 1 set aside for Bright Data.
 
-**Done when:** a workspace's full tracking configuration is saved and editable in Settings.
+**Done when:** a workspace's full tracking configuration is saved and editable in Settings. ✅ 19 October 2026: a new user set up a brand, 3 competitors and 12 prompts and saw 144 answers a run (4 engines × 1 country × 3 asks × 12 prompts); asking 2× in Settings changed the review to 96.
 
 ---
 
@@ -575,7 +575,7 @@ Everything in this phase lives in `ee/`.
 | --- | --- | --- |
 | 0. Foundations ✅ | 1–5 | Verified providers, database, auth |
 | 1. Provider abstraction ✅ | 6–10 | Bright Data engines behind one interface, own keys, usage meter |
-| 2. Setup flow | 11–14 | Onboarding, prompts, configuration |
+| 2. Setup flow ✅ | 11–14 | Onboarding, prompts, configuration |
 | 3. Tracking engine | 15–20 | Queued, scheduled, budget-capped runs |
 | 4. Analysis | 21–26 | Mentions, sentiment, citations, metrics |
 | 5. Dashboard | 27–33 | Every version 1 insight, plus CSV export |

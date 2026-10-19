@@ -80,6 +80,7 @@ export async function removeKeyAction(): Promise<KeyFormState> {
 export async function saveTrackingAction(input: {
   engines: string[];
   countries: string[];
+  samples: number;
 }): Promise<KeyFormState> {
   const { workspace, role } = await requireWorkspace();
   if (role !== "owner")

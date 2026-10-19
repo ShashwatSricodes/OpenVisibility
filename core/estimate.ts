@@ -6,9 +6,6 @@
 import { BRIGHT_DATA_PRICING } from "./providers/registry";
 import type { TrackingConfig } from "./tracking-rules";
 
-/** How many times each prompt is asked per engine and country, to smooth out answer variance. */
-export const DEFAULT_SAMPLES = 3;
-
 export type RunEstimate = {
   prompts: number;
   /** answers one run uses */
@@ -22,8 +19,8 @@ export type RunEstimate = {
 export function estimateRun(
   prompts: { countries: string[] }[],
   config: TrackingConfig,
-  samples = DEFAULT_SAMPLES,
 ): RunEstimate {
+  const { samples } = config;
   const answers = prompts.reduce(
     (sum, p) =>
       sum + config.engines.length * (p.countries.length || config.countries.length) * samples,
