@@ -1,7 +1,7 @@
 /**
  * Environment variables, validated in one place.
  *
- * Every provider key is optional: a self-hoster may run only the engines
+ * Everything is optional at parse time: a self-hoster may run only the engines
  * they have keys for. Code that needs a key calls `requireEnv`, which fails
  * with a message saying what the key is for and where to get it.
  */
@@ -16,6 +16,14 @@ const optionalString = z
 
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+
+  /** Postgres connection string; docker-compose.yml provides one for local work */
+  DATABASE_URL: optionalString.pipe(
+    z
+      .string()
+      .regex(/^postgres(ql)?:\/\//, "must start with postgres:// or postgresql://")
+      .optional(),
+  ),
 
   /** Consumer-app answers (ChatGPT, Gemini, AI Mode, AI Overviews, Perplexity) */
   BRIGHT_DATA_API_KEY: optionalString,
@@ -45,6 +53,8 @@ export function env(source: Record<string, string | undefined> = process.env): E
 }
 
 const HINTS = {
+  DATABASE_URL:
+    "Postgres connection string. For local development run `docker compose up -d` and use postgres://openvisibility:openvisibility@localhost:5432/openvisibility.",
   BRIGHT_DATA_API_KEY:
     "Bright Data key for consumer-app answers. Free account (5,000 answers a month): brightdata.com → Account settings → API key.",
   AI_GATEWAY_API_KEY:

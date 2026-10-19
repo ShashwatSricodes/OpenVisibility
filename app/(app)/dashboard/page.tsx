@@ -19,16 +19,16 @@ function Favicon({ domain }: { domain: string }) {
     <img
       src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`}
       alt=""
-      width={16}
-      height={16}
-      className="size-4 shrink-0"
+      width={14}
+      height={14}
+      className="size-3.5 shrink-0"
       loading="lazy"
     />
   );
 }
 
 const Swatch = ({ color }: { color: string }) => (
-  <span className="size-2.5 shrink-0 rounded-sm" style={{ background: color }} aria-hidden="true" />
+  <span className="size-2 shrink-0 rounded-sm" style={{ background: color }} aria-hidden="true" />
 );
 
 const KIND_TAG = { owned: "Owned", competitor: "Competitor", third_party: undefined } as const;
@@ -48,17 +48,17 @@ export default function OverviewPage() {
       }));
 
   return (
-    <div className="flex flex-col gap-5 p-4 sm:p-6 lg:px-8 lg:py-7">
+    <div className="flex flex-col gap-4 p-4 sm:p-5 lg:px-6 lg:py-5">
       <OverviewTop
         title="Overview"
         subtitle={`${BRAND.name} · ${PROMPTS.length} prompts across ${ENGINES.length} engines · sample data`}
       />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <BarListCard
           tint="green"
           caption="Answers"
-          captionIcon={<Bot className="size-4" />}
+          captionIcon={<Bot className="size-3.5" />}
           tabs={[
             {
               id: "mention",
@@ -80,7 +80,7 @@ export default function OverviewPage() {
         <BarListCard
           tint="blue"
           caption="Mentions"
-          captionIcon={<Swords className="size-4" />}
+          captionIcon={<Swords className="size-3.5" />}
           tabs={[
             {
               id: "sov",
@@ -112,7 +112,7 @@ export default function OverviewPage() {
         <BarListCard
           tint="orange"
           caption="Mention rate"
-          captionIcon={<MessageSquareText className="size-4" />}
+          captionIcon={<MessageSquareText className="size-3.5" />}
           tabs={[
             {
               id: "missing",
@@ -138,7 +138,7 @@ export default function OverviewPage() {
         <BarListCard
           tint="red"
           caption="Citations"
-          captionIcon={<Link2 className="size-4" />}
+          captionIcon={<Link2 className="size-3.5" />}
           tabs={[
             {
               id: "sources",

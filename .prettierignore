@@ -4,3 +4,4 @@ package-lock.json
 scripts/fixtures
 public
 *.md
+db/migrations
