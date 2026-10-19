@@ -1,92 +1,55 @@
 {
-  "capturedAt": "2026-10-18T06:52:57.578Z",
+  "capturedAt": "2026-10-19T10:03:31.788Z",
   "engine": "chatgpt",
   "prompt": "What is the best invoicing software for freelancers?",
-  "country": "IN",
-  "snapshotId": "sd_mvdgr2ks10617at3kg",
-  "seconds": 90,
+  "country": "US",
+  "snapshotId": "sd_mvf2z29j16mj46hboq",
+  "seconds": 133,
   "answers": [
     {
       "engine": "chatgpt",
-      "prompt": "What is the best invoicing software for freelancers?",
+      "source": "consumer_app",
       "index": 0,
-      "ok": true,
-      "text": "The best invoicing software for freelancers depends on where your clients are, whether you need tax-compliant invoices, and how much you want to spend. If you're freelancing in India, I'd start with Zoho Invoice. It's a strong choice for creating professional invoices without a subscription, and it supports Indian GST requirements. If you need full accounting rather than just invoicing, consider Zoho Books. IndieToolkit +1 The best invoicing software for freelancers in 2026 1. Zoho Invoice Best overall for India Best for: Solo freelancers and consultants Free invoicing, professional templates, client management, payment tracking and GST-related features. A good starting point if you want to keep costs at zero. Official website 2. Refrens Best for: Simple invoicing for Indian freelancers An India-focused option for quotations, invoices, payment tracking and GST-related workflows. Worth comparing with Zoho if you prefer a straightforward invoicing experience. Official website 3. Zoho Books Best for: Invoicing plus accounting A better fit when you need expense tracking, bookkeeping, financial reports and more comprehensive GST workflows, not just invoices. Official website 4. FreshBooks Best for: Hourly billing and international clients Particularly appealing if you bill by the hour or project and want time tracking alongside invoices and expense management. Paid plans and Indian tax localization are important considerations. Official website 5. Wave Best for: Basic invoicing in supported markets A popular low-cost option for straightforward invoicing and accounting, especially in North America. It isn't the first choice for Indian freelancers who need native GST workflows. Official website These recommendations are based on the tools' typical strengths; check current plan limits, payment availability and tax features before signing up. IndieToolkit +2 Which one should you choose? If you need… My pick Free invoices with GST support in India Zoho Invoice Simple invoices and quotations Refrens Invoicing, expenses and bookkeeping Zoho Books Hourly billing for overseas clients FreshBooks Basic invoicing in North America Wave Let me narrow it down for you 1. Where are you based? India US or Canada UK or Europe Other country 2. What's your budget? Free only Under $15/month Flexible, if it's worth it 3. Where are your clients? Mostly in my country Mostly international Both local and international 4. What do you need? Just invoices and payment reminders Invoices, expenses and accounting Time tracking and project billing Invoices, contracts and client management Find my best option",
-      "citations": [
-        {
-          "url": "https://indietoolkit.in",
-          "title": "indietoolkit.in",
-          "position": 1
-        }
-      ],
-      "links": [
-        {
-          "url": "https://www.zoho.com/in/invoice/?utm_source=chatgpt.com",
-          "title": "Official website",
-          "position": 1
-        },
-        {
-          "url": "https://www.refrens.com/?utm_source=chatgpt.com",
-          "title": "Official website",
-          "position": 2
-        },
-        {
-          "url": "https://www.zoho.com/in/books/?utm_source=chatgpt.com",
-          "title": "Official website",
-          "position": 3
-        },
-        {
-          "url": "https://www.freshbooks.com/?utm_source=chatgpt.com",
-          "title": "Official website",
-          "position": 4
-        },
-        {
-          "url": "https://www.waveapps.com/?utm_source=chatgpt.com",
-          "title": "Official website",
-          "position": 5
-        }
-      ],
-      "webSearchTriggered": false,
-      "country": "IN",
+      "country": "US",
       "raw": {
         "url": "https://chatgpt.com/?q=What%20is%20the%20best%20invoicing%20software%20for%20freelancers?",
         "prompt": "What is the best invoicing software for freelancers?",
-        "answer_text": "The best invoicing software for freelancers depends on where your clients are, whether you need tax-compliant invoices, and how much you want to spend. If you're freelancing in India, I'd start with Zoho Invoice. It's a strong choice for creating professional invoices without a subscription, and it supports Indian GST requirements. If you need full accounting rather than just invoicing, consider Zoho Books. IndieToolkit +1 The best invoicing software for freelancers in 2026 1. Zoho Invoice Best overall for India Best for: Solo freelancers and consultants Free invoicing, professional templates, client management, payment tracking and GST-related features. A good starting point if you want to keep costs at zero. Official website 2. Refrens Best for: Simple invoicing for Indian freelancers An India-focused option for quotations, invoices, payment tracking and GST-related workflows. Worth comparing with Zoho if you prefer a straightforward invoicing experience. Official website 3. Zoho Books Best for: Invoicing plus accounting A better fit when you need expense tracking, bookkeeping, financial reports and more comprehensive GST workflows, not just invoices. Official website 4. FreshBooks Best for: Hourly billing and international clients Particularly appealing if you bill by the hour or project and want time tracking alongside invoices and expense management. Paid plans and Indian tax localization are important considerations. Official website 5. Wave Best for: Basic invoicing in supported markets A popular low-cost option for straightforward invoicing and accounting, especially in North America. It isn't the first choice for Indian freelancers who need native GST workflows. Official website These recommendations are based on the tools' typical strengths; check current plan limits, payment availability and tax features before signing up. IndieToolkit +2 Which one should you choose? If you need… My pick Free invoices with GST support in India Zoho Invoice Simple invoices and quotations Refrens Invoicing, expenses and bookkeeping Zoho Books Hourly billing for overseas clients FreshBooks Basic invoicing in North America Wave Let me narrow it down for you 1. Where are you based? India US or Canada UK or Europe Other country 2. What's your budget? Free only Under $15/month Flexible, if it's worth it 3. Where are your clients? Mostly in my country Mostly international Both local and international 4. What do you need? Just invoices and payment reminders Invoices, expenses and accounting Time tracking and project billing Invoices, contracts and client management Find my best option",
+        "answer_text": "For most freelancers, I’d recommend Zoho Invoice if you want free software, or FreshBooks if you want a more complete paid solution. You probably don’t need expensive accounting software just to create invoices, track payments, and remind clients when bills are overdue. The best choice depends on whether you bill by the hour, work with recurring clients, need bookkeeping, or simply want to get paid without a monthly subscription. Guides Reviews +1 The 5 best invoicing tools for freelancers 1. Zoho Invoice Best free option $0/month Create professional invoices, automate payment reminders, track billable hours, manage expenses, and send recurring invoices. Excellent value without a subscription. Zoho Invoice +1 Best for: solo freelancers and consultants. Visit Zoho Invoice 2. FreshBooks From $23/month at standard Lite pricing A polished, easy-to-use option with time tracking, expense management, estimates, online payments, and accounting reports. The Lite plan limits you to five billable clients. FreshBooks +1 Best for: service providers who bill by the hour or project. Visit FreshBooks 3. Wave Free plan; Pro $19/month Combines invoicing with basic bookkeeping. The free plan supports unlimited invoices and estimates, while Pro adds bank transaction imports and automated late-payment reminders. Payment processing costs extra. Wave Financial +1 Best for: US-based freelancers who want simple bookkeeping too. Visit Wave 4. Bonsai Paid plans; pricing varies by billing term Brings proposals, contracts, client management, project tracking, and invoicing into one workflow. Best for: freelancers who want to manage the client relationship from proposal to payment. Visit Bonsai 5. Invoice Ninja Free plan; paid upgrades available Offers invoice customization, recurring billing, client portals, and payment integrations. It is also worth considering if you prefer open-source software or self-hosting. Best for: technically minded freelancers who want flexibility. Visit Invoice Ninja Quick comparison Software Free plan Time tracking Bookkeeping Zoho Invoice Yes Yes Basic expense tracking FreshBooks Trial only Yes Yes Wave Yes No Yes Bonsai No Yes Business management features Invoice Ninja Yes, with limits Yes Limited Which one should you choose? Spend nothing: Zoho Invoice is my first choice for straightforward invoicing. Bill hourly: FreshBooks makes it easier to connect your time and expenses to your invoices. Handle invoices and books together: Wave is a strong budget-friendly choice in the US. Manage contracts and proposals: Bonsai is worth considering. Remember to compare payment-processing fees as well as subscription costs. If clients pay by card, those fees can add up quickly. Let me narrow it down for you 1. What is your monthly software budget? Free only $1–$25 per month $25+ per month for more features 2. How do you charge clients? By the hour Per project or fixed fee Recurring monthly retainers Products or one-off services 3. What do you need most? Just invoices and payment reminders Online payments and recurring billing Bookkeeping and tax-time reports An all-in-one freelance business tool Find my best fit",
         "links_attached": [
           {
-            "url": "https://www.zoho.com/in/invoice/?utm_source=chatgpt.com",
-            "text": "Official website",
+            "url": "https://www.zoho.com/us/invoice/?utm_source=chatgpt.com",
+            "text": "Visit Zoho Invoice",
             "position": 1
           },
           {
-            "url": "https://www.refrens.com/?utm_source=chatgpt.com",
-            "text": "Official website",
+            "url": "https://www.freshbooks.com/?utm_source=chatgpt.com",
+            "text": "Visit FreshBooks",
             "position": 2
           },
           {
-            "url": "https://www.zoho.com/in/books/?utm_source=chatgpt.com",
-            "text": "Official website",
+            "url": "https://www.waveapps.com/?utm_source=chatgpt.com",
+            "text": "Visit Wave",
             "position": 3
           },
           {
-            "url": "https://www.freshbooks.com/?utm_source=chatgpt.com",
-            "text": "Official website",
+            "url": "https://www.hellobonsai.com/?utm_source=chatgpt.com",
+            "text": "Visit Bonsai",
             "position": 4
           },
           {
-            "url": "https://www.waveapps.com/?utm_source=chatgpt.com",
-            "text": "Official website",
+            "url": "https://invoiceninja.com/?utm_source=chatgpt.com",
+            "text": "Visit Invoice Ninja",
             "position": 5
           }
         ],
         "citations": null,
-        "country": "IN",
+        "country": "US",
         "is_map": false,
         "references": null,
         "shopping": null,
         "shopping_visible": false,
         "index": 0,
-        "answer_text_markdown": "*   The best invoicing software for freelancers depends on where your clients are, whether you need tax-compliant invoices, and how much you want to spend. If you're freelancing in India, I'd start with Zoho Invoice. It's a strong choice for creating professional invoices without a subscription, and it supports Indian GST requirements. If you need full accounting rather than just invoicing, consider Zoho Books.\n    \n    ![](https://www.google.com/s2/favicons?domain=https://www.indietoolkit.in&sz=32) \n    \n    IndieToolkit\n    \n    +1\n    \n    The best invoicing software for freelancers in 2026\n    ---------------------------------------------------\n    \n    ![無料の請求書作成ソフト｜中小企業に最適な請求書作成ソフト｜Zoho Invoice](https://images.openai.com/static-rsc-4/_SxYDbLJk9W1ASpx7pzppnk7bixG4l4bmw41xAUccgriqS0UYJ9duTgZA2gxlTD1FrxV3Fh_o1gWw_YuQnW1Dw0Rk2hqVKbpkOOE-jxHjajrVnd9f_D2qRgBgaYK9NvIPockqp-ScD_Gdea12w2zFOk-5Gb4ROENTtIgXApvvdg?purpose=inline) \n    \n    ### 1. Zoho Invoice\n    \n    Best overall for India\n    \n    Best for: Solo freelancers and consultants\n    \n    Free invoicing, professional templates, client management, payment tracking and GST-related features. A good starting point if you want to keep costs at zero.\n    \n    [Official website](https://www.zoho.com/in/invoice/?utm_source=chatgpt.com) \n    \n    ![FREE Billing Software & Online Invoicing Software in India - Refrens](https://images.openai.com/static-rsc-4/nBd1qS6UXxKKmr1yMUMxrZrllE3yoxeTl1naWgq2-fwmSJTQn33jhaQgU5-WEuiO9gc8c2rPFrZ4xYp-7zSLarb4AUi4mE0Rf-erNYJpJJras4xyzlx6TVNrx_MXjjkgnjGVtMMkZsLAcITNBBYBW1Y6S_c2YX4bBZmxOAMUAm4?purpose=inline) \n    \n    ### 2. Refrens\n    \n    Best for: Simple invoicing for Indian freelancers\n    \n    An India-focused option for quotations, invoices, payment tracking and GST-related workflows. Worth comparing with Zoho if you prefer a straightforward invoicing experience.\n    \n    [Official website](https://www.refrens.com/?utm_source=chatgpt.com) \n    \n    ![\\\"Best 10 Zoho Apps for Small Businesses in 2024 - Must-Have Tools\\\" | C3 Solutions](https://images.openai.com/static-rsc-4/7x8uhgBIQqCfqZwuL2ptQQVrp1DepEirobVk2d8MIe0_5BpIFuNeTSln07WtrqmwFw-8BEgUlSIRX_6_1Hu85jHDSxUqaaNs_RSyjWo9FXNXkHajGEemThGA2bWCsodeDPbktMGRTpQGSzSf7wUNEEkGcOUohaFAuRQLLfFFNCo?purpose=inline) \n    \n    ### 3. Zoho Books\n    \n    Best for: Invoicing plus accounting\n    \n    A better fit when you need expense tracking, bookkeeping, financial reports and more comprehensive GST workflows, not just invoices.\n    \n    [Official website](https://www.zoho.com/in/books/?utm_source=chatgpt.com) \n    \n    ![Freshbooks Logo Png | Freshbooks Logo Vector | Freshbooks Logo: Modern Simplicity | Financial Freedom | Cloud Accounting | Brand Identity - freepng](https://images.openai.com/static-rsc-4/u6IHZ-KWN52sdTrfEE1TsuxbBmIugzcp62sVg822otpsxzcATjVYUgCs5Yd7EwCxzCQPBJZvWCtW9CVtbYmEeWeYHM0DSTDgPdKdrj9yC_2oTTT0j2CBkGyKL-1jPXSZkGOYK5TEEbb4w0E-anK7sg06iDMjt4DRrMxzZHT9cs4?purpose=inline) \n    \n    ### 4. FreshBooks\n    \n    Best for: Hourly billing and international clients\n    \n    Particularly appealing if you bill by the hour or project and want time tracking alongside invoices and expense management. Paid plans and Indian tax localization are important considerations.\n    \n    [Official website](https://www.freshbooks.com/?utm_source=chatgpt.com) \n    \n    ![Wave Invoicing Price, Features and Reviews in 2026 | Techjockey US](https://images.openai.com/static-rsc-4/jUT_6N_f8ytQkkGGTw77nv39iUXm2R1V1KQn3loYCp0ttAwqimKhhV2Z2vfREWAjcY31_AxB-us4BacfHKahxNi0Th5JqR_DExKJGrswfthUXes9zb98Z1WZGO2I9pE46WsYP2IwyfKPRPKl_gsML6m9iDQRaY9kF06gk4aDV44?purpose=inline) \n    \n    ### 5. Wave\n    \n    Best for: Basic invoicing in supported markets\n    \n    A popular low-cost option for straightforward invoicing and accounting, especially in North America. It isn't the first choice for Indian freelancers who need native GST workflows.\n    \n    [Official website](https://www.waveapps.com/?utm_source=chatgpt.com) \n    \n    These recommendations are based on the tools' typical strengths; check current plan limits, payment availability and tax features before signing up.\n    \n    ![](https://www.google.com/s2/favicons?domain=https://www.indietoolkit.in&sz=32) \n    \n    IndieToolkit\n    \n    +2\n    \n    Which one should you choose?\n    ----------------------------\n    \n    | \n    If you need…\n    \n     | \n    \n    My pick\n    \n     |\n    | --- | --- |\n    | \n    \n    Free invoices with GST support in India\n    \n     | \n    \n    Zoho Invoice\n    \n     |\n    | \n    \n    Simple invoices and quotations\n    \n     | \n    \n    Refrens\n    \n     |\n    | \n    \n    Invoicing, expenses and bookkeeping\n    \n     | \n    \n    Zoho Books\n    \n     |\n    | \n    \n    Hourly billing for overseas clients\n    \n     | \n    \n    FreshBooks\n    \n     |\n    | \n    \n    Basic invoicing in North America\n    \n     | \n    \n    Wave\n    \n     |\n    \n    Let me narrow it down for you\n    -----------------------------\n    \n    1. Where are you based?\n    \n    India\n    \n    US or Canada\n    \n    UK or Europe\n    \n    Other country\n    \n    2. What's your budget?\n    \n    Free only\n    \n    Under $15/month\n    \n    Flexible, if it's worth it\n    \n    3. Where are your clients?\n    \n    Mostly in my country\n    \n    Mostly international\n    \n    Both local and international\n    \n    4. What do you need?\n    \n    Just invoices and payment reminders\n    \n    Invoices, expenses and accounting\n    \n    Time tracking and project billing\n    \n    Invoices, contracts and client management\n    \n    Find my best option",
+        "answer_text_markdown": "*   For most freelancers, I’d recommend Zoho Invoice if you want free software, or FreshBooks if you want a more complete paid solution. You probably don’t need expensive accounting software just to create invoices, track payments, and remind clients when bills are overdue.\n    \n    The best choice depends on whether you bill by the hour, work with recurring clients, need bookkeeping, or simply want to get paid without a monthly subscription.\n    \n    ![](https://www.google.com/s2/favicons?domain=https://guides.reviews&sz=32) \n    \n    Guides Reviews\n    \n    +1\n    \n    The 5 best invoicing tools for freelancers\n    ------------------------------------------\n    \n    ![Dashboard, Total Receivables, top expenses, sales receipts and dues | Help - Zoho Invoice](https://images.openai.com/static-rsc-4/8HZCTfmXeBF01rxEuHj1ZUdwdQnkCpR2lZ0weFdpYlOlSmMWxLDvPe4YbSnq3_1yV3xy7rq7DYhtpTd54L_gvn-UHuhABWt5BKaQStW0B_uZYoteliP_PglghZ3J0wEXdoUDkHLMMG_Gvwy5iob1X2Lsht2m0ZLxaZ7pv4a9F7Q?purpose=inline) \n    \n    1\\. Zoho Invoice\n    ----------------\n    \n    Best free option\n    \n    $0/month\n    \n    Create professional invoices, automate payment reminders, track billable hours, manage expenses, and send recurring invoices. Excellent value without a subscription.\n    \n    ![](https://www.google.com/s2/favicons?domain=https://www.zoho.com&sz=32) \n    \n    Zoho Invoice\n    \n    +1\n    \n    Best for: solo freelancers and consultants.\n    \n    [Visit Zoho Invoice](https://www.zoho.com/us/invoice/?utm_source=chatgpt.com) \n    \n    ![20 Best Accounting Software - Compare Prices & Top Sellers 2026 | Techimply](https://images.openai.com/static-rsc-4/KT858zDPiDNT0eS_IYiou0uG1kTt0P3MXMGe4bp5UEk6IzaWP12V0M6BoipJkIOQNlksm2P-DmjxqLNhYIXuGBOxuiF7dDFIMK8zlS5v6rSHFR7Zltf04F0adYsX1zHaRHym2vdHVwvxrqYY6ItBLZnRfIY8sHhWdLQD5eKiJH8?purpose=inline) \n    \n    2\\. FreshBooks\n    --------------\n    \n    From $23/month at standard Lite pricing\n    \n    A polished, easy-to-use option with time tracking, expense management, estimates, online payments, and accounting reports. The Lite plan limits you to five billable clients.\n    \n    ![](https://www.google.com/s2/favicons?domain=https://www.freshbooks.com&sz=32) \n    \n    FreshBooks\n    \n    +1\n    \n    Best for: service providers who bill by the hour or project.\n    \n    [Visit FreshBooks](https://www.freshbooks.com/?utm_source=chatgpt.com) \n    \n    ![Wave Reviews 2026: Details, Pricing, & Features | G2](https://images.openai.com/static-rsc-4/0rji9T0O4xH_20FwOtUKrvJtx6PQxSbJEoVjj2HU58WZB6jJLRgnCveElF-yME6St58ZnzCVyWC6Ghy_5xMpgMkUhQqvtz3ozwEVSmbw8uDowku1OSSZeS0Vu3c1XCl_ku2cE3xccA7DW3ia5AQan_w0nhHum04gUDDBpTYV5mw?purpose=inline) \n    \n    3\\. Wave\n    --------\n    \n    Free plan; Pro $19/month\n    \n    Combines invoicing with basic bookkeeping. The free plan supports unlimited invoices and estimates, while Pro adds bank transaction imports and automated late-payment reminders. Payment processing costs extra.\n    \n    ![](https://www.google.com/s2/favicons?domain=https://www.waveapps.com&sz=32) \n    \n    Wave Financial\n    \n    +1\n    \n    Best for: US-based freelancers who want simple bookkeeping too.\n    \n    [Visit Wave](https://www.waveapps.com/?utm_source=chatgpt.com) \n    \n    ![Bonsai - All-in-one product suite with automation | Webflow Guides & Tips | SketchzLab](https://images.openai.com/static-rsc-4/sAxTPmsxfN2Sv22SmAT7bNK7VbZFXw48Pdih96oMZ_NMnV5DclHfnePVbH2UjnNymFGHzBu-Tbj5HqEIcCMyrBqPJvFnGjeHp9IMe0ghn1Bgt7Vqe5yw7g7gZILASfmZBHdOKGWKqafYFl4vcJrxtdaR9lR30AQq9ukoVMv3ig4?purpose=inline) \n    \n    4\\. Bonsai\n    ----------\n    \n    Paid plans; pricing varies by billing term\n    \n    Brings proposals, contracts, client management, project tracking, and invoicing into one workflow.\n    \n    Best for: freelancers who want to manage the client relationship from proposal to payment.\n    \n    [Visit Bonsai](https://www.hellobonsai.com/?utm_source=chatgpt.com) \n    \n    ![Invoices | Invoice Ninja](https://images.openai.com/static-rsc-4/FWyqLYwcnj7cxMVJ1-kO8Qlpf9GLafcFvVjTpSebsrWwXZCPdknyE31L87KI3u4_rpTXrIxNY0xoV2JtfGprfWWnB44AUZ0UdbqD1D0WFBi56fhnzQgDDHVmwFSvmpL27n5W0bmWdO-mTfSBYPbJOA1ND3MKC8h2kFCBOwNdZLw?purpose=inline) \n    \n    5\\. Invoice Ninja\n    -----------------\n    \n    Free plan; paid upgrades available\n    \n    Offers invoice customization, recurring billing, client portals, and payment integrations. It is also worth considering if you prefer open-source software or self-hosting.\n    \n    Best for: technically minded freelancers who want flexibility.\n    \n    [Visit Invoice Ninja](https://invoiceninja.com/?utm_source=chatgpt.com) \n    \n    Quick comparison\n    ----------------\n    \n    | \n    Software\n    \n     | \n    \n    Free plan\n    \n     | \n    \n    Time tracking\n    \n     | \n    \n    Bookkeeping\n    \n     |\n    | --- | --- | --- | --- |\n    | \n    \n    Zoho Invoice\n    \n     | \n    \n    Yes\n    \n     | \n    \n    Yes\n    \n     | \n    \n    Basic expense tracking\n    \n     |\n    | \n    \n    FreshBooks\n    \n     | \n    \n    Trial only\n    \n     | \n    \n    Yes\n    \n     | \n    \n    Yes\n    \n     |\n    | \n    \n    Wave\n    \n     | \n    \n    Yes\n    \n     | \n    \n    No\n    \n     | \n    \n    Yes\n    \n     |\n    | \n    \n    Bonsai\n    \n     | \n    \n    No\n    \n     | \n    \n    Yes\n    \n     | \n    \n    Business management features\n    \n     |\n    | \n    \n    Invoice Ninja\n    \n     | \n    \n    Yes, with limits\n    \n     | \n    \n    Yes\n    \n     | \n    \n    Limited\n    \n     |\n    \n    Which one should you choose?\n    ----------------------------\n    \n    *   Spend nothing: Zoho Invoice is my first choice for straightforward invoicing.\n        \n    *   Bill hourly: FreshBooks makes it easier to connect your time and expenses to your invoices.\n        \n    *   Handle invoices and books together: Wave is a strong budget-friendly choice in the US.\n        \n    *   Manage contracts and proposals: Bonsai is worth considering.\n        \n    \n    Remember to compare payment-processing fees as well as subscription costs. If clients pay by card, those fees can add up quickly.\n    \n    Let me narrow it down for you\n    -----------------------------\n    \n    1\\. What is your monthly software budget?\n    \n    Free only\n    \n    $1–$25 per month\n    \n    $25+ per month for more features\n    \n    2\\. How do you charge clients?\n    \n    By the hour\n    \n    Per project or fixed fee\n    \n    Recurring monthly retainers\n    \n    Products or one-off services\n    \n    3\\. What do you need most?\n    \n    Just invoices and payment reminders\n    \n    Online payments and recurring billing\n    \n    Bookkeeping and tax-time reports\n    \n    An all-in-one freelance business tool\n    \n    Find my best fit",
         "web_search_triggered": false,
         "additional_prompt": null,
         "additional_answer_text": null,
@@ -95,23 +58,77 @@
         "search_sources_more": null,
         "model": null,
         "web_search_query": null,
-        "prompt_sent_at": "2026-10-18T06:48:03.255Z",
-        "answer_text_raw": "The best invoicing software for freelancers depends on where your clients are, whether you need tax-compliant invoices, and how much you want to spend. If you're freelancing in India, I'd start with Zoho Invoice. It's a strong choice for creating professional invoices without a subscription, and it supports Indian GST requirements. If you need full accounting rather than just invoicing, consider Zoho Books. IndieToolkit+1The best invoicing software for freelancers in 20261. Zoho InvoiceBest overall for IndiaBest for: Solo freelancers and consultantsFree invoicing, professional templates, client management, payment tracking and GST-related features. A good starting point if you want to keep costs at zero. Official website 2. RefrensBest for: Simple invoicing for Indian freelancersAn India-focused option for quotations, invoices, payment tracking and GST-related workflows. Worth comparing with Zoho if you prefer a straightforward invoicing experience. Official website 3. Zoho BooksBest for: Invoicing plus accountingA better fit when you need expense tracking, bookkeeping, financial reports and more comprehensive GST workflows, not just invoices. Official website 4. FreshBooksBest for: Hourly billing and international clientsParticularly appealing if you bill by the hour or project and want time tracking alongside invoices and expense management. Paid plans and Indian tax localization are important considerations. Official website 5. WaveBest for: Basic invoicing in supported marketsA popular low-cost option for straightforward invoicing and accounting, especially in North America. It isn't the first choice for Indian freelancers who need native GST workflows. Official website These recommendations are based on the tools' typical strengths; check current plan limits, payment availability and tax features before signing up. IndieToolkit+2Which one should you choose?If you need…My pickFree invoices with GST support in IndiaZoho InvoiceSimple invoices and quotationsRefrensInvoicing, expenses and bookkeepingZoho BooksHourly billing for overseas clientsFreshBooksBasic invoicing in North AmericaWaveLet me narrow it down for you1. Where are you based?IndiaUS or CanadaUK or EuropeOther country2. What's your budget?Free onlyUnder $15/monthFlexible, if it's worth it3. Where are your clients?Mostly in my countryMostly internationalBoth local and international4. What do you need?Just invoices and payment remindersInvoices, expenses and accountingTime tracking and project billingInvoices, contracts and client managementFind my best option",
+        "prompt_sent_at": "2026-10-19T09:58:44.342Z",
+        "answer_text_raw": "For most freelancers, I’d recommend Zoho Invoice if you want free software, or FreshBooks if you want a more complete paid solution. You probably don’t need expensive accounting software just to create invoices, track payments, and remind clients when bills are overdue.The best choice depends on whether you bill by the hour, work with recurring clients, need bookkeeping, or simply want to get paid without a monthly subscription. Guides Reviews+1The 5 best invoicing tools for freelancers1. Zoho InvoiceBest free option$0/monthCreate professional invoices, automate payment reminders, track billable hours, manage expenses, and send recurring invoices. Excellent value without a subscription. Zoho Invoice+1 Best for: solo freelancers and consultants. Visit Zoho Invoice 2. FreshBooksFrom $23/month at standard Lite pricingA polished, easy-to-use option with time tracking, expense management, estimates, online payments, and accounting reports. The Lite plan limits you to five billable clients. FreshBooks+1 Best for: service providers who bill by the hour or project. Visit FreshBooks 3. WaveFree plan; Pro $19/monthCombines invoicing with basic bookkeeping. The free plan supports unlimited invoices and estimates, while Pro adds bank transaction imports and automated late-payment reminders. Payment processing costs extra. Wave Financial+1 Best for: US-based freelancers who want simple bookkeeping too. Visit Wave 4. BonsaiPaid plans; pricing varies by billing termBrings proposals, contracts, client management, project tracking, and invoicing into one workflow. Best for: freelancers who want to manage the client relationship from proposal to payment. Visit Bonsai 5. Invoice NinjaFree plan; paid upgrades availableOffers invoice customization, recurring billing, client portals, and payment integrations. It is also worth considering if you prefer open-source software or self-hosting. Best for: technically minded freelancers who want flexibility. Visit Invoice Ninja Quick comparisonSoftwareFree planTime trackingBookkeepingZoho InvoiceYesYesBasic expense trackingFreshBooksTrial onlyYesYesWaveYesNoYesBonsaiNoYesBusiness management featuresInvoice NinjaYes, with limitsYesLimitedWhich one should you choose?Spend nothing: Zoho Invoice is my first choice for straightforward invoicing.Bill hourly: FreshBooks makes it easier to connect your time and expenses to your invoices.Handle invoices and books together: Wave is a strong budget-friendly choice in the US.Manage contracts and proposals: Bonsai is worth considering.Remember to compare payment-processing fees as well as subscription costs. If clients pay by card, those fees can add up quickly.Let me narrow it down for you1. What is your monthly software budget?Free only$1–$25 per month$25+ per month for more features2. How do you charge clients?By the hourPer project or fixed feeRecurring monthly retainersProducts or one-off services3. What do you need most?Just invoices and payment remindersOnline payments and recurring billingBookkeeping and tax-time reportsAn all-in-one freelance business toolFind my best fit",
         "business_locations": null,
         "ads": null,
         "shopping_additional_prompt": null,
         "citations_additional_prompt": null,
-        "timestamp": "2026-10-18T06:48:55.942Z",
+        "timestamp": "2026-10-19T09:59:36.614Z",
         "input": {
           "url": "https://chatgpt.com/",
           "prompt": "What is the best invoicing software for freelancers?",
-          "country": "IN",
+          "country": "US",
           "index": 0,
           "web_search": true,
           "additional_prompt": "",
           "geolocation": ""
         }
-      }
+      },
+      "prompt": "What is the best invoicing software for freelancers?",
+      "ok": true,
+      "text": "For most freelancers, I’d recommend Zoho Invoice if you want free software, or FreshBooks if you want a more complete paid solution. You probably don’t need expensive accounting software just to create invoices, track payments, and remind clients when bills are overdue. The best choice depends on whether you bill by the hour, work with recurring clients, need bookkeeping, or simply want to get paid without a monthly subscription. Guides Reviews +1 The 5 best invoicing tools for freelancers 1. Zoho Invoice Best free option $0/month Create professional invoices, automate payment reminders, track billable hours, manage expenses, and send recurring invoices. Excellent value without a subscription. Zoho Invoice +1 Best for: solo freelancers and consultants. Visit Zoho Invoice 2. FreshBooks From $23/month at standard Lite pricing A polished, easy-to-use option with time tracking, expense management, estimates, online payments, and accounting reports. The Lite plan limits you to five billable clients. FreshBooks +1 Best for: service providers who bill by the hour or project. Visit FreshBooks 3. Wave Free plan; Pro $19/month Combines invoicing with basic bookkeeping. The free plan supports unlimited invoices and estimates, while Pro adds bank transaction imports and automated late-payment reminders. Payment processing costs extra. Wave Financial +1 Best for: US-based freelancers who want simple bookkeeping too. Visit Wave 4. Bonsai Paid plans; pricing varies by billing term Brings proposals, contracts, client management, project tracking, and invoicing into one workflow. Best for: freelancers who want to manage the client relationship from proposal to payment. Visit Bonsai 5. Invoice Ninja Free plan; paid upgrades available Offers invoice customization, recurring billing, client portals, and payment integrations. It is also worth considering if you prefer open-source software or self-hosting. Best for: technically minded freelancers who want flexibility. Visit Invoice Ninja Quick comparison Software Free plan Time tracking Bookkeeping Zoho Invoice Yes Yes Basic expense tracking FreshBooks Trial only Yes Yes Wave Yes No Yes Bonsai No Yes Business management features Invoice Ninja Yes, with limits Yes Limited Which one should you choose? Spend nothing: Zoho Invoice is my first choice for straightforward invoicing. Bill hourly: FreshBooks makes it easier to connect your time and expenses to your invoices. Handle invoices and books together: Wave is a strong budget-friendly choice in the US. Manage contracts and proposals: Bonsai is worth considering. Remember to compare payment-processing fees as well as subscription costs. If clients pay by card, those fees can add up quickly. Let me narrow it down for you 1. What is your monthly software budget? Free only $1–$25 per month $25+ per month for more features 2. How do you charge clients? By the hour Per project or fixed fee Recurring monthly retainers Products or one-off services 3. What do you need most? Just invoices and payment reminders Online payments and recurring billing Bookkeeping and tax-time reports An all-in-one freelance business tool Find my best fit",
+      "citations": [
+        {
+          "url": "https://guides.reviews",
+          "title": "guides.reviews",
+          "position": 1
+        },
+        {
+          "url": "https://zoho.com",
+          "title": "zoho.com",
+          "position": 2
+        },
+        {
+          "url": "https://freshbooks.com",
+          "title": "freshbooks.com",
+          "position": 3
+        },
+        {
+          "url": "https://waveapps.com",
+          "title": "waveapps.com",
+          "position": 4
+        }
+      ],
+      "links": [
+        {
+          "url": "https://www.zoho.com/us/invoice/?utm_source=chatgpt.com",
+          "title": "Visit Zoho Invoice",
+          "position": 1
+        },
+        {
+          "url": "https://www.freshbooks.com/?utm_source=chatgpt.com",
+          "title": "Visit FreshBooks",
+          "position": 2
+        },
+        {
+          "url": "https://www.waveapps.com/?utm_source=chatgpt.com",
+          "title": "Visit Wave",
+          "position": 3
+        },
+        {
+          "url": "https://www.hellobonsai.com/?utm_source=chatgpt.com",
+          "title": "Visit Bonsai",
+          "position": 4
+        },
+        {
+          "url": "https://invoiceninja.com/?utm_source=chatgpt.com",
+          "title": "Visit Invoice Ninja",
+          "position": 5
+        }
+      ],
+      "webSearchTriggered": false,
+      "costUsd": 0.0015
     }
   ]
 }

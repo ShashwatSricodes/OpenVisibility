@@ -2,26 +2,57 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BrightDataProvider, matchRecords, normalize, type BrightDataEngine } from "./brightdata";
+import type { QueryResult } from "./types";
 
-/* real records captured by the Day 1 spike on 18 October 2026 */
-function fixture(engine: BrightDataEngine): Record<string, unknown> {
+/*
+ * Real records from Bright Data, refreshed with
+ *   npm run try -- chatgpt,gemini,ai_mode,ai_overviews,perplexity "<prompt>" --country US --save
+ * Answers change between captures, so these tests check behaviour, not exact wording.
+ */
+type Fixture = { answers: (QueryResult & { raw: Record<string, unknown> })[] };
+
+function load(engine: BrightDataEngine): Fixture {
   const file = join(__dirname, "..", "..", "scripts", "fixtures", `brightdata-${engine}.json`);
-  const data = JSON.parse(readFileSync(file, "utf8")) as {
-    answers: { raw: Record<string, unknown> }[];
-  };
-  return data.answers[0].raw;
+  return JSON.parse(readFileSync(file, "utf8")) as Fixture;
 }
+const fixture = (engine: BrightDataEngine) => load(engine).answers[0].raw;
 
 describe("normalize", () => {
-  it("recovers ChatGPT's source chip when citations are empty", () => {
-    const a = normalize("chatgpt", fixture("chatgpt"));
+  it.each(["chatgpt", "gemini", "ai_mode", "ai_overviews", "perplexity"] as const)(
+    "reproduces the saved %s result from its raw record",
+    (engine) => {
+      const saved = load(engine).answers[0];
+      const again = normalize(engine, saved.raw);
+      // matching may set index and country from the input; everything else must agree
+      expect({ ...again, index: saved.index, country: saved.country }).toEqual(saved);
+    },
+  );
+
+  it("recovers ChatGPT's sources from its source chips when citations are empty", () => {
+    const raw = fixture("chatgpt");
+    expect(raw.citations ?? []).toEqual([]);
+    const a = normalize("chatgpt", raw);
     expect(a.ok).toBe(true);
-    expect(a.text).toMatch(/Zoho Invoice/);
-    expect(a.citations).toEqual([
-      { url: "https://indietoolkit.in", title: "indietoolkit.in", position: 1 },
-    ]);
-    expect(a.links.map((l) => new URL(l.url).hostname)).toContain("www.zoho.com");
+    expect(a.citations.length).toBeGreaterThan(0);
+    for (const c of a.citations) expect(c.url).toBe(`https://${c.title}`);
     expect(a.webSearchTriggered).toBe(false);
+  });
+
+  it("reads chips from the markdown, one per domain, without www", () => {
+    const md =
+      "Try Zoho ![](https://www.google.com/s2/favicons?domain=https://www.zoho.com&sz=32) " +
+      "and Wave ![](https://www.google.com/s2/favicons?domain=https%3A%2F%2Fwaveapps.com&sz=32) " +
+      "![](https://www.google.com/s2/favicons?domain=https://zoho.com&sz=32)";
+    const a = normalize("chatgpt", {
+      prompt: "q",
+      index: 0,
+      answer_text: "x",
+      answer_text_markdown: md,
+    });
+    expect(a.citations).toEqual([
+      { url: "https://zoho.com", title: "zoho.com", position: 1 },
+      { url: "https://waveapps.com", title: "waveapps.com", position: 2 },
+    ]);
   });
 
   it("reports Gemini's logged-out model", () => {
@@ -33,15 +64,16 @@ describe("normalize", () => {
   it("reads Google AI Mode citations", () => {
     const a = normalize("ai_mode", fixture("ai_mode"));
     expect(a.ok).toBe(true);
-    expect(a.citations.length).toBe(16);
+    expect(a.citations.length).toBeGreaterThan(0);
+    for (const c of a.citations) expect(() => new URL(c.url)).not.toThrow();
   });
 
   it("cleans Google's labels from AI Overviews", () => {
     const a = normalize("ai_overviews", fixture("ai_overviews"));
     expect(a.ok).toBe(true);
     expect(a.shown).toBe(true);
-    expect(a.text.startsWith("The best invoicing software")).toBe(true);
-    expect(a.citations.length).toBe(18);
+    expect(a.text).not.toMatch(/^\s*(AI Overview|AI Mode replied)/);
+    expect(a.citations.length).toBeGreaterThan(0);
     expect(a.citations.every((c) => !c.title?.includes("Opens in new tab"))).toBe(true);
   });
 

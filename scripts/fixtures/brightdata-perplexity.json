@@ -1,32 +1,39 @@
 {
-  "capturedAt": "2026-10-18T06:56:20.612Z",
+  "capturedAt": "2026-10-19T10:02:14.067Z",
   "engine": "perplexity",
   "prompt": "What is the best invoicing software for freelancers?",
-  "country": null,
-  "snapshotId": "sd_mvdgx29l1oumjinbrs",
-  "seconds": 13,
+  "country": "US",
+  "snapshotId": "sd_mvf2z26t1v78oxqtec",
+  "seconds": 55,
   "answers": [
     {
       "engine": "perplexity",
-      "prompt": "",
-      "index": -1,
-      "ok": false,
-      "error": "Crawler error: Request failed for https://www.perplexity.ai/rest/sse/perplexity_ask: too many requests",
-      "text": "",
-      "citations": [],
-      "links": [],
+      "source": "consumer_app",
+      "index": 0,
+      "country": "US",
       "raw": {
-        "timestamp": "2026-10-18T06:52:23.089Z",
+        "timestamp": "2026-10-19T09:58:20.603Z",
         "input": {
           "url": "https://www.perplexity.ai/",
           "prompt": "What is the best invoicing software for freelancers?",
+          "country": "US",
           "index": 0,
-          "country": "",
           "additional_prompt": ""
         },
         "error": "Crawler error: Request failed for https://www.perplexity.ai/rest/sse/perplexity_ask: too many requests",
         "error_code": "crawl_error"
-      }
+      },
+      "prompt": "What is the best invoicing software for freelancers?",
+      "ok": false,
+      "error": {
+        "kind": "blocked",
+        "message": "Crawler error: Request failed for https://www.perplexity.ai/rest/sse/perplexity_ask: too many requests",
+        "retryable": true
+      },
+      "text": "",
+      "citations": [],
+      "links": [],
+      "costUsd": 0
     }
   ]
 }

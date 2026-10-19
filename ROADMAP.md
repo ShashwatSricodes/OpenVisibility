@@ -179,11 +179,12 @@ This is the key piece of the architecture: the worker, the analysis and the dash
 
 ### Day 10: Resilience, live check and tests
 
-- [ ] Re-run `npm run try -- --save` across all engines and refresh the fixtures; update `docs/providers.md` with the results.
-- [ ] Back off on `rate_limited` and `blocked` across a whole run, not just one request, so a run never triggers Bright Data's 429 IP block.
-- [ ] Tests for every adapter path on fixtures, with no network calls.
+- [x] Re-ran every engine through the provider layer (`npm run try … --save`) and refreshed the fixtures; results in `docs/providers.md` ("Measured again"). ChatGPT, Gemini and AI Overviews answered; AI Mode failed once and worked on a retry; Perplexity is still blocked. `--save` no longer replaces a good fixture with a failure.
+- [x] `RateGuard` (`core/providers/rate-guard.ts`): one per Bright Data account per process. It spaces requests out and stops all calls after 10 rate-limit responses in 5 minutes, well before Bright Data's IP block at 25. `Retry-After: 0` is now honoured.
+- [x] `queryWithRetries` (`core/providers/retry.ts`): retries only the failed answers with doubling pauses, gives up on an engine that refuses two whole batches running, and resumes a timed-out batch by its snapshot ID instead of paying again. The Day 15 worker builds on it.
+- [x] Tests for every adapter path, run offline: real network calls now fail any test (`test/no-network.ts`). Fixture tests check behaviour, plus that each saved raw record still normalizes to its saved result.
 
-**Done when:** `npm test` passes offline and every available engine has a fresh fixture.
+**Done when:** `npm test` passes offline and every available engine has a fresh fixture. ✅ 19 October 2026: 78 tests pass with the network blocked; ChatGPT, Gemini, AI Mode and AI Overviews fixtures are from today (Perplexity's is today's refusal; Copilot's is the 18 October login wall).
 
 ---
 
@@ -518,8 +519,8 @@ Everything in this phase lives in `ee/`.
 
 | Phase | Days | Outcome |
 | --- | --- | --- |
-| 0. Foundations | 1–5 | Verified providers, database, auth |
-| 1. Provider abstraction | 6–10 | Bright Data engines behind one interface, own keys, usage meter |
+| 0. Foundations ✅ | 1–5 | Verified providers, database, auth |
+| 1. Provider abstraction ✅ | 6–10 | Bright Data engines behind one interface, own keys, usage meter |
 | 2. Setup flow | 11–14 | Onboarding, prompts, configuration |
 | 3. Tracking engine | 15–20 | Queued, scheduled, budget-capped runs |
 | 4. Analysis | 21–26 | Mentions, sentiment, citations, metrics |

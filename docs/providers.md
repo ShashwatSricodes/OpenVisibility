@@ -62,6 +62,32 @@ What we learned:
 - **Google AI Overviews come from the "Google SERP – 100 Results" scraper** (`gd_mfz5x93lmsjjjylob`), which returns the overview as `aio_text`, `aio_markdown` and `aio_citations`, plus organic results and People Also Ask. It takes `keyword` instead of `prompt`, needs no SERP zone or payment method, and uses the same free credits. An empty overview means Google showed none for that query, which is a result, not an error. The client strips Google's labels ("AI Overview", "AI Mode replied:") and the ". Opens in new tab." suffix on source titles.
 - **The raw records are huge** (1 MB+ of page HTML for ChatGPT). The client drops the HTML fields and keeps text and markdown.
 
+### Measured again: Bright Data, 19 October 2026
+
+Same prompt, country `US`, through the provider layer (`npm run try -- <engines> "<prompt>" --country US --save`). These are the current fixtures in `scripts/fixtures/`.
+
+| Engine | Result | Time | Citations | Brand links | Mentioned Zoho |
+| --- | --- | --- | --- | --- | --- |
+| ChatGPT | ✅ 3,158 characters | 133 s | 4 (all from source chips; `citations` empty again) | 5 | Yes |
+| Gemini | ✅ 3,106 characters, Flash-Lite | 36 s | 0 | 0 | Yes |
+| Google AI Mode | ❌ "Browser disconnected", then ✅ on a retry (3,622 characters) | 272 s, then 155 s | 16 | 9 | Yes |
+| Google AI Overviews | ✅ 2,724 characters, overview shown | **618 s** | 22 | n/a | Yes |
+| Perplexity | ❌ "too many requests" from Perplexity, as on 18 October (not billed) | 55 s | n/a | n/a | n/a |
+
+What changed since 18 October:
+
+- **One-off failures happen and a retry fixes them.** AI Mode failed and then worked minutes later. Runs therefore retry failed answers (below) instead of recording them as lost.
+- **Timing varies a lot.** AI Overviews took 10 minutes this time against 4 before, and Gemini 36 s against 199 s. Runs allow 15 minutes per batch, and a batch that runs over is resumed, not resubmitted.
+- **Perplexity is still blocked**, two days running, in India and the US. It stays marked unreliable.
+
+### Staying inside Bright Data's limits
+
+Bright Data blocks the calling IP after 25 HTTP 429 responses within 5 minutes, and only its support can lift the block. OpenVisibility guards against that at two levels (`core/providers/rate-guard.ts`, `core/providers/retry.ts`):
+
+- **Per account, across the whole process:** requests are spaced at least 200 ms apart, and after 10 rate-limit responses in 5 minutes every call stops for the rest of the window. A run pauses; the server never gets banned.
+- **Per run:** only the answers that failed are asked again, up to 3 tries, after 30 s, then 60 s (doubled when the engine refused the whole batch). An engine that refuses two whole batches in a row is left alone for the rest of the run. A batch that timed out is resumed by its snapshot ID, so nothing is paid for twice. Bad keys and bad requests aren't retried.
+- **Usage checks are cheap:** the free-tier meter's snapshot listing is cached for 5 minutes.
+
 Alternative for the hosted version: [DataForSEO](https://dataforseo.com/apis/ai-optimization-api) scrapes ChatGPT, Gemini and Perplexity for $0.0012 per answer, and reaches Claude through its official-API endpoint. There's no free tier ($1 credit, then a $50 minimum top-up), which is why it isn't the self-hosted default.
 
 ## Search pricing, checked against each provider

@@ -60,7 +60,7 @@ export const ENGINES: Record<EngineId, EngineInfo> = {
     status: "available",
     verifiedCountries: ["US"],
     typicalSeconds: 30,
-    note: "Failed for India in testing; verified for the US.",
+    note: "Verified for the US, where it occasionally fails with “Browser disconnected” and works on a retry; failed for India.",
   },
   ai_overviews: {
     id: "ai_overviews",
@@ -70,7 +70,7 @@ export const ENGINES: Record<EngineId, EngineInfo> = {
     source: "consumer_app",
     status: "available",
     verifiedCountries: ["US"],
-    typicalSeconds: 230,
+    typicalSeconds: 420,
     note: "Google shows an overview only for some searches; no overview is a result, not an error.",
   },
   perplexity: {

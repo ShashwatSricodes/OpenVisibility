@@ -17,7 +17,7 @@
  * for the tests.
  */
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   BRIGHT_DATA_PRICING,
@@ -191,9 +191,15 @@ function saveFixture(
   results: QueryResult[],
 ) {
   const dir = join(process.cwd(), "scripts", "fixtures");
+  const file = join(dir, `${providerId}-${engine}.json`);
+  // a one-off failure shouldn't replace a good fixture; an engine that only fails still gets one
+  if (!results.some((r) => r.ok) && existsSync(file)) {
+    console.log(`  ${engine.padEnd(12)} failed; kept the existing fixture`);
+    return;
+  }
   mkdirSync(dir, { recursive: true });
   writeFileSync(
-    join(dir, `${providerId}-${engine}.json`),
+    file,
     JSON.stringify(
       {
         capturedAt: new Date().toISOString(),
