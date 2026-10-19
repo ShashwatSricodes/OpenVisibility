@@ -6,8 +6,13 @@
  */
 
 import { and, eq } from "drizzle-orm";
+import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { getDb } from "./client";
+import * as schema from "./schema";
 import { brandAliases, brands, competitors, prompts, workspaces } from "./schema";
+
+/** Any Drizzle Postgres connection: the app's postgres.js pool, or PGlite in tests. */
+export type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
 
 const WORKSPACE = { name: "Demo workspace", defaultCountries: ["US", "IN"] };
 
@@ -39,9 +44,8 @@ const PROMPTS: { text: string; tags: string[]; countries?: string[] }[] = [
   { text: "Is Ledgerly safe to use?", tags: ["brand"] },
 ];
 
-async function main() {
-  const db = getDb();
-
+/** Create or top up the demo data. Returns what the demo brand now has. */
+export async function seed(db: AnyDb) {
   let [workspace] = await db
     .select()
     .from(workspaces)
@@ -88,18 +92,25 @@ async function main() {
     )
     .onConflictDoNothing();
 
-  const counts = {
-    competitors: (await db.select().from(competitors).where(eq(competitors.brandId, brand.id)))
-      .length,
-    prompts: (await db.select().from(prompts).where(eq(prompts.brandId, brand.id))).length,
-  };
+  const competitorCount = (
+    await db.select().from(competitors).where(eq(competitors.brandId, brand.id))
+  ).length;
+  const promptCount = (await db.select().from(prompts).where(eq(prompts.brandId, brand.id))).length;
+  return { workspace, brand, competitors: competitorCount, prompts: promptCount };
+}
+
+async function main() {
+  const result = await seed(getDb());
   console.log(
-    `Seeded "${workspace.name}" → ${BRAND.name}: ${counts.competitors} competitors, ${counts.prompts} prompts.`,
+    `Seeded "${result.workspace.name}" → ${result.brand.name}: ${result.competitors} competitors, ${result.prompts} prompts.`,
   );
   process.exit(0);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// run only when executed directly (npm run db:seed), not when imported by tests
+if (process.argv[1]?.replace(/\\/g, "/").endsWith("db/seed.ts")) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
