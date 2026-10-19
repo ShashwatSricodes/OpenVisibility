@@ -1,6 +1,5 @@
 import { CheckCircle2, TriangleAlert } from "lucide-react";
 import {
-  DEFAULT_SAMPLES,
   checkFreeTier,
   daysLeftInMonth,
   type FreeTierCheck,
@@ -112,7 +111,7 @@ export function UsageSection({
                 per run: {plural(estimate.prompts, "active prompt")} on{" "}
                 {plural(config.engines.length, "engine")}, in{" "}
                 {plural(config.countries.length, "country", "countries")} (or each prompt&rsquo;s
-                own), each asked {DEFAULT_SAMPLES}×.
+                own), each asked {config.samples}×.
               </p>
               {run && <Fit check={run} label="One run" />}
               {daily && (

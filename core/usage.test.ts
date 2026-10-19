@@ -10,12 +10,17 @@ import { accountAnswersThisMonth, estimateWorkspaceRun, getFreeTierUsage } from 
 const NOW = new Date("2026-10-19T12:00:00Z");
 
 describe("estimate", () => {
-  const config = { engines: ["chatgpt", "gemini"] as const, countries: ["US", "IN"] };
+  const config = {
+    engines: ["chatgpt", "gemini"] as const,
+    countries: ["US", "IN"],
+    samples: 3,
+  };
 
   it("counts engines × countries × samples for each prompt, honouring a prompt's own countries", () => {
     const e = estimateRun([{ countries: [] }, { countries: ["IN"] }], {
       engines: [...config.engines],
       countries: config.countries,
+      samples: config.samples,
     });
     // 2 engines × 2 countries × 3 + 2 engines × 1 country × 3
     expect(e).toEqual({ prompts: 2, answers: 18 });

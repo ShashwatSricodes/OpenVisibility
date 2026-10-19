@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { ArrowLeft, Check, CircleAlert, Info, Plus, Trash2 } from "lucide-react";
 import {
   MAX_COMPETITORS,
@@ -15,8 +14,9 @@ import { buttonPrimary, buttonSecondary } from "../_components/page-frame";
 import { cn } from "../_lib/cn";
 import { saveBrandAction, saveCompetitorsAction } from "./actions";
 import { PromptsStep } from "./prompts-step";
+import { ReviewStep } from "./review-step";
 
-const STEPS = ["Brand", "Competitors", "Prompts"] as const;
+const STEPS = ["Brand", "Competitors", "Prompts", "Review"] as const;
 
 const domainCheck = (v: string) =>
   isDomain(v) ? null : `"${v}" isn't a domain, like example.com.`;
@@ -87,7 +87,6 @@ export function Wizard({
       : [blankCompetitor(), blankCompetitor(), blankCompetitor()],
   );
   const [problem, setProblem] = useState<string | null>(null);
-  const [promptTotal, setPromptTotal] = useState(0);
   const [pending, start] = useTransition();
   const brandName = brand.name.trim() || "your brand";
 
@@ -340,36 +339,11 @@ export function Wizard({
           brandName={brandName}
           canEdit={canEdit}
           onBack={() => setStep(1)}
-          onDone={(total) => {
-            setPromptTotal(total);
-            setStep(3);
-          }}
+          onDone={() => setStep(3)}
         />
       )}
 
-      {step === 3 && (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-line bg-panel px-6 py-10 text-center">
-          <span className="flex size-10 items-center justify-center rounded-full bg-pressed">
-            <Check className="size-4 text-good" strokeWidth={2.5} />
-          </span>
-          <h1 className="text-base font-semibold">{brandName} is set up</h1>
-          <p className="max-w-md text-[13px] text-fg-subtle">
-            {competitors.filter((c) => c.name.trim()).length} competitors and {promptTotal} prompts
-            are saved. Next, check which engines and countries to track; runs start from there.
-          </p>
-          <div className="mt-2 flex flex-wrap justify-center gap-2">
-            <Link href="/settings" className={buttonPrimary}>
-              Engines and countries
-            </Link>
-            <Link href="/prompts" className={buttonSecondary}>
-              See prompts
-            </Link>
-            <button type="button" onClick={() => setStep(0)} className={buttonSecondary}>
-              Edit again
-            </button>
-          </div>
-        </div>
-      )}
+      {step === 3 && <ReviewStep goTo={setStep} />}
     </div>
   );
 }

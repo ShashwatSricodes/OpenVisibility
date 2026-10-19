@@ -1,0 +1,1 @@
+ALTER TABLE "workspaces" ADD COLUMN "samples" integer DEFAULT 3 NOT NULL;

@@ -56,6 +56,8 @@ export const workspaces = pgTable("workspaces", {
   mode: workspaceMode("mode").notNull().default("self_hosted"),
   /** two-letter country codes prompts run in unless a prompt overrides them */
   defaultCountries: textList("default_countries"),
+  /** times each prompt is asked per engine and country in a run; answers vary, so one ask isn't enough */
+  samples: integer("samples").notNull().default(3),
   /** the engines this workspace tracks (Settings); see core/tracking-config.ts */
   engines: engine("engines")
     .array()

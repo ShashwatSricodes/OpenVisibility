@@ -79,6 +79,7 @@ export default async function SettingsPage() {
         <TrackingForm
           engines={tracking.engines}
           countries={tracking.countries}
+          samples={tracking.samples}
           canEdit={role === "owner"}
         />
       </section>

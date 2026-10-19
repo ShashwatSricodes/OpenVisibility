@@ -1,11 +1,17 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Check, CheckCircle2, CircleAlert, Plus, TriangleAlert, X } from "lucide-react";
+import { Check, CheckCircle2, CircleAlert, Minus, Plus, TriangleAlert, X } from "lucide-react";
 import { COUNTRIES, countryName } from "@/core/countries";
 import { ENGINES, type EngineInfo } from "@/core/providers/registry";
 import type { EngineId } from "@/core/providers/types";
-import { MAX_COUNTRIES, answersPerPrompt, trackingWarnings } from "@/core/tracking-rules";
+import {
+  DEFAULT_SAMPLES,
+  MAX_COUNTRIES,
+  MAX_SAMPLES,
+  answersPerPrompt,
+  trackingWarnings,
+} from "@/core/tracking-rules";
 import { cn } from "../../_lib/cn";
 import { saveTrackingAction, type KeyFormState } from "./actions";
 
@@ -27,20 +33,29 @@ const sameSet = (a: string[], b: string[]) =>
 export function TrackingForm({
   engines: savedEngines,
   countries: savedCountries,
+  samples: savedSamples,
   canEdit,
 }: {
   engines: EngineId[];
   countries: string[];
+  samples: number;
   canEdit: boolean;
 }) {
   const [engines, setEngines] = useState<EngineId[]>(savedEngines);
   const [countries, setCountries] = useState<string[]>(savedCountries);
+  const [samples, setSamples] = useState(savedSamples);
   const [result, setResult] = useState<KeyFormState>(null);
   const [pending, start] = useTransition();
 
-  const config = { engines, countries };
-  const warnings = useMemo(() => trackingWarnings({ engines, countries }), [engines, countries]);
-  const changed = !sameSet(engines, savedEngines) || !sameSet(countries, savedCountries);
+  const config = { engines, countries, samples };
+  const warnings = useMemo(
+    () => trackingWarnings({ engines, countries, samples }),
+    [engines, countries, samples],
+  );
+  const changed =
+    !sameSet(engines, savedEngines) ||
+    !sameSet(countries, savedCountries) ||
+    samples !== savedSamples;
   const addable = COUNTRIES.filter((c) => !countries.includes(c.code));
 
   const toggle = (id: EngineId) => {
@@ -173,11 +188,53 @@ export function TrackingForm({
         </div>
       </div>
 
+      {/* samples */}
+      <div className="flex flex-col gap-3 border-t border-line px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-[13px] font-medium">Times each prompt is asked</h3>
+          <p className="mt-0.5 max-w-md text-xs text-fg-subtle">
+            AI answers change from one ask to the next. Asking {DEFAULT_SAMPLES}× per run turns
+            &ldquo;mentioned or not&rdquo; into a reliable rate; more is steadier but uses more
+            answers.
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center rounded-lg border border-line">
+          <button
+            type="button"
+            aria-label="Ask fewer times"
+            disabled={!canEdit || samples <= 1}
+            onClick={() => {
+              setResult(null);
+              setSamples((n) => n - 1);
+            }}
+            className="flex size-8 items-center justify-center text-fg-subtle hover:text-fg disabled:opacity-40"
+          >
+            <Minus className="size-3.5" />
+          </button>
+          <span className="tabular w-10 text-center text-[13px] font-medium" aria-live="polite">
+            {samples}×
+          </span>
+          <button
+            type="button"
+            aria-label="Ask more times"
+            disabled={!canEdit || samples >= MAX_SAMPLES}
+            onClick={() => {
+              setResult(null);
+              setSamples((n) => n + 1);
+            }}
+            className="flex size-8 items-center justify-center text-fg-subtle hover:text-fg disabled:opacity-40"
+          >
+            <Plus className="size-3.5" />
+          </button>
+        </div>
+      </div>
+
       {/* summary, warnings and save */}
       <div className="flex flex-col gap-3 border-t border-line px-5 py-4">
         <p className="text-xs text-fg-subtle">
           {engines.length} {engines.length === 1 ? "engine" : "engines"} × {countries.length}{" "}
-          {countries.length === 1 ? "country" : "countries"} ={" "}
+          {countries.length === 1 ? "country" : "countries"} × {samples}{" "}
+          {samples === 1 ? "ask" : "asks"} ={" "}
           <span className="font-medium text-fg">
             {answersPerPrompt(config)} {answersPerPrompt(config) === 1 ? "answer" : "answers"}
           </span>{" "}
