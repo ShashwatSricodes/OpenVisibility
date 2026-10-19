@@ -6,13 +6,8 @@
  */
 
 import { and, eq } from "drizzle-orm";
-import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
-import { getDb } from "./client";
-import * as schema from "./schema";
+import { getDb, type AnyDb } from "./client";
 import { brandAliases, brands, competitors, prompts, workspaces } from "./schema";
-
-/** Any Drizzle Postgres connection: the app's postgres.js pool, or PGlite in tests. */
-export type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>;
 
 const WORKSPACE = { name: "Demo workspace", defaultCountries: ["US", "IN"] };
 

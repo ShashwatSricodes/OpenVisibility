@@ -24,6 +24,10 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { user } from "./auth-schema";
+
+export * from "./auth-schema";
+
 const id = () => uuid("id").primaryKey().defaultRandom();
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 /** Postgres text[] that is never null; an empty array means "none". */
@@ -43,6 +47,28 @@ export const workspaces = pgTable("workspaces", {
   defaultCountries: textList("default_countries"),
   createdAt: createdAt(),
 });
+
+export const memberRole = pgEnum("member_role", ["owner", "member"]);
+
+/** Which users belong to which workspace, and as what. */
+export const memberships = pgTable(
+  "memberships",
+  {
+    id: id(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    role: memberRole("role").notNull().default("member"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("memberships_user_workspace_uq").on(t.userId, t.workspaceId),
+    index("memberships_workspace_idx").on(t.workspaceId),
+  ],
+);
 
 export const brands = pgTable(
   "brands",

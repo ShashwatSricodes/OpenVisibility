@@ -27,15 +27,20 @@ describe("migrations", () => {
       sql`select table_name from information_schema.tables where table_schema = 'public' order by table_name`,
     );
     expect(result.rows.map((r) => r.table_name)).toEqual([
+      "account",
       "answers",
       "brand_aliases",
       "brands",
       "citations",
       "competitors",
+      "memberships",
       "mentions",
       "prompts",
       "run_items",
       "runs",
+      "session",
+      "user",
+      "verification",
       "workspaces",
     ]);
   });
