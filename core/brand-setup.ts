@@ -62,8 +62,21 @@ const aliases = z
   .transform(cleanList)
   .pipe(z.array(z.string().max(80)).max(MAX_LIST, `At most ${MAX_LIST} other names.`));
 
+const optionalText = (max: number, message: string) =>
+  z
+    .string()
+    .trim()
+    .max(max, message)
+    .transform((v) => v || null);
+
 export const brandSchema = z.object({
   name,
+  category: z
+    .string()
+    .trim()
+    .min(2, "Say what kind of product it is, like “invoicing software”.")
+    .max(60, "Keep the category short, like “invoicing software”."),
+  audience: optionalText(80, "Keep who it's for short, like “freelancers and small agencies”."),
   description: z
     .string()
     .trim()

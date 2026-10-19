@@ -17,6 +17,8 @@ describe("brand rules", () => {
   it("cleans a brand: domains, duplicate names, its own name as an alias", () => {
     const r = validateBrand({
       name: " Ledgerly ",
+      category: " invoicing software ",
+      audience: "",
       description: "",
       domains: ["https://ledgerly.app", "LEDGERLY.app", ""],
       aliases: ["Ledgerly", "Ledgerly.app", "ledgerly.APP", " "],
@@ -25,6 +27,8 @@ describe("brand rules", () => {
       ok: true,
       value: {
         name: "Ledgerly",
+        category: "invoicing software",
+        audience: null,
         description: null,
         domains: ["ledgerly.app"],
         aliases: ["Ledgerly.app"],
@@ -33,12 +37,13 @@ describe("brand rules", () => {
   });
 
   it("explains what's wrong", () => {
-    expect(validateBrand({ name: "", description: "", domains: [], aliases: [] })).toMatchObject({
+    const blank = { category: "invoicing software", audience: "", description: "" };
+    expect(validateBrand({ ...blank, name: "", domains: [], aliases: [] })).toMatchObject({
       ok: false,
       message: "Give it a name.",
     });
     expect(
-      validateBrand({ name: "X", description: "", domains: ["not a domain"], aliases: [] }),
+      validateBrand({ ...blank, name: "X", domains: ["not a domain"], aliases: [] }),
     ).toMatchObject({ ok: false, message: /isn't a domain/ });
   });
 
@@ -77,6 +82,8 @@ describe("saving a brand and competitors", () => {
   it("saves a brand with three competitors, and reads them back", async () => {
     const brandId = await saveBrand(db, workspaceId, {
       name: "Ledgerly",
+      category: "invoicing software",
+      audience: "freelancers",
       description: "Invoicing for freelancers.",
       domains: ["ledgerly.app"],
       aliases: ["Ledgerly.app"],
@@ -96,6 +103,8 @@ describe("saving a brand and competitors", () => {
   it("updates the same brand instead of adding a second one", async () => {
     await saveBrand(db, workspaceId, {
       name: "Ledgerly Invoicing",
+      category: "invoicing software",
+      audience: null,
       description: null,
       domains: ["ledgerly.app"],
       aliases: [],

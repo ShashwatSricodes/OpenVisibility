@@ -120,6 +120,10 @@ export const brands = pgTable(
     name: text("name").notNull(),
     /** one line about what the brand does; used to suggest prompts */
     description: text("description"),
+    /** what kind of product it is, e.g. "invoicing software"; drives prompt suggestions */
+    category: text("category"),
+    /** who it's for, e.g. "freelancers and small agencies" */
+    audience: text("audience"),
     /** domains the brand owns; citations to these count as "owned" */
     domains: textList("domains"),
     createdAt: createdAt(),

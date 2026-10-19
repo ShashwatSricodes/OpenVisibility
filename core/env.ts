@@ -41,8 +41,10 @@ const schema = z.object({
 
   /** Consumer-app answers (ChatGPT, Gemini, AI Mode, AI Overviews, Perplexity) */
   BRIGHT_DATA_API_KEY: optionalString,
-  /** Official model APIs (Claude, and fallbacks for the other engines) */
+  /** Official model APIs (Claude, and fallbacks for the other engines); also writes prompt suggestions */
   AI_GATEWAY_API_KEY: optionalString,
+  /** The model that writes prompt suggestions when AI_GATEWAY_API_KEY is set */
+  PROMPT_SUGGEST_MODEL: z.string().trim().default("google/gemini-3.5-flash-lite"),
   /** Perplexity's own API, for the Accurate preset on the API route */
   PERPLEXITY_API_KEY: optionalString,
   PERPLEXITY_DIRECT_MODEL: z.string().trim().default("sonar-pro"),

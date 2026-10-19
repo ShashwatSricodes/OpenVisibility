@@ -9,7 +9,12 @@ import { Wizard } from "./wizard";
 export const metadata: Metadata = { title: "Set up your brand" };
 
 /* Full-screen setup, outside the sidebar layout. Also the place to edit the brand later. */
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ step?: string }>;
+}) {
+  const { step } = await searchParams;
   const { workspace, role } = await requireWorkspace();
   const { brand, competitors } = await getBrandSetup(getDb(), workspace.id);
 
@@ -33,6 +38,8 @@ export default async function OnboardingPage() {
             brand
               ? {
                   name: brand.name,
+                  category: brand.category,
+                  audience: brand.audience ?? "",
                   description: brand.description ?? "",
                   domains: brand.domains,
                   aliases: brand.aliases,
@@ -45,6 +52,8 @@ export default async function OnboardingPage() {
             aliases,
           }))}
           canEdit={role === "owner"}
+          // "Get suggestions" on the Prompts page opens straight at the prompts step
+          initialStep={brand && step === "prompts" ? 2 : 0}
         />
       </main>
     </div>
