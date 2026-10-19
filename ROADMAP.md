@@ -161,11 +161,12 @@ This is the key piece of the architecture: the worker, the analysis and the dash
 
 ### Day 8: Engines and countries per workspace
 
-- [ ] Store each workspace's chosen engines (default: ChatGPT, Gemini, AI Mode, AI Overviews) and countries.
-- [ ] Settings page listing every engine from the registry with its status and note, so users see why Claude or Copilot can't be picked yet.
-- [ ] Warn when a country hasn't been verified for an engine (AI Mode and AI Overviews are verified for the US only).
+- [x] Store each workspace's chosen engines (new `workspaces.engines` column; default ChatGPT, Gemini, AI Mode, AI Overviews) and countries (default US). `getTrackingConfig` in `core/tracking-config.ts` reads them, dropping engines that lose their data source.
+- [x] "What to track" on the Settings page: every engine from the registry with its status and note (Claude, Copilot and Grok shown but can't be picked), countries as chips (up to 10, from `core/countries.ts`), and the answers each prompt uses per run.
+- [x] Warnings as you choose (`core/tracking-rules.ts`): countries not yet tested for an engine (AI Mode and AI Overviews: US only) and unreliable engines (Perplexity).
+- [x] `npm run try -- --workspace "<name>" "<prompt>"` runs with a workspace's engines, countries and key; `--dry-run` prints the plan for free.
 
-**Done when:** the demo workspace's engine and country choices drive what `npm run try` and the cost estimate use.
+**Done when:** the demo workspace's engine and country choices drive what `npm run try` and the cost estimate use. ✅ 19 October 2026: choices saved in the running app (3 engines, US and India, with the AI Mode warning) and read back by `npm run try --workspace … --dry-run` (6 answers). The cost estimate is Day 9 and reads the same config.
 
 ### Day 9: Free-tier usage meter
 

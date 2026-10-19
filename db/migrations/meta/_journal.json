@@ -29,6 +29,13 @@
       "when": 1792389123761,
       "tag": "0003_own_provider_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792391203500,
+      "tag": "0004_workspace_engines",
+      "breakpoints": true
     }
   ]
 }

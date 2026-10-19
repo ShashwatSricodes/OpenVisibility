@@ -1,0 +1,1 @@
+ALTER TABLE "workspaces" ADD COLUMN "engines" "engine"[] DEFAULT '{chatgpt,gemini,ai_mode,ai_overviews}'::engine[] NOT NULL;
