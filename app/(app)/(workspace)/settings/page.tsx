@@ -8,6 +8,7 @@ import { getTrackingConfig } from "@/core/tracking-config";
 import { estimateWorkspaceRun, getFreeTierUsage } from "@/core/usage";
 import { getDb } from "@/db/client";
 import { BrightDataKeyForm, type KeyStatus } from "./key-form";
+import { Page } from "../../_components/page-frame";
 import { TrackingForm } from "./tracking-form";
 import { UsageSection } from "./usage-section";
 
@@ -41,12 +42,7 @@ export default async function SettingsPage() {
       : { kind: "none" };
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-5 sm:px-6">
-      <div>
-        <h1 className="text-base font-semibold">Settings</h1>
-        <p className="text-xs text-fg-subtle">{workspace.name}</p>
-      </div>
-
+    <Page title="Settings" description={workspace.name} width="narrow">
       <section className="rounded-xl border border-line bg-panel">
         <div className="border-b border-line px-5 py-4">
           <h2 className="text-sm font-semibold">Bright Data API key</h2>
@@ -91,6 +87,6 @@ export default async function SettingsPage() {
         Keys are encrypted before they&rsquo;re stored and are never sent back to your browser. Only
         the last four characters are shown.
       </p>
-    </div>
+    </Page>
   );
 }

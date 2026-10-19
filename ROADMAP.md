@@ -192,12 +192,13 @@ This is the key piece of the architecture: the worker, the analysis and the dash
 
 ### Day 11: The app shell
 
-- [ ] Sidebar with Overview, Prompts, Answers, Citations, Competitors, Runs, Billing (hosted only) and Settings.
-- [ ] Top bar with workspace name, date-range picker, country filter, and a "Run now" button.
-- [ ] Reuse the landing page's tokens (fonts, colors, spacing) so the product and site feel like one thing.
-- [ ] Add empty states for every page.
+- [x] Sidebar with Overview, Prompts, Answers, Citations, Competitors, Runs, Settings, Help, and Billing for hosted workspaces only (self-hosted workspaces get a 404 there). The mobile menu now has Settings and Help too.
+- [x] A shared page frame (`app/(app)/_components/page-frame.tsx`) for every page's title row, plus an empty-state component.
+- [x] Prompts and Competitors list the workspace's real rows (read-only until Days 12–13); Answers, Citations and Runs explain what will appear after the first run, and Runs shows how many answers a run would use. Help links to the docs and explains how to read results.
+- [x] The Overview page says plainly that its numbers are samples until the first run.
+- [x] The date-range picker, country filter and Run now button stay on the Overview, where there's data to filter; other pages get filters on Day 32. The product already shares the landing page's fonts and tokens.
 
-**Done when:** you can click through every section, even though they're empty.
+**Done when:** you can click through every section, even though they're empty. ✅ 19 October 2026: every page returns 200 signed in and redirects to /login signed out; checked on desktop and mobile.
 
 ### Day 12: Onboarding, part 1 (brand and competitors)
 
@@ -550,6 +551,7 @@ Record decisions here as you make them, with the date and the reason.
 | 2026-10-18 | Copilot: deferred. Copilot chat requires a login since 31 August 2026. Options if revisited: SerpApi `bing_copilot` (Copilot Search on Bing, no login, 250 free a month) or Apify's Copilot scraper (test first; may rely on signed-in accounts). | Deferred |
 | 2026-10-18 | Google AI Overviews and AI Mode move into version 1, through Bright Data's free scrapers (US for now). | Decided |
 | 2026-10-19 | Phase 1 uses Bright Data only. Claude, Grok and Copilot (and the official-API route for all engines) move after launch; Bright Data has no Grok scraper and Claude and Copilot need sign-in. OpenRouter/Gateway BYOK is dropped from Phase 1. | Decided |
+| 2026-10-19 | Perplexity: left for now. Bright Data's scraper is refused by Perplexity ("too many requests") from every country and URL tried; Perplexity reportedly blocks shared proxy IPs since August 2026. If revisited: cloro (also covers Copilot; 500 free credits a month) or querying.ai, as one more adapter. | Deferred |
 | | Data source for the hosted version: Bright Data Scale ($1.30 per 1,000) or DataForSEO ($1.20 per 1,000, also covers Claude and AI Overviews) | Decide before Day 38 |
 | | Google AI Overviews: version 2 through a SERP API, or skip | Deferred (Bright Data's AI Mode scraper may cover part of it) |
 | | Web hosting: Vercel or VPS | Decide on Day 45 |

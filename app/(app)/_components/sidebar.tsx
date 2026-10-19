@@ -8,6 +8,7 @@ import {
   LogOut,
   BarChart3,
   CircleHelp,
+  CreditCard,
   Clock,
   Link2,
   MessageSquareText,
@@ -118,7 +119,7 @@ function NavGroups({
         <div key={g.label} className="flex flex-col gap-0.5">
           <p className="mb-1 px-2 text-[11px] font-medium text-fg-muted">{g.label}</p>
           {g.items.map((item) => (
-            <NavLink key={item.href} item={item} active={pathname === item.href} />
+            <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
           ))}
         </div>
       ))}
@@ -126,7 +127,24 @@ function NavGroups({
   );
 }
 
-export type Account = { email: string; workspace: string };
+export type Account = {
+  email: string;
+  workspace: string;
+  /** hosted workspaces pay through a wallet, so they get a Billing page */
+  hosted: boolean;
+};
+
+/** Settings, Billing (hosted only) and Help: below the main groups. */
+function footerItems(hosted: boolean): Item[] {
+  return [
+    { href: "/settings", label: "Settings", icon: Settings },
+    ...(hosted ? [{ href: "/billing", label: "Billing", icon: CreditCard }] : []),
+    { href: "/help", label: "Help", icon: CircleHelp },
+  ];
+}
+
+const isActive = (pathname: string, href: string) =>
+  pathname === href || pathname.startsWith(`${href}/`);
 
 function AccountMenu({ account }: { account: Account }) {
   const router = useRouter();
@@ -196,6 +214,11 @@ export function MobileNav({ account }: { account: Account }) {
       {open && (
         <div className="max-h-[75vh] overflow-y-auto border-t border-line px-3 py-4">
           <NavGroups pathname={pathname} onNavigate={() => setOpen(false)} />
+          <div className="mt-4 flex flex-col gap-0.5" onClick={() => setOpen(false)}>
+            {footerItems(account.hosted).map((item) => (
+              <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
+            ))}
+          </div>
           <div className="mt-4 border-t border-line pt-3">
             <AccountMenu account={account} />
           </div>
@@ -273,11 +296,9 @@ export function Sidebar({ account, usage }: { account: Account; usage: FreeTierU
       <NavGroups pathname={pathname} className="flex-1 overflow-y-auto scrollbar-hide" />
 
       <div className="flex flex-col gap-0.5">
-        <NavLink
-          item={{ href: "/settings", label: "Settings", icon: Settings }}
-          active={pathname === "/settings"}
-        />
-        <NavLink item={{ href: "/help", label: "Help", icon: CircleHelp }} active={false} />
+        {footerItems(account.hosted).map((item) => (
+          <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
+        ))}
         <ThemeToggle />
       </div>
 

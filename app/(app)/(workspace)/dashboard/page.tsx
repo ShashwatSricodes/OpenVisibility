@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bot, Link2, MessageSquareText, Swords } from "lucide-react";
+import { Bot, Info, Link2, MessageSquareText, Swords } from "lucide-react";
 import { BarListCard } from "../../_components/bar-list-card";
 import { OverviewTop } from "../../_components/overview-top";
 import {
@@ -49,6 +49,10 @@ export default function OverviewPage() {
 
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-5 lg:px-6 lg:py-5">
+      <p className="flex items-center gap-2 rounded-lg border border-line bg-hover px-3 py-2 text-xs text-fg-default">
+        <Info className="size-3.5 shrink-0 text-fg-subtle" />
+        These are sample numbers for a made-up brand. Your own appear here after your first run.
+      </p>
       <OverviewTop
         title="Overview"
         subtitle={`${BRAND.name} · ${PROMPTS.length} prompts across ${ENGINES.length} engines · sample data`}

@@ -80,6 +80,17 @@ What changed since 18 October:
 - **Timing varies a lot.** AI Overviews took 10 minutes this time against 4 before, and Gemini 36 s against 199 s. Runs allow 15 minutes per batch, and a batch that runs over is resumed, not resubmitted.
 - **Perplexity is still blocked**, two days running, in India and the US. It stays marked unreliable.
 
+### Perplexity: other sources (checked 19 October 2026)
+
+Bright Data's Perplexity scraper also failed for `GB`, `DE`, no country, and Perplexity's `/search?q=` URL, all with "too many requests" from Perplexity (not billed). An Apify listing says Perplexity has blocked shared proxy IPs since 9 August 2026. Perplexity is left out for now. If it comes back:
+
+| Source | Per 1,000 Perplexity answers | Free tier | Notes |
+| --- | --- | --- | --- |
+| [cloro](https://cloro.dev/) | ~$3.20 (4 credits each) | 500 credits a month | Also covers Copilot, ChatGPT, Gemini, AI Mode, AI Overviews; Cloro Incorporation Ltd |
+| [querying.ai](https://querying.ai/en/engines/perplexity) | ~$2.50 on the $20 plan | 500 credits to start | Operator not named; no reviews found |
+| [Apify actor](https://apify.com/rl1987/perplexity-api-scraper) | $5.00 | Apify's $5 monthly credit | Few users |
+| Perplexity Sonar API | ~$5–6 plus tokens | None | Official; measures the API, not the app |
+
 ### Staying inside Bright Data's limits
 
 Bright Data blocks the calling IP after 25 HTTP 429 responses within 5 minutes, and only its support can lift the block. OpenVisibility guards against that at two levels (`core/providers/rate-guard.ts`, `core/providers/retry.ts`):
