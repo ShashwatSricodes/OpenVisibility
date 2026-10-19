@@ -1,0 +1,69 @@
+import type { Metadata } from "next";
+import { ExternalLink } from "lucide-react";
+import { requireWorkspace } from "@/core/auth/session";
+import { getCredentialInfo } from "@/core/credentials";
+import { env } from "@/core/env";
+import { BRIGHT_DATA_PRICING, ENGINES } from "@/core/providers/registry";
+import { getDb } from "@/db/client";
+import { BrightDataKeyForm, type KeyStatus } from "./key-form";
+
+export const metadata: Metadata = { title: "Settings" };
+
+const brightDataEngines = Object.values(ENGINES)
+  .filter((e) => e.provider === "brightdata" && e.status === "available")
+  .map((e) => e.name);
+
+const listFormat = new Intl.ListFormat("en", { type: "conjunction" });
+
+export default async function SettingsPage() {
+  const { workspace, role } = await requireWorkspace();
+  const info = await getCredentialInfo(getDb(), workspace.id);
+
+  const status: KeyStatus = info
+    ? {
+        kind: "workspace",
+        last4: info.last4,
+        addedAt: info.createdAt.toISOString(),
+        verifiedAt: info.verifiedAt?.toISOString() ?? null,
+      }
+    : env().BRIGHT_DATA_API_KEY
+      ? { kind: "server" }
+      : { kind: "none" };
+
+  return (
+    <div className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-5 sm:px-6">
+      <div>
+        <h1 className="text-base font-semibold">Settings</h1>
+        <p className="text-xs text-fg-subtle">{workspace.name}</p>
+      </div>
+
+      <section className="rounded-xl border border-line bg-panel">
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="text-sm font-semibold">Bright Data API key</h2>
+          <p className="mt-1 text-[13px] text-fg-subtle">
+            Answers from {listFormat.format(brightDataEngines)} come from Bright Data, which asks
+            each prompt in the real apps. A free account includes{" "}
+            {BRIGHT_DATA_PRICING.freeAnswersPerMonth.toLocaleString("en-US")} answers a month.{" "}
+            <a
+              href="https://brightdata.com/cp/setting/users"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-0.5 text-fg-default underline decoration-line-strong underline-offset-2 hover:text-fg"
+            >
+              Get your key
+              <ExternalLink className="size-3" />
+            </a>
+          </p>
+        </div>
+        <div className="px-5 py-4">
+          <BrightDataKeyForm status={status} canEdit={role === "owner"} />
+        </div>
+      </section>
+
+      <p className="text-[11px] text-fg-muted">
+        Keys are encrypted before they&rsquo;re stored and are never sent back to your browser. Only
+        the last four characters are shown.
+      </p>
+    </div>
+  );
+}

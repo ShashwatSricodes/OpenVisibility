@@ -29,7 +29,7 @@ export function getProvider(engine: EngineId, keys: ProviderKeys = {}): Provider
       if (!key)
         throw new ProviderError(
           "auth",
-          `${info.name} answers come from Bright Data, and no Bright Data key is set. Add BRIGHT_DATA_API_KEY to .env.local (the free tier covers 5,000 answers a month).`,
+          `${info.name} answers come from Bright Data, and no Bright Data key is set. Add your key in Settings, or set BRIGHT_DATA_API_KEY in .env.local (the free tier covers 5,000 answers a month).`,
         );
       return new BrightDataProvider(key);
     }

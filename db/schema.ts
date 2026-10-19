@@ -70,6 +70,30 @@ export const memberships = pgTable(
   ],
 );
 
+export const credentialProvider = pgEnum("credential_provider", ["brightdata"]);
+
+/**
+ * A workspace's own API keys, encrypted with AES-256-GCM (core/crypto.ts).
+ * The plain key never leaves the server; pages see only the last 4 characters.
+ */
+export const providerCredentials = pgTable(
+  "provider_credentials",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    provider: credentialProvider("provider").notNull(),
+    encryptedKey: text("encrypted_key").notNull(),
+    last4: text("last4").notNull(),
+    createdBy: uuid("created_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    /** when the key last passed a test call */
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  },
+  (t) => [uniqueIndex("provider_credentials_workspace_provider_uq").on(t.workspaceId, t.provider)],
+);
+
 export const brands = pgTable(
   "brands",
   {

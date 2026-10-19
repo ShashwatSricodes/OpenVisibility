@@ -51,6 +51,8 @@ Run the web app (landing page at `/`, product at `/dashboard`):
 npm run dev
 ```
 
+Add your Bright Data key either in `.env.local` (used by every workspace on this server) or per workspace in **Settings**, where it is tested and stored encrypted. In production also set `ENCRYPTION_KEY` (see `.env.example`).
+
 No database setup is needed in development: without `DATABASE_URL`, the app uses an embedded Postgres stored in `.data/`. Sign in at `/login`; with no `RESEND_API_KEY`, the sign-in link is printed in the terminal. To use your own Postgres instead, run `docker compose up -d` and set `DATABASE_URL` (see `.env.example`).
 
 A Docker image with one-command setup is planned for the first release.

@@ -41,7 +41,7 @@ Prompt: "What is the best invoicing software for freelancers?", country `IN`. Fi
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | ChatGPT | ✅ 2,616-character answer | 90 s | not reported | `false` | 1 (from a source chip) | 5 "Official website" links | Yes, as the top pick |
 | Gemini | ✅ 2,761-character answer | 199 s | **Flash-Lite** | not reported | 0 | 0 | Yes |
-| Perplexity | ❌ `crawl_error`: Perplexity returned "too many requests" to Bright Data | 13 s | n/a | n/a | n/a | n/a | n/a |
+| Perplexity | ❌ `crawl_error`: Perplexity returned "too many requests" to Bright Data. Same again on 19 October with `US` (not billed) | 13–14 s | n/a | n/a | n/a | n/a | n/a |
 | Copilot | ❌ "Sign in page shown" with `IN`, with `US`, and with the Bing Copilot Search URL | 77–218 s | n/a | n/a | n/a | n/a | n/a |
 | Google AI Mode | ✅ with `US` (3,622 characters); ❌ "Browser disconnected" with `IN` | 26 s | not reported | n/a | **16** | 9 | Yes, alongside FreshBooks and Wave |
 | Google AI Overviews | ✅ with `US` (2,788 characters), via the "Google SERP" scraper | 232 s | n/a | overview shown | **18** | n/a | Yes |
