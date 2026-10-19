@@ -12,13 +12,15 @@
  * server first. --dry-run prints the plan without asking anything.
  *
  * Each engine × country uses one answer of Bright Data's free 5,000 a month
- * (failed answers aren't billed). --save writes results to scripts/fixtures/
+ * (failed answers aren't billed). A request that would go past the free
+ * tier stops unless you add --yes. --save writes results to scripts/fixtures/
  * for the tests.
  */
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  BRIGHT_DATA_PRICING,
   ENGINES,
   ProviderError,
   engineIds,
@@ -102,7 +104,32 @@ async function main() {
   console.log(`Prompt:    ${prompt}`);
   console.log(`Engines:   ${plan.engines.map((e) => ENGINES[e].name).join(", ")}`);
   console.log(`Countries: ${plan.countries.map((c) => c ?? "(default)").join(", ")}`);
-  console.log(`Answers:   ${answers} (one per engine per country)\n`);
+  console.log(`Answers:   ${answers} (one per engine per country)`);
+
+  // flag a request that would go past Bright Data's free tier before asking
+  const key = plan.keys.brightData ?? process.env.BRIGHT_DATA_API_KEY;
+  if (key) {
+    try {
+      const { accountAnswersThisMonth } = await import("../core/usage");
+      const { checkFreeTier } = await import("../core/estimate");
+      const limit = BRIGHT_DATA_PRICING.freeAnswersPerMonth;
+      const used = await accountAnswersThisMonth(key);
+      const check = checkFreeTier(answers, used, limit);
+      console.log(
+        `Free tier: ${used.toLocaleString("en-US")} of ${limit.toLocaleString("en-US")} used this month; ` +
+          (check.fits
+            ? `${check.after.toLocaleString("en-US")} left after this.`
+            : `this goes ${check.overBy} past it (about $${check.costUsd}).`),
+      );
+      if (!check.fits && !dryRun && !process.argv.includes("--yes")) {
+        console.log("\nNot asked. Add --yes to go past the free tier anyway.");
+        process.exit(1);
+      }
+    } catch (err) {
+      console.log(`Free tier: couldn't check (${(err as Error).message})`);
+    }
+  }
+  console.log();
   if (dryRun) {
     console.log("Dry run: nothing was asked.");
     process.exit(0);

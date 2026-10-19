@@ -5,9 +5,11 @@ import { getCredentialInfo } from "@/core/credentials";
 import { env } from "@/core/env";
 import { BRIGHT_DATA_PRICING, ENGINES } from "@/core/providers/registry";
 import { getTrackingConfig } from "@/core/tracking-config";
+import { estimateWorkspaceRun, getFreeTierUsage } from "@/core/usage";
 import { getDb } from "@/db/client";
 import { BrightDataKeyForm, type KeyStatus } from "./key-form";
 import { TrackingForm } from "./tracking-form";
+import { UsageSection } from "./usage-section";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -20,9 +22,11 @@ const listFormat = new Intl.ListFormat("en", { type: "conjunction" });
 export default async function SettingsPage() {
   const { workspace, role } = await requireWorkspace();
   const db = getDb();
-  const [info, tracking] = await Promise.all([
+  const [info, tracking, usage, estimate] = await Promise.all([
     getCredentialInfo(db, workspace.id),
     getTrackingConfig(db, workspace.id),
+    getFreeTierUsage(db, workspace.id),
+    estimateWorkspaceRun(db, workspace.id),
   ]);
 
   const status: KeyStatus = info
@@ -65,6 +69,8 @@ export default async function SettingsPage() {
           <BrightDataKeyForm status={status} canEdit={role === "owner"} />
         </div>
       </section>
+
+      <UsageSection usage={usage} estimate={estimate} config={tracking} />
 
       <section className="rounded-xl border border-line bg-panel">
         <div className="border-b border-line px-5 py-4">

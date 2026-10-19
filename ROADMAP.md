@@ -170,11 +170,12 @@ This is the key piece of the architecture: the worker, the analysis and the dash
 
 ### Day 9: Free-tier usage meter
 
-- [ ] Count Bright Data answers delivered this calendar month from the `answers` table (failed answers don't count).
-- [ ] Show usage against the free 5,000 a month in the sidebar meter and on the settings page, with the reset date.
-- [ ] `estimateRun()`: prompts × engines × countries × samples, in answers and dollars, and whether it fits in what's left this month.
+- [x] Count this month's free-tier usage from Bright Data itself: the records each snapshot delivered (`listSnapshots`), summed across every scraper. More accurate than our own table, because the free tier belongs to the Bright Data account and includes answers asked outside OpenVisibility; error-only snapshots aren't counted. Cached for 5 minutes so page loads never strain the rate limit. The workspace's own share comes from the `answers` table.
+- [x] Real usage in the sidebar meter (amber past 80%, red at 100%; "No Bright Data key" links to Settings) and a "Usage this month" section on the Settings page, with the reset date.
+- [x] `estimateRun()` in `core/estimate.ts`: active prompts × engines × countries (a prompt's own countries win) × 3 samples, checked against what's left this month, for one run and for running daily until the reset, with the pay-as-you-go cost of anything past the free tier.
+- [x] `npm run try` checks the free tier first and won't go past it without `--yes`.
 
-**Done when:** the sidebar meter shows real usage and a run that would go past the free tier is flagged before it starts.
+**Done when:** the sidebar meter shows real usage and a run that would go past the free tier is flagged before it starts. ✅ 19 October 2026: meter shows 6 of 5,000 (matching our test calls); the test workspace's 3 prompts estimate 45 answers a run and 585 running daily. The "Run now" button gets the same check when runs exist (Day 17).
 
 ### Day 10: Resilience, live check and tests
 

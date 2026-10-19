@@ -23,7 +23,7 @@ import {
 import { Logotype } from "@/components/brand/Logo";
 import { authClient } from "@/core/auth/client";
 import { cn } from "../_lib/cn";
-import { FREE_TIER } from "../_lib/sample-data";
+import type { FreeTierUsage } from "@/core/usage";
 
 type Item = { href: string; label: string; icon: LucideIcon };
 
@@ -205,9 +205,66 @@ export function MobileNav({ account }: { account: Account }) {
   );
 }
 
-export function Sidebar({ account }: { account: Account }) {
+const resetDay = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+
+/** Bright Data's free answers this month, for the account this workspace's key belongs to. */
+function UsageMeter({ usage }: { usage: FreeTierUsage }) {
+  if (!usage.keySource)
+    return (
+      <Link
+        href="/settings"
+        className="block rounded-lg border border-line bg-panel p-2.5 text-xs transition-colors hover:bg-hover"
+      >
+        <span className="font-medium text-fg">No Bright Data key</span>
+        <span className="mt-0.5 block text-[11px] text-fg-subtle">
+          Add one in Settings to start tracking
+        </span>
+      </Link>
+    );
+
+  const used = usage.used;
+  const pct = used === null ? 0 : Math.min(100, Math.round((used / usage.limit) * 100));
+  return (
+    <Link
+      href="/settings"
+      title={usage.error}
+      className="block rounded-lg border border-line bg-panel p-2.5 transition-colors hover:bg-hover"
+    >
+      <div className="flex items-baseline justify-between text-xs">
+        <span className="font-medium text-fg">Free answers</span>
+        <span className="tabular text-fg-subtle">
+          {used === null ? "–" : used.toLocaleString("en-US")} /{" "}
+          {usage.limit.toLocaleString("en-US")}
+        </span>
+      </div>
+      <div
+        className="mt-2 h-1.5 overflow-hidden rounded-full bg-pressed"
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="Bright Data free tier used"
+      >
+        <div
+          className={cn(
+            "h-full rounded-full",
+            pct >= 100 ? "bg-bad" : pct >= 80 ? "bg-[var(--series-4)]" : "bg-fg",
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <p className="mt-1.5 text-[11px] text-fg-subtle">
+        {used === null
+          ? "Usage unavailable right now"
+          : `${usage.keySource === "workspace" ? "Your key" : "Server key"} · resets ${resetDay(usage.resetsAt)}`}
+      </p>
+    </Link>
+  );
+}
+
+export function Sidebar({ account, usage }: { account: Account; usage: FreeTierUsage }) {
   const pathname = usePathname();
-  const pct = Math.round((FREE_TIER.used / FREE_TIER.limit) * 100);
 
   return (
     <aside className="sticky top-0 hidden h-screen flex-col gap-4 px-2.5 py-3.5 lg:flex">
@@ -224,25 +281,7 @@ export function Sidebar({ account }: { account: Account }) {
         <ThemeToggle />
       </div>
 
-      <div className="rounded-lg border border-line bg-panel p-2.5">
-        <div className="flex items-baseline justify-between text-xs">
-          <span className="font-medium text-fg">Free answers</span>
-          <span className="tabular text-fg-subtle">
-            {FREE_TIER.used.toLocaleString("en-US")} / {FREE_TIER.limit.toLocaleString("en-US")}
-          </span>
-        </div>
-        <div
-          className="mt-2 h-1.5 overflow-hidden rounded-full bg-pressed"
-          role="progressbar"
-          aria-valuenow={pct}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label="Bright Data free tier used"
-        >
-          <div className="h-full rounded-full bg-fg" style={{ width: `${pct}%` }} />
-        </div>
-        <p className="mt-1.5 text-[11px] text-fg-subtle">Bright Data · resets {FREE_TIER.resets}</p>
-      </div>
+      <UsageMeter usage={usage} />
 
       <AccountMenu account={account} />
     </aside>
