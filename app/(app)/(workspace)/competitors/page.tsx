@@ -3,7 +3,8 @@ import { Swords } from "lucide-react";
 import { requireWorkspace } from "@/core/auth/session";
 import { listCompetitors } from "@/core/workspace-data";
 import { getDb } from "@/db/client";
-import { EmptyState, Page } from "../../_components/page-frame";
+import Link from "next/link";
+import { EmptyState, Page, buttonSecondary } from "../../_components/page-frame";
 
 export const metadata: Metadata = { title: "Competitors" };
 
@@ -14,6 +15,13 @@ export default async function CompetitorsPage() {
   return (
     <Page
       title="Competitors"
+      actions={
+        rows.length ? (
+          <Link href="/onboarding" className={buttonSecondary}>
+            Edit competitors
+          </Link>
+        ) : undefined
+      }
       description={
         rows.length
           ? `${rows.length} tracked · how often AI names them next to you`
@@ -25,7 +33,7 @@ export default async function CompetitorsPage() {
           icon={<Swords />}
           title="No competitors yet"
           description="Add the brands customers compare you with. Each run counts how often AI answers name them, where they rank, and which sources they're cited from."
-          action={{ href: "/settings", label: "Review tracking settings" }}
+          action={{ href: "/onboarding", label: "Add competitors" }}
         />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
