@@ -1,16 +1,28 @@
 /**
- * Bright Data client for the consumer AI apps (ChatGPT, Perplexity, Gemini,
- * Copilot, Google AI Mode). Bright Data runs each prompt in the real app and
- * returns the answer with its citations.
+ * Bright Data adapter for the consumer AI apps (ChatGPT, Gemini, Google AI
+ * Mode, Google AI Overviews, Perplexity). Bright Data runs each prompt in
+ * the real app, logged out, and returns the answer with its citations.
  *
  * Flow: trigger a batch -> poll progress -> download the snapshot.
  * Docs: https://docs.brightdata.com/products/scrapers/scrapers-library/async-requests
  *
  * Rate limits matter here: 25 HTTP 429 responses within 5 minutes gets the
  * calling IP blocked until Bright Data support clears it. So we send one
- * batch per engine rather than one job per prompt, and stop at the first
- * 429 after a short backoff instead of hammering the API.
+ * batch per engine rather than one job per prompt, and stop at the second
+ * 429 instead of hammering the API.
  */
+
+import { ProviderError, isRetryable, kindForStatus, type ProviderErrorKind } from "./errors";
+import { BRIGHT_DATA_PRICING } from "./registry";
+import type {
+  Citation,
+  EngineId,
+  ItemError,
+  JobState,
+  Provider,
+  QueryInput,
+  QueryResult,
+} from "./types";
 
 const API = "https://api.brightdata.com/datasets/v3";
 
@@ -20,6 +32,7 @@ const API = "https://api.brightdata.com/datasets/v3";
  * with the prompt and `udm=50` (the AI Mode tab), plus an interface language.
  * AI Overviews come from the Google search results scraper, which returns
  * the overview as `aio_text` / `aio_citations` and takes a `keyword`.
+ * Copilot's scraper exists but hits a login wall (see registry.ts).
  */
 export const BRIGHT_DATA_DATASETS = {
   chatgpt: { datasetId: "gd_m7aof0k82r803d5bjm", url: () => "https://chatgpt.com/" },
@@ -35,46 +48,12 @@ export const BRIGHT_DATA_DATASETS = {
 
 export type BrightDataEngine = keyof typeof BRIGHT_DATA_DATASETS;
 
-export type BrightDataInput = {
-  prompt: string;
-  /** two-letter country code, e.g. "US" or "IN" (Bright Data wants uppercase) */
-  country?: string;
+export const isBrightDataEngine = (e: string): e is BrightDataEngine => e in BRIGHT_DATA_DATASETS;
+
+export type BrightDataInput = QueryInput & {
   /** ChatGPT only: allow web search (a permission, not a guarantee) */
   webSearch?: boolean;
 };
-
-export type Citation = { url: string; title?: string; position?: number };
-
-export type BrightDataAnswer = {
-  engine: BrightDataEngine;
-  prompt: string;
-  /** position of the input in the batch, so results can be matched back */
-  index: number;
-  ok: boolean;
-  error?: string;
-  text: string;
-  citations: Citation[];
-  /** links inside the answer text, separate from the cited sources */
-  links: Citation[];
-  /** model the app used, when Bright Data reports it (ChatGPT does) */
-  model?: string;
-  /** whether the app actually searched; ChatGPT reports this */
-  webSearchTriggered?: boolean;
-  /** AI Overviews only: whether Google showed an overview for this query */
-  shown?: boolean;
-  country?: string;
-  raw: Record<string, unknown>;
-};
-
-export class BrightDataError extends Error {
-  constructor(
-    message: string,
-    readonly status?: number,
-  ) {
-    super(message);
-    this.name = "BrightDataError";
-  }
-}
 
 type ProgressStatus =
   | "running"
@@ -88,20 +67,30 @@ type ProgressStatus =
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** The raw API: trigger, progress, download. The provider below builds on it. */
 export class BrightDataClient {
   constructor(private readonly apiKey: string) {
-    if (!apiKey) throw new BrightDataError("Missing Bright Data API key");
+    if (!apiKey)
+      throw new ProviderError(
+        "auth",
+        "Missing Bright Data API key. Add BRIGHT_DATA_API_KEY to .env.local.",
+      );
   }
 
   private async request(path: string, init?: RequestInit, retried = false): Promise<Response> {
-    const res = await fetch(`${API}${path}`, {
-      ...init,
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-        ...init?.headers,
-      },
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${API}${path}`, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+          ...init?.headers,
+        },
+      });
+    } catch (err) {
+      throw new ProviderError("upstream", `Couldn't reach Bright Data: ${(err as Error).message}`);
+    }
 
     if (res.status === 429 && !retried) {
       // one polite retry, honouring Retry-After; a second 429 is an error
@@ -111,8 +100,9 @@ export class BrightDataClient {
     }
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      throw new BrightDataError(
-        `Bright Data ${res.status} on ${path}: ${body.slice(0, 1500)}`,
+      throw new ProviderError(
+        kindForStatus(res.status),
+        `Bright Data ${res.status} on ${path.split("?")[0]}: ${body.slice(0, 500)}`,
         res.status,
       );
     }
@@ -149,39 +139,17 @@ export class BrightDataClient {
     );
     const json = (await res.json()) as { snapshot_id?: string };
     if (!json.snapshot_id)
-      throw new BrightDataError(`No snapshot_id in trigger response: ${JSON.stringify(json)}`);
+      throw new ProviderError(
+        "upstream",
+        `No snapshot_id in trigger response: ${JSON.stringify(json)}`,
+      );
     return json.snapshot_id;
   }
 
-  /** Poll until the snapshot is ready. Polls every 10 seconds by default. */
-  async waitForSnapshot(
-    snapshotId: string,
-    {
-      intervalMs = 10_000,
-      timeoutMs = 15 * 60_000,
-      onStatus,
-    }: {
-      intervalMs?: number;
-      timeoutMs?: number;
-      onStatus?: (status: string) => void;
-    } = {},
-  ): Promise<void> {
-    const deadline = Date.now() + timeoutMs;
-    while (Date.now() < deadline) {
-      const res = await this.request(`/progress/${snapshotId}`);
-      const progress = (await res.json()) as { status?: ProgressStatus; error_message?: string };
-      onStatus?.(progress.status ?? "unknown");
-      if (progress.status === "ready") return;
-      if (progress.status === "failed" || progress.status === "canceled") {
-        throw new BrightDataError(
-          `Snapshot ${snapshotId} ${progress.status}: ${progress.error_message ?? "no details"}`,
-        );
-      }
-      await sleep(intervalMs);
-    }
-    throw new BrightDataError(
-      `Snapshot ${snapshotId} not ready after ${Math.round(timeoutMs / 1000)}s`,
-    );
+  async progress(snapshotId: string): Promise<{ status: string; error?: string }> {
+    const res = await this.request(`/progress/${snapshotId}`);
+    const json = (await res.json()) as { status?: ProgressStatus; error_message?: string };
+    return { status: json.status ?? "unknown", error: json.error_message };
   }
 
   /** Download a ready snapshot's records. */
@@ -189,26 +157,143 @@ export class BrightDataClient {
     const res = await this.request(`/snapshot/${snapshotId}?format=json`);
     const json = (await res.json()) as unknown;
     if (!Array.isArray(json))
-      throw new BrightDataError(`Unexpected snapshot shape: ${JSON.stringify(json).slice(0, 300)}`);
+      throw new ProviderError(
+        "upstream",
+        `Unexpected snapshot shape: ${JSON.stringify(json).slice(0, 300)}`,
+      );
     return json as Record<string, unknown>[];
   }
+}
 
-  /** Trigger, wait and download in one call, returning normalized answers. */
-  async run(
-    engine: BrightDataEngine,
-    inputs: BrightDataInput[],
-    opts?: Parameters<BrightDataClient["waitForSnapshot"]>[1],
-  ): Promise<{ snapshotId: string; answers: BrightDataAnswer[] }> {
-    const snapshotId = await this.trigger(engine, inputs);
-    await this.waitForSnapshot(snapshotId, opts);
-    const records = await this.download(snapshotId);
-    return { snapshotId, answers: records.map((r) => normalize(engine, r)) };
+/* ── the provider ────────────────────────────────────────────── */
+
+/** Engines whose Bright Data scraper works at least some of the time. */
+const ANSWERABLE: readonly EngineId[] = [
+  "chatgpt",
+  "gemini",
+  "ai_mode",
+  "ai_overviews",
+  "perplexity",
+];
+
+export class BrightDataProvider implements Provider {
+  readonly id = "brightdata";
+  readonly source = "consumer_app" as const;
+  private readonly client: BrightDataClient;
+
+  constructor(
+    apiKey: string,
+    private readonly opts: { webSearch?: boolean } = {},
+  ) {
+    this.client = new BrightDataClient(apiKey);
   }
+
+  supports(engine: EngineId) {
+    return ANSWERABLE.includes(engine);
+  }
+
+  private dataset(engine: EngineId): BrightDataEngine {
+    if (!this.supports(engine) || !isBrightDataEngine(engine))
+      throw new ProviderError("unavailable", `Bright Data can't answer for ${engine} yet`);
+    return engine;
+  }
+
+  async submit(engine: EngineId, inputs: QueryInput[]) {
+    if (inputs.length === 0) throw new ProviderError("bad_input", "No prompts to submit");
+    return this.client.trigger(
+      this.dataset(engine),
+      // ChatGPT searches only when it decides to; allow it so answers match what users see
+      inputs.map((i) => ({ ...i, webSearch: this.opts.webSearch ?? true })),
+    );
+  }
+
+  async check(jobId: string): Promise<JobState> {
+    const { status, error } = await this.client.progress(jobId);
+    if (status === "ready") return { state: "ready" };
+    if (status === "failed" || status === "canceled")
+      return {
+        state: "failed",
+        error: {
+          kind: "upstream",
+          message: `Snapshot ${jobId} ${status}: ${error ?? "no details"}`,
+          retryable: true,
+        },
+      };
+    return { state: "pending", detail: status };
+  }
+
+  async collect(engine: EngineId, jobId: string, inputs: QueryInput[]) {
+    const records = await this.client.download(jobId);
+    return matchRecords(this.dataset(engine), inputs, records);
+  }
+}
+
+/**
+ * Pair each input with its record. Bright Data echoes the input on every
+ * record, including failed ones, but the Google search scraper drops our
+ * `index`, so fall back to matching on the prompt text and country.
+ * Repeated samples of one prompt are interchangeable, so taking them in
+ * order is fine.
+ */
+export function matchRecords(
+  engine: BrightDataEngine,
+  inputs: QueryInput[],
+  records: Record<string, unknown>[],
+): QueryResult[] {
+  const results: (QueryResult | undefined)[] = new Array(inputs.length);
+  const sameCountry = (a?: string, b?: string) => !a || !b || a.toUpperCase() === b.toUpperCase();
+
+  for (const record of records) {
+    const answer = normalize(engine, record);
+    let i = answer.index;
+    if (!(i >= 0 && i < inputs.length && !results[i] && inputs[i].prompt === answer.prompt)) {
+      i = inputs.findIndex(
+        (input, j) =>
+          !results[j] &&
+          input.prompt === answer.prompt &&
+          sameCountry(input.country, answer.country),
+      );
+    }
+    if (i === -1) continue; // not one of ours; ignore rather than mislabel
+    results[i] = { ...answer, index: i, country: inputs[i].country ?? answer.country };
+  }
+
+  return inputs.map(
+    (input, i) =>
+      results[i] ??
+      failed(engine, input, i, {
+        kind: "upstream",
+        message: "Bright Data returned no record for this prompt",
+        retryable: true,
+      }),
+  );
+}
+
+function failed(engine: EngineId, input: QueryInput, index: number, error: ItemError): QueryResult {
+  return {
+    engine,
+    source: "consumer_app",
+    prompt: input.prompt,
+    country: input.country,
+    index,
+    ok: false,
+    error,
+    text: "",
+    citations: [],
+    links: [],
+    costUsd: 0,
+    raw: {},
+  };
 }
 
 /* ── normalization ───────────────────────────────────────────── */
 
-const str = (v: unknown) => (typeof v === "string" ? v : undefined);
+const str = (v: unknown) => (typeof v === "string" && v.length > 0 ? v : undefined);
+
+const toIndex = (v: unknown) => {
+  const n = typeof v === "number" ? v : typeof v === "string" && v !== "" ? Number(v) : NaN;
+  return Number.isInteger(n) ? n : -1;
+};
 
 function toCitations(v: unknown): Citation[] {
   if (!Array.isArray(v)) return [];
@@ -268,12 +353,31 @@ const BULKY_FIELDS = new Set([
 const slim = (r: Record<string, unknown>) =>
   Object.fromEntries(Object.entries(r).filter(([k]) => !BULKY_FIELDS.has(k)));
 
+/** Turn a scraper's error into one of our error kinds. */
+function itemError(code: string | undefined, message: string): ItemError {
+  let kind: ProviderErrorKind = "upstream";
+  if (code === "blocked" || /sign in|log ?in|captcha/i.test(message)) kind = "blocked";
+  else if (/too many requests|rate limit/i.test(message)) kind = "blocked";
+  else if (code === "dead_page" || code === "bad_input") kind = "bad_input";
+  return { kind, message, retryable: isRetryable(kind) };
+}
+
 /**
- * Each platform names its fields slightly differently:
- * ChatGPT and Gemini use `citations`, Perplexity uses `sources`.
+ * Turn one Bright Data record into a result. Each platform names its fields
+ * slightly differently: ChatGPT and Gemini use `citations`, Perplexity uses
+ * `sources`, and the Google search scraper uses `aio_*`.
  */
-export function normalize(engine: BrightDataEngine, r: Record<string, unknown>): BrightDataAnswer {
-  const error = str(r.error) ?? str(r.error_code) ?? str(r.warning_code);
+export function normalize(engine: BrightDataEngine, r: Record<string, unknown>): QueryResult {
+  const input = (r.input && typeof r.input === "object" ? r.input : {}) as Record<string, unknown>;
+  const errorText = str(r.error) ?? str(r.warning);
+  const error = errorText ? itemError(str(r.error_code), errorText) : undefined;
+  const base = {
+    engine,
+    source: "consumer_app" as const,
+    index: toIndex(r.index) >= 0 ? toIndex(r.index) : toIndex(input.index),
+    country: str(r.country) ?? str(input.country),
+    raw: slim(r),
+  };
 
   if (engine === "ai_overviews") {
     // no overview is a normal outcome, not an error: Google shows one only for some queries
@@ -282,9 +386,8 @@ export function normalize(engine: BrightDataEngine, r: Record<string, unknown>):
       .replace(/^\s*AI Overview\s*/, "")
       .replace(/^\s*AI Mode replied:\s*/, "");
     return {
-      engine,
-      prompt: str(r.keyword) ?? "",
-      index: typeof r.index === "number" ? r.index : -1,
+      ...base,
+      prompt: str(r.keyword) ?? str(input.keyword) ?? "",
       ok: !error,
       error,
       text,
@@ -295,34 +398,37 @@ export function normalize(engine: BrightDataEngine, r: Record<string, unknown>):
       })),
       links: [],
       shown: text.length > 0,
-      country: str(r.country),
-      raw: slim(r),
+      costUsd: error ? 0 : BRIGHT_DATA_PRICING.perAnswerUsd,
     };
   }
+
   const text =
     str(r.answer_text) ??
     str(r.answer_text_markdown) ??
-    (str(r.answer_html) ? stripHtml(str(r.answer_html)!) : "") ??
-    "";
+    (str(r.answer_html) ? stripHtml(str(r.answer_html)!) : "");
 
   const listed = toCitations(r.citations).length
     ? toCitations(r.citations)
     : toCitations(r.sources);
   const citations = listed.length ? listed : sourceChipsFromMarkdown(str(r.answer_text_markdown));
+  const finalError =
+    error ??
+    (text.length
+      ? undefined
+      : { kind: "upstream" as const, message: "empty answer", retryable: true });
 
   return {
-    engine,
-    prompt: str(r.prompt) ?? "",
-    index: typeof r.index === "number" ? r.index : -1,
-    ok: !error && text.length > 0,
-    error: error ?? (text.length ? undefined : "empty answer"),
+    ...base,
+    prompt: str(r.prompt) ?? str(input.prompt) ?? "",
+    ok: !finalError,
+    error: finalError,
     text,
     citations,
     links: toCitations(r.links_attached),
     model: str(r.model),
     webSearchTriggered:
       typeof r.web_search_triggered === "boolean" ? r.web_search_triggered : undefined,
-    country: str(r.country),
-    raw: slim(r),
+    // Bright Data bills records it delivered; error records are free
+    costUsd: error ? 0 : BRIGHT_DATA_PRICING.perAnswerUsd,
   };
 }

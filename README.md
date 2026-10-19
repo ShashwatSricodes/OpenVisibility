@@ -42,7 +42,7 @@ cp .env.example .env.local     # add your Bright Data API key
 Try the data layer: run one prompt through ChatGPT, Gemini, AI Mode and AI Overviews (uses 4 of your free answers):
 
 ```bash
-npm run spike:bd -- --prompt "best invoicing software for freelancers" --brand Zoho --country US
+npm run try -- chatgpt,gemini,ai_mode,ai_overviews "best invoicing software for freelancers" --brand Zoho --country US
 ```
 
 Run the web app (landing page at `/`, product at `/dashboard`):
@@ -67,7 +67,7 @@ A Docker image with one-command setup is planned for the first release.
 | `npm run db:migrate` | Apply database migrations |
 | `npm run db:seed` | Add demo data (stop the dev server first when using the embedded database) |
 | `npm run format` | Format with Prettier |
-| `npm run spike:bd` | Run a prompt through the Bright Data engines |
+| `npm run try` | Ask one prompt on one or more engines and print the normalized answer |
 | `npm run spike` | Run a prompt through the official model APIs (needs `AI_GATEWAY_API_KEY`) |
 | `npm run models` | List search-capable models and prices on the Vercel AI Gateway |
 
@@ -77,7 +77,7 @@ A Docker image with one-command setup is planned for the first release.
 app/(marketing)/   landing page and blog
 app/(app)/         the product (dashboard)
 core/              open-source engine: providers, analysis, runs
-core/providers/    Bright Data client and normalization
+core/providers/    provider interface, engine registry, Bright Data adapter
 docs/              provider research and measured results
 scripts/           spikes and fixtures
 ```
