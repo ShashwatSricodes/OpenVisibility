@@ -231,6 +231,8 @@ export const runs = pgTable(
     doneItems: integer("done_items").notNull().default(0),
     startedAt: timestamp("started_at", { withTimezone: true }),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
+    /** why a run failed or finished partly, in words for the run page */
+    note: text("note"),
     createdAt: createdAt(),
   },
   (t) => [
@@ -259,6 +261,8 @@ export const runItems = pgTable(
     error: text("error"),
     /** the provider's job id, e.g. a Bright Data snapshot id */
     externalId: text("external_id"),
+    /** position in that job's batch, so each answer goes back to the right item */
+    batchIndex: integer("batch_index"),
     startedAt: timestamp("started_at", { withTimezone: true }),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
   },

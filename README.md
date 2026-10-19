@@ -66,6 +66,7 @@ A Docker image with one-command setup is planned for the first release.
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript checks |
 | `npm test` | Unit tests (Vitest), no network calls; database tests run on embedded Postgres |
+| `npm run worker` | The run worker as its own process (with `DATABASE_URL`; with the embedded database it runs inside `npm run dev`) |
 | `npm run db:migrate` | Apply database migrations |
 | `npm run db:seed` | Add demo data (stop the dev server first when using the embedded database) |
 | `npm run format` | Format with Prettier |
