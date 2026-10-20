@@ -11,10 +11,27 @@
  * until the audit is run again.
  */
 
-import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, ne, sql } from "drizzle-orm";
 import type { AnyDb } from "@/db/client";
-import { answers, brands, citations, pageAudits, runItems, runs, siteAudits } from "@/db/schema";
+import {
+  answers,
+  brandAliases,
+  brands,
+  citations,
+  pageAudits,
+  runItems,
+  runs,
+  siteAudits,
+} from "@/db/schema";
 import { normalizeUrl } from "../citations";
+import {
+  ANSWER_TYPES,
+  fixesOf,
+  readContent,
+  scoreContent,
+  scoreOf,
+  type ContentFacts,
+} from "./content";
 import { CRAWLERS } from "./crawlers";
 import { safeGet, type Net } from "./fetch";
 import { blockedFor, pageIssues, readPage, type PageCheck } from "./page";
@@ -22,6 +39,8 @@ import { parseRobots, verdictFor, type RobotsFile } from "./robots";
 
 export const MAX_PAGES = 25;
 const MAX_CITED = 10;
+/** pages AI cites from other sites, checked the same way for comparison */
+export const BENCHMARKS = 5;
 
 const sameSite = (host: string, domain: string) => host === domain || host.endsWith(`.${domain}`);
 
@@ -113,6 +132,44 @@ async function citedPages(db: AnyDb, workspaceId: string, domain: string) {
     .slice(0, MAX_CITED);
 }
 
+/**
+ * Pages on other sites that answers cite most for this workspace's prompts
+ * (last 90 days), one per site: the yardstick for the content score.
+ */
+async function benchmarkPages(db: AnyDb, workspaceId: string, now: Date, limit = BENCHMARKS) {
+  const rows = await db
+    .select({ url: citations.url, domain: citations.domain })
+    .from(citations)
+    .innerJoin(answers, eq(citations.answerId, answers.id))
+    .innerJoin(runItems, eq(answers.runItemId, runItems.id))
+    .innerJoin(runs, eq(runItems.runId, runs.id))
+    .where(
+      and(
+        eq(runs.workspaceId, workspaceId),
+        ne(citations.kind, "owned"),
+        gte(answers.createdAt, new Date(now.getTime() - 90 * 86_400_000)),
+      ),
+    )
+    .groupBy(citations.url, citations.domain)
+    .orderBy(desc(sql`count(distinct ${citations.answerId})`), asc(citations.url))
+    .limit(200);
+  const seen = new Set<string>();
+  return rows
+    .filter((r) => !seen.has(r.domain) && !!seen.add(r.domain))
+    .map((r) => r.url)
+    .slice(0, limit);
+}
+
+/** The brand's names, for "is the brand named on the page?" */
+async function brandNamesOf(db: AnyDb, workspaceId: string) {
+  const rows = await db
+    .select({ name: brands.name, alias: brandAliases.alias })
+    .from(brands)
+    .leftJoin(brandAliases, eq(brandAliases.brandId, brands.id))
+    .where(eq(brands.workspaceId, workspaceId));
+  return [...new Set(rows.flatMap((r) => [r.name, r.alias ?? ""]).filter(Boolean))];
+}
+
 /** The pages to check: home first, then cited pages, then the sitemap's, each once. */
 export function pickPages(
   domain: string,
@@ -141,6 +198,7 @@ export async function checkPage(
   robots: RobotsFile,
   domain: string,
   net: Net,
+  brandNames: string[] = [],
 ): Promise<PageCheck> {
   const r = await safeGet(url, net);
   const html = /html|xml/i.test(r.headers?.get("content-type") ?? "text/html");
@@ -153,6 +211,7 @@ export async function checkPage(
   } catch {
     // an unparseable final URL already shows as an error
   }
+  const ok = !!r.status && r.status < 400 && html;
   return {
     url,
     finalUrl: r.finalUrl,
@@ -160,11 +219,9 @@ export async function checkPage(
     error: r.error,
     redirects: r.redirects.length,
     ms: r.ms,
-    facts:
-      r.status && r.status < 400 && html
-        ? readPage(r.body, r.headers?.get("x-robots-tag") ?? null)
-        : null,
+    facts: ok ? readPage(r.body, r.headers?.get("x-robots-tag") ?? null) : null,
     ...blocked,
+    content: ok ? readContent(r.body, brandNames) : null,
   };
 }
 
@@ -223,7 +280,20 @@ export async function auditPending(db: AnyDb, net: Net, { pages = 6, now = new D
               })
             : [];
         const map = await sitemapPages([...listed, `${origin}/sitemap.xml`], queued.domain, net);
-        const picked = pickPages(queued.domain, cited, map.pages);
+        const picked: { url: string; source: string }[] = pickPages(
+          queued.domain,
+          cited,
+          map.pages,
+        );
+        // the comparison pages go with the first owned domain's audit, once per workspace
+        const [brand] = await db
+          .select({ domains: brands.domains })
+          .from(brands)
+          .where(eq(brands.workspaceId, queued.workspaceId))
+          .limit(1);
+        if (brand?.domains[0] === queued.domain)
+          for (const url of await benchmarkPages(db, queued.workspaceId, now))
+            picked.push({ url, source: "benchmark" });
         await db
           .update(siteAudits)
           .set({
@@ -247,9 +317,19 @@ export async function auditPending(db: AnyDb, net: Net, { pages = 6, now = new D
     .where(and(eq(siteAudits.status, "running"), isNull(pageAudits.checkedAt)))
     .orderBy(asc(siteAudits.requestedAt), asc(pageAudits.position))
     .limit(pages);
+  const names = new Map<string, string[]>();
+  for (const { audit } of todo)
+    if (!names.has(audit.workspaceId))
+      names.set(audit.workspaceId, await brandNamesOf(db, audit.workspaceId));
   await Promise.all(
     todo.map(async ({ page, audit }) => {
-      const result = await checkPage(page.url, robotsOf(audit), audit.domain, net);
+      const result = await checkPage(
+        page.url,
+        robotsOf(audit),
+        audit.domain,
+        net,
+        names.get(audit.workspaceId),
+      );
       await db
         .update(pageAudits)
         .set({ result, checkedAt: new Date() })
@@ -279,7 +359,7 @@ export async function auditPending(db: AnyDb, net: Net, { pages = 6, now = new D
 /* ── reading results ──────────────────────────────────────── */
 
 /** The workspace's latest audit, per domain: crawlers, llms.txt, and pages with their issues. */
-export async function getAudit(db: AnyDb, workspaceId: string) {
+export async function getAudit(db: AnyDb, workspaceId: string, now = new Date()) {
   const sites = await db
     .select()
     .from(siteAudits)
@@ -303,20 +383,34 @@ export async function getAudit(db: AnyDb, workspaceId: string) {
       .filter((p) => p.auditId === s.id)
       .map((p) => {
         const check = p.result as PageCheck | null;
+        const checks = check?.content ? scoreContent(check.content, now) : null;
+        const issues = check ? pageIssues(check) : [];
+        // a page empty without JavaScript already says so; don't repeat it as a fix
+        const said = issues.some((i) => i.code === "needs_js" || i.code === "thin");
         return {
           id: p.id,
           url: p.url,
           source: p.source,
           position: p.position,
           check,
-          issues: check ? pageIssues(check) : [],
+          issues,
+          /** 0–100; null when the page couldn't be read */
+          score: checks ? scoreOf(checks) : null,
+          fixes: checks ? fixesOf(checks).filter((f) => !(said && f.id === "text")) : [],
         };
-      })
+      });
+    const problems = (p: (typeof pages)[number]) =>
+      p.issues.filter((i) => i.severity === "problem").length;
+    // your pages: problems first, then the lowest scores
+    const own = pages
+      .filter((p) => p.source !== "benchmark")
       .sort(
         (a, b) =>
-          b.issues.filter((i) => i.severity === "problem").length -
-            a.issues.filter((i) => i.severity === "problem").length || a.position - b.position,
+          problems(b) - problems(a) ||
+          (a.score ?? 101) - (b.score ?? 101) ||
+          a.position - b.position,
       );
+    const cited = pages.filter((p) => p.source === "benchmark" && p.check?.content);
     return {
       id: s.id,
       domain: s.domain,
@@ -329,10 +423,40 @@ export async function getAudit(db: AnyDb, workspaceId: string) {
       llmsTxt: s.llmsTxtStatus !== null && s.llmsTxtStatus >= 200 && s.llmsTxtStatus < 300,
       // what robots.txt says to each crawler about the home page
       crawlers: CRAWLERS.map((c) => ({ ...c, verdict: verdictFor(robots, c.agent, "/") })),
-      checked: pages.filter((p) => p.check).length,
-      pages,
+      checked: own.filter((p) => p.check).length,
+      pages: own,
+      /** your pages next to the pages AI cites from other sites; null without those */
+      comparison: cited.length
+        ? {
+            yours: summarize(own.flatMap((p) => (p.check?.content ? [p.check.content] : []))),
+            cited: summarize(cited.map((p) => p.check!.content!)),
+            citedPages: cited.map((p) => ({ url: p.url, score: p.score })),
+          }
+        : null,
     };
   });
+}
+
+/** What a set of pages has in common: the median length, and the share with each feature. */
+export function summarize(pages: ContentFacts[]) {
+  const words = pages.map((p) => p.words).sort((a, b) => a - b);
+  const mid = Math.floor(words.length / 2);
+  const share = (test: (p: ContentFacts) => boolean) =>
+    pages.length ? pages.filter(test).length / pages.length : 0;
+  return {
+    pages: pages.length,
+    medianWords: !words.length
+      ? 0
+      : words.length % 2
+        ? words[mid]
+        : Math.round((words[mid - 1] + words[mid]) / 2),
+    questionHeadings: share((p) => p.questionHeadings >= 2),
+    listsOrTables: share((p) => p.lists + p.tables > 0),
+    schema: share((p) => p.schema.length > 0),
+    answerSchema: share((p) => p.schema.some((t) => ANSWER_TYPES.includes(t))),
+    dated: share((p) => !!(p.published || p.modified)),
+    author: share((p) => p.author),
+  };
 }
 
 export type SiteAudit = Awaited<ReturnType<typeof getAudit>>[number];

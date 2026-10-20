@@ -134,9 +134,26 @@ function Crawlers({ site }: { site: SiteAudit }) {
   );
 }
 
+function Score({ value }: { value: number | null }) {
+  if (value === null) return null;
+  return (
+    <span
+      title="Content score: how ready the page is to be quoted, out of 100"
+      className={cn(
+        "tabular rounded px-1.5 py-px text-[11px] font-medium",
+        value >= 70
+          ? "bg-[color-mix(in_srgb,var(--good)_14%,transparent)] text-good"
+          : value >= 40
+            ? "bg-[color-mix(in_srgb,var(--series-4)_16%,transparent)] text-[var(--series-4)]"
+            : "bg-[color-mix(in_srgb,var(--bad)_12%,transparent)] text-bad",
+      )}
+    >
+      {value}/100
+    </span>
+  );
+}
+
 function Pages({ site }: { site: SiteAudit }) {
-  const flagged = site.pages.filter((p) => p.issues.some((i) => i.severity !== "note"));
-  const fine = site.pages.filter((p) => p.check && !flagged.includes(p));
   return (
     <section className="flex flex-col gap-2">
       <div>
@@ -144,59 +161,131 @@ function Pages({ site }: { site: SiteAudit }) {
         <p className="text-xs text-fg-subtle">
           Your home page, the pages AI answers already cite, then pages from your sitemap
           {site.sitemapUrl ? "" : " (none found)"}, up to {MAX_PAGES}, fetched the way an AI crawler
-          fetches them: without running JavaScript.
+          fetches them: without running JavaScript. Each gets a content score out of 100: a
+          checklist of what makes a page easy to quote, not a prediction.
         </p>
       </div>
-      {flagged.length > 0 && (
-        <ul className="divide-y divide-line rounded-xl border border-line bg-panel">
-          {flagged.map((p) => (
-            <li key={p.id} className="flex flex-col gap-1 px-4 py-3 text-[13px]">
-              <span className="flex flex-wrap items-center gap-2">
-                <a
-                  href={p.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex min-w-0 items-center gap-1 font-medium hover:underline"
-                >
-                  <span className="truncate">{pathOf(p.url)}</span>
-                  <ExternalLink className="size-3 shrink-0 text-fg-muted" />
-                </a>
-                {p.source === "cited" && (
-                  <span className="rounded bg-pressed px-1.5 py-px text-[11px]">
-                    Cited in answers
-                  </span>
-                )}
-              </span>
-              {p.issues.map((i) => (
-                <span key={i.code} className={cn("text-xs", TONE[i.severity])}>
-                  {i.text}
-                </span>
-              ))}
-            </li>
-          ))}
-        </ul>
-      )}
-      {fine.length > 0 && (
-        <details className="rounded-xl border border-line bg-panel">
-          <summary className="cursor-pointer px-4 py-2.5 text-[13px] text-fg-subtle">
-            {fine.length} {fine.length === 1 ? "page looks" : "pages look"} fine
-          </summary>
-          <ul className="divide-y divide-line border-t border-line">
-            {fine.map((p) => (
-              <li
-                key={p.id}
-                className="flex items-center justify-between gap-3 px-4 py-2 text-[13px]"
+      <ul className="divide-y divide-line rounded-xl border border-line bg-panel">
+        {site.pages.map((p) => (
+          <li key={p.id} className="flex flex-col gap-1 px-4 py-3 text-[13px]">
+            <span className="flex flex-wrap items-center gap-2">
+              <a
+                href={p.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex min-w-0 items-center gap-1 font-medium hover:underline"
               >
                 <span className="truncate">{pathOf(p.url)}</span>
-                <span className="tabular shrink-0 text-xs text-fg-subtle">
-                  {p.check?.facts?.words.toLocaleString("en-US")} words ·{" "}
-                  {((p.check?.ms ?? 0) / 1000).toFixed(1)}s
+                <ExternalLink className="size-3 shrink-0 text-fg-muted" />
+              </a>
+              <Score value={p.score} />
+              {p.source === "cited" && (
+                <span className="rounded bg-pressed px-1.5 py-px text-[11px]">
+                  Cited in answers
                 </span>
-              </li>
+              )}
+            </span>
+            {p.issues.map((i) => (
+              <span key={i.code} className={cn("text-xs", TONE[i.severity])}>
+                {i.text}
+              </span>
             ))}
-          </ul>
-        </details>
-      )}
+            {p.check && !p.check.content && !p.issues.length && (
+              <span className="text-xs text-fg-subtle">
+                Run the audit again to score this page.
+              </span>
+            )}
+            {p.fixes.length > 0 && (
+              <ul className="ml-4 list-disc text-xs text-fg-default marker:text-fg-muted">
+                {p.fixes.slice(0, 3).map((f) => (
+                  <li key={f.id}>{f.fix}</li>
+                ))}
+              </ul>
+            )}
+            {p.fixes.length > 3 && (
+              <details className="text-xs">
+                <summary className="cursor-pointer text-fg-subtle">
+                  {p.fixes.length - 3} more {p.fixes.length - 3 === 1 ? "fix" : "fixes"}
+                </summary>
+                <ul className="ml-4 mt-1 list-disc text-fg-default marker:text-fg-muted">
+                  {p.fixes.slice(3).map((f) => (
+                    <li key={f.id}>{f.fix}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+const pct = (v: number) => `${Math.round(v * 100)}%`;
+
+/** Your pages next to the pages AI cites for your prompts, on the same checks. */
+function Comparison({ c }: { c: NonNullable<SiteAudit["comparison"]> }) {
+  const rows: [string, string, string][] = [
+    [
+      "Words (median)",
+      c.yours.medianWords.toLocaleString("en-US"),
+      c.cited.medianWords.toLocaleString("en-US"),
+    ],
+    ["Question headings", pct(c.yours.questionHeadings), pct(c.cited.questionHeadings)],
+    ["Lists or tables", pct(c.yours.listsOrTables), pct(c.cited.listsOrTables)],
+    ["Structured data", pct(c.yours.schema), pct(c.cited.schema)],
+    ["FAQ, how-to or review markup", pct(c.yours.answerSchema), pct(c.cited.answerSchema)],
+    ["A date", pct(c.yours.dated), pct(c.cited.dated)],
+    ["An author", pct(c.yours.author), pct(c.cited.author)],
+  ];
+  return (
+    <section className="flex flex-col gap-2">
+      <div>
+        <h2 className="text-sm font-semibold">Compared with the pages AI cites</h2>
+        <p className="text-xs text-fg-subtle">
+          The {c.cited.pages} pages from other sites that answers cite most for your prompts,
+          checked the same way. Where they have something your pages don&rsquo;t, that&rsquo;s the
+          gap to close.
+        </p>
+      </div>
+      <div className="overflow-x-auto rounded-xl border border-line bg-panel">
+        <table className="w-full min-w-[420px] text-left text-[13px]">
+          <thead className="border-b border-line bg-hover text-xs text-fg-subtle">
+            <tr>
+              <th className="px-4 py-2 font-medium" />
+              <th className="px-3 py-2 text-right font-medium">Your pages ({c.yours.pages})</th>
+              <th className="px-4 py-2 text-right font-medium">Pages AI cites ({c.cited.pages})</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {rows.map(([label, yours, cited]) => (
+              <tr key={label}>
+                <td className="px-4 py-2">{label}</td>
+                <td className="tabular px-3 py-2 text-right">{yours}</td>
+                <td className="tabular px-4 py-2 text-right">{cited}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-fg-subtle">
+        Compared with:{" "}
+        {c.citedPages.map((p, i) => (
+          <span key={p.url}>
+            {i > 0 && ", "}
+            <a href={p.url} target="_blank" rel="noreferrer" className="hover:underline">
+              {(() => {
+                try {
+                  return new URL(p.url).hostname.replace(/^www\./, "");
+                } catch {
+                  return p.url;
+                }
+              })()}
+            </a>
+          </span>
+        ))}
+        .
+      </p>
     </section>
   );
 }
@@ -214,7 +303,7 @@ export default async function AuditPage() {
         <EmptyState
           icon={<ScanSearch />}
           title="Check whether AI can read your site"
-          description="The audit reads your robots.txt the way each AI crawler does, then fetches your home page, the pages answers cite, and pages from your sitemap without running JavaScript, as most AI crawlers do. It flags anything that keeps a page out of answers."
+          description="The audit reads your robots.txt the way each AI crawler does, then fetches your home page, the pages answers cite, and pages from your sitemap without running JavaScript, as most AI crawlers do. It flags anything that keeps a page out of answers, and scores how ready each page is to be quoted."
         >
           {owner && <RunAuditButton />}
         </EmptyState>
@@ -251,6 +340,7 @@ export default async function AuditPage() {
               <Summary site={site} />
               <Crawlers site={site} />
               <Pages site={site} />
+              {site.comparison && <Comparison c={site.comparison} />}
               <p className="text-xs text-fg-subtle">
                 {site.llmsTxt
                   ? "You have an llms.txt file."
