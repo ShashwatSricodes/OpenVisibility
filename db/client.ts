@@ -36,6 +36,46 @@ function usesEmbedded() {
   return true;
 }
 
+const LOCK_FILE = `${EMBEDDED_DIR}.lock`;
+
+function alive(pid: number) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    // the process exists but belongs to someone else
+    return (err as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+/**
+ * PGlite is one process's database: a second process opening the same folder
+ * (a script while `npm run dev` runs) can damage it beyond repair. The first
+ * process writes its pid to a lock file; others refuse while it's alive. A
+ * lock left by a process that has died is taken over.
+ */
+function claimEmbedded(fs: typeof import("node:fs")) {
+  let holder = 0;
+  try {
+    holder = Number(fs.readFileSync(LOCK_FILE, "utf8").trim());
+  } catch {
+    // no lock yet
+  }
+  if (holder && holder !== process.pid && alive(holder))
+    throw new Error(
+      `The embedded database in ${EMBEDDED_DIR} is in use by another process (pid ${holder}), probably \`npm run dev\`. Only one process can open it at a time: stop that process first, or set DATABASE_URL to use your own Postgres.`,
+    );
+  fs.writeFileSync(LOCK_FILE, String(process.pid));
+  process.once("exit", () => {
+    try {
+      if (Number(fs.readFileSync(LOCK_FILE, "utf8").trim()) === process.pid)
+        fs.unlinkSync(LOCK_FILE);
+    } catch {
+      // already gone
+    }
+  });
+}
+
 export function getDb(): AnyDb {
   if (!globalForDb.__ovDb) {
     if (usesEmbedded()) {
@@ -44,9 +84,11 @@ export function getDb(): AnyDb {
       const { PGlite } = require("@electric-sql/pglite") as typeof import("@electric-sql/pglite");
       const { drizzle } = require("drizzle-orm/pglite") as typeof import("drizzle-orm/pglite");
       /* eslint-enable @typescript-eslint/no-require-imports */
-      // PGlite creates its own folder but not missing parents
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      (require("node:fs") as typeof import("node:fs")).mkdirSync(EMBEDDED_DIR, { recursive: true });
+      const fs = require("node:fs") as typeof import("node:fs");
+      // PGlite creates its own folder but not missing parents
+      fs.mkdirSync(EMBEDDED_DIR, { recursive: true });
+      claimEmbedded(fs);
       globalForDb.__ovDb = drizzle(new PGlite(EMBEDDED_DIR), { schema });
     } else {
       const client = postgres(env().DATABASE_URL!, { max: 10 });

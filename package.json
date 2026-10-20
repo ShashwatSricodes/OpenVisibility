@@ -15,6 +15,8 @@
     "models": "tsx scripts/models.ts",
     "spike": "tsx --env-file-if-exists=.env.local scripts/spike.ts",
     "try": "tsx --env-file-if-exists=.env.local scripts/try.ts",
+    "spot-check": "tsx --env-file-if-exists=.env.local scripts/spot-check.ts",
+    "reanalyze": "tsx --env-file-if-exists=.env.local scripts/reanalyze.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env.local db/migrate.ts",
     "db:studio": "drizzle-kit studio",

@@ -68,11 +68,15 @@ A Docker image with one-command setup is planned for the first release.
 | `npm test` | Unit tests (Vitest), no network calls; database tests run on embedded Postgres |
 | `npm run worker` | The run worker as its own process (with `DATABASE_URL`; with the embedded database it runs inside `npm run dev`) |
 | `npm run db:migrate` | Apply database migrations |
-| `npm run db:seed` | Add demo data (stop the dev server first when using the embedded database) |
+| `npm run db:seed` | Add demo data |
 | `npm run format` | Format with Prettier |
 | `npm run try` | Ask one prompt on one or more engines and print the normalized answer; `--workspace "<name>" --dry-run` shows what a workspace's run would ask |
 | `npm run spike` | Run a prompt through the official model APIs (needs `AI_GATEWAY_API_KEY`) |
+| `npm run spot-check` | Print random stored answers next to the mentions found in them, for a manual accuracy check; `--fixtures` uses the saved real answers |
+| `npm run reanalyze` | Find mentions and label citations again in stored answers (after detector fixes), then rebuild the metrics |
 | `npm run models` | List search-capable models and prices on the Vercel AI Gateway |
+
+With the embedded database, only one process can open it at a time: stop `npm run dev` before `db:seed`, `spot-check` or `reanalyze`. They refuse to start while it's running.
 
 ## Project layout
 

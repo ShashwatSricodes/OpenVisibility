@@ -15,9 +15,14 @@
  * - Overlaps: the longest match wins, so "Zoho Invoice" isn't also "Zoho"
  *   when both are tracked.
  * - Position: when the answer lists brands (numbered or bulleted), brands
- *   are ranked by the first list item naming them; brands named only outside
- *   the list come after, in order of first appearance. Without a list, by
- *   order of first appearance. Only tracked brands are ranked.
+ *   are ranked by the first list item that opens with them (its first
+ *   HEADLINE characters), so "1. Zoho Invoice …" ranks Zoho first but a
+ *   passing "Stripe or PayPal" inside item 2 doesn't rank them second. Lists
+ *   are found on their own lines (markdown) or inline, as numbers counting up
+ *   from 1, because some providers return answers without line breaks.
+ *   Brands not opening any item come after, in order of first appearance;
+ *   without a list, it's all order of first appearance. Only tracked brands
+ *   are ranked.
  */
 
 export type Entity = {
@@ -40,7 +45,53 @@ export type Mention = {
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const URL_RE = /\bhttps?:\/\/[^\s<>()[\]"'`]+/giu;
-const LIST_ITEM = /^[ \t]*(?:#{1,6}[ \t]+)?(?:\*\*)?(?:\d{1,3}[.)]|[-*•+])[ \t]+/;
+const LIST_ITEM = /^[ \t]*(?:#{1,6}[ \t]+)?(?:\*\*)?(?:\d{1,3}[.)]|[-*•+])[ \t]+/gm;
+/** "1. Zoho", "2) **FreshBooks**": a number, then something that starts like a name */
+const INLINE_NUMBER = /(?<![\p{L}\p{N}$.,/])(\d{1,2})[.)][ \t]+(?=[\p{Lu}*#"“'‘[])/gu;
+/** how much of a list item counts as its opening */
+export const HEADLINE = 80;
+
+type Item = { start: number; end: number };
+
+/**
+ * List items in reading order, each as the span of its opening words:
+ * markdown items on their own lines, and inline numbered items (1, 2, 3…
+ * counting up; a run of at least two).
+ */
+export function listItems(text: string): Item[] {
+  const items: Item[] = [];
+  for (const m of text.matchAll(LIST_ITEM)) {
+    const start = m.index + m[0].length;
+    const lineEnd = text.indexOf("\n", start);
+    items.push({ start, end: Math.min(start + HEADLINE, lineEnd < 0 ? text.length : lineEnd) });
+  }
+
+  let run: { start: number; marker: number }[] = [];
+  const close = () => {
+    if (run.length >= 2)
+      run.forEach((it, i) =>
+        items.push({
+          start: it.start,
+          end: Math.min(it.start + HEADLINE, run[i + 1]?.marker ?? text.length),
+        }),
+      );
+    run = [];
+  };
+  for (const m of text.matchAll(INLINE_NUMBER)) {
+    const n = Number(m[1]);
+    const item = { start: m.index + m[0].length, marker: m.index };
+    if (n === run.length + 1) run.push(item);
+    else if (n === 1) {
+      close();
+      run.push(item);
+    }
+  }
+  close();
+
+  // an item found both ways counts once
+  items.sort((a, b) => a.start - b.start);
+  return items.filter((it, i) => i === 0 || it.start >= items[i - 1].end);
+}
 
 /**
  * Single plain words must be capitalised; everything else matches in any
@@ -132,29 +183,19 @@ export function detectMentions(text: string, entities: Entity[]): Mention[] {
   hits = kept;
   if (!hits.length) return [];
 
-  // 4. list items: the line each hit is on, if that line is one
-  const lineStarts = [0];
-  for (let i = 0; i < text.length; i++) if (text[i] === "\n") lineStarts.push(i + 1);
-  const lineOf = (pos: number) => {
-    let lo = 0;
-    let hi = lineStarts.length - 1;
-    while (lo < hi) {
-      const mid = (lo + hi + 1) >> 1;
-      if (lineStarts[mid] <= pos) lo = mid;
-      else hi = mid - 1;
-    }
-    return lo;
+  // 4. list items: the first item each brand opens, if any
+  const items = listItems(text);
+  const itemOf = (pos: number) => {
+    const i = items.findIndex((it) => pos >= it.start && pos < it.end);
+    return i < 0 ? null : i;
   };
-  const lines = text.split("\n");
-  const isItem = lines.map((l) => LIST_ITEM.test(l));
-
   const first = new Map<number, { hit: Hit; listLine: number | null }>();
   for (const h of hits) {
-    const line = lineOf(h.start);
-    const listLine = isItem[line] ? line : null;
+    const listLine = itemOf(h.start);
     const seen = first.get(h.entity);
     if (!seen) first.set(h.entity, { hit: h, listLine });
-    else if (seen.listLine === null && listLine !== null) seen.listLine = listLine;
+    else if (listLine !== null && (seen.listLine === null || listLine < seen.listLine))
+      seen.listLine = listLine;
   }
 
   const ranked = [...first.entries()].sort(([, a], [, b]) => {

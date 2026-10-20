@@ -335,11 +335,13 @@ Built and tested; **switched off until a model key is chosen** (20 October 2026:
 
 ### Day 25: Accuracy check
 
-- [ ] Write a script that prints 20 random answers next to their detected mentions, for a manual check.
-- [ ] Fix whatever it turns up, and add each fix as a test case.
-- [ ] Re-run analysis over stored answers (`npm run reanalyze`), so parser fixes apply to history.
+- [x] `npm run spot-check` prints random stored answers (each text once) with detected mentions marked «like this», the ranked brands with their sentences, every other place a tracked name appears ("not counted"), and where stored mentions differ from what the detector finds now. `--fixtures` runs the saved real answers in `scripts/fixtures`.
+- [x] Found and fixed: Bright Data returns answers without line breaks, so lists are inline ("… 1. Zoho Invoice … 2. FreshBooks …") and positions fell back to order of first appearance. Lists are now also found inline (numbers counting up from 1), and a brand ranks by the list item it *opens* (first 80 characters), so a passing "Stripe or PayPal" inside an item doesn't take that rank. Tests: inline lists, passing mentions, a later numbered list of questions, and the four real fixture answers with hand-checked rankings.
+- [x] `npm run reanalyze` re-detects mentions and re-labels citations in stored answers, then rebuilds the metrics.
+- [x] Safety: the embedded database now has a lock file, so a script (or a second dev server) refuses to open it while `npm run dev` has it, instead of risking the damage it suffered once during development (19 October).
+- Noted, not changed: an answer to "alternatives to Wave" names Wave as its subject, which counts as a mention ranked first. That's how tracking tools generally count it; the sentiment model (Day 22) and recommendation flag will separate "named" from "recommended".
 
-**Done when:** spot checks show no missed or phantom mentions.
+**Done when:** spot checks show no missed or phantom mentions. ✅ 20 October 2026: the four real fixture answers (ChatGPT, Gemini, AI Mode, AI Overviews) and 40 stored answers, including the three real ChatGPT answers, show no misses or phantoms; all 579 stored answers were re-analyzed.
 
 ### Day 26: Buffer day
 
