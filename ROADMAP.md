@@ -321,6 +321,9 @@ These features are what make the product cheap to run, so build them early.
   - **Share of voice:** brand mentions ÷ all tracked-brand mentions
   - **Owned citation share:** owned citations ÷ all citations
   - **Sentiment:** mean sentiment across mentions
+  - **Net Sentiment Score** (Otterly parity): % positive − % negative mentions, −100 to +100
+  - **Brand Visibility Index** (Otterly parity): one 0–100 score combining mention rate, position and share of voice, comparable over time and against competitors
+  - **Coverage:** prompts where the brand appears at least once ÷ prompts tracked
 - [ ] Build a daily rollup table (workspace × day × engine × country × prompt) that the worker refreshes after each run.
 - [ ] Write query helpers for the dashboard that read from the rollup, not from raw answers.
 
@@ -347,6 +350,7 @@ Catch up on anything that slipped. If you're on track, write tests for the run p
 - [ ] KPI tiles: mention rate, average position, share of voice, owned citation share and sentiment, each with the change from the previous period.
 - [ ] Trend chart: mention rate over time, one line per engine.
 - [ ] A "where you're missing" list: prompts with the lowest mention rate.
+- [ ] Annotations on the trend chart (Otterly parity): mark a date with what you changed ("published comparison page"), so moves in the line have a reason next to them.
 
 **Done when:** the overview tells you in five seconds whether things are improving.
 
@@ -360,11 +364,14 @@ Catch up on anything that slipped. If you're on track, write tests for the run p
 - [ ] List of answers filterable by engine, prompt, country, run, and mentioned or not.
 - [ ] Detail view: full answer text with brand and competitor mentions highlighted, citations tagged owned or third-party, and metadata (model, preset, sample number, country, cost).
 - [ ] **Query fan-out** (Otterly parity): show the web searches the engine ran for the answer. Bright Data returns ChatGPT's as `web_search_query`.
-- [ ] **ChatGPT ads** (Otterly parity): show the ads shown alongside the answer (Bright Data's `ads` field), and count them per brand.
+- [ ] **ChatGPT ads and shopping cards** (Otterly parity): show ads and product cards shown with the answer (Bright Data's `ads` and `shopping` fields), and count them per brand.
+- [ ] **Google AI Overviews ads** (Otterly parity): the Google results scraper returns the ads on the page; show whose ads appear next to the overview.
 
 **Done when:** you can find and read any answer from any run.
 
 ### Day 30: Citations page
+
+- [ ] (Otterly parity) Track each cited URL's position over time, so you see a page rising or falling in the sources list.
 
 - [ ] Top domains with their kind, citation count and the engines that cite them.
 - [ ] Owned vs third-party split, per engine.
@@ -380,6 +387,7 @@ Catch up on anything that slipped. If you're on track, write tests for the run p
 
 - [ ] Keep the date range, engine and country filters in the URL, so views can be shared and bookmarked.
 - [ ] CSV export for answers, mentions, citations and the metrics rollup. Stream it so large exports don't time out.
+- [ ] PDF report of the Overview, Competitors and Citations pages for clients or a board (Otterly parity).
 
 **Done when:** every page respects the filters, and exports open cleanly in Excel or Sheets.
 
@@ -391,7 +399,7 @@ Catch up on anything that slipped. If you're on track, write tests for the run p
 
 ---
 
-## Phase 5b: Parity with Otterly (Days P1–P6)
+## Phase 5b: Parity with Otterly (Days P1–P9)
 
 Otterly.ai is the closest affordable competitor ($29–$489 a month; checked 19 October 2026). Its core features, mapped onto this plan, are in the [parity table](#otterly-parity) below. These days cover what the plan was missing.
 
@@ -416,7 +424,10 @@ Otterly.ai is the closest affordable competitor ($29–$489 a month; checked 19 
 
 **Done when:** every owned page cited or not cited has a score and a list of fixes.
 
-### Day P4: Recommendations
+### Day P4: Recommendations and content gaps
+
+- [ ] **Content gap analysis** (Otterly parity): prompts where an engine names competitors but not you, ranked, per engine, with the competitors named and the sources cited for them (often third-party pages to get onto, not pages to write).
+- [ ] **Content briefs**: for a gap, a short brief of what a page needs to be cited (topics the cited pages cover, structure, sources to earn), written by a model when a key is set.
 
 - [ ] Weekly, from your own data: prompts where competitors appear and you don't, domains cited for competitors but not for you (outreach targets), owned pages failing the audit, engines where you're slipping.
 - [ ] Shown on the Overview and in the weekly email.
@@ -427,6 +438,7 @@ Otterly.ai is the closest affordable competitor ($29–$489 a month; checked 19 
 
 - [ ] Invite members by email (owner or member); remove them.
 - [ ] Several brands per workspace (agencies): a brand switcher, with prompts, competitors and results kept per brand.
+- [ ] Several workspaces per user (Otterly parity: one per client, each with its own members, reports, prompts and audits), with a workspace switcher; "pitch" workspaces for prospects.
 
 **Done when:** a second user joins by invite, and an agency workspace tracks two brands separately.
 
@@ -436,6 +448,30 @@ Otterly.ai is the closest affordable competitor ($29–$489 a month; checked 19 
 - [ ] Looker Studio through the API (or a Google Sheets export), and an MCP server over the same endpoints.
 
 **Done when:** a script with an API key pulls last week's metrics, and a Looker Studio report shows them.
+
+---
+
+### Day P7: Agent analytics and AI referral traffic
+
+- [ ] **Agent analytics** (Otterly parity): which AI crawlers and agents (GPTBot, OAI-SearchBot, ChatGPT-User, PerplexityBot, ClaudeBot, Google-Extended, Bingbot for Copilot) fetch which pages, how often, and which pages they never fetch. Collected by a small endpoint fed from Cloudflare/Vercel log drains or an uploaded server log; nothing to install on the page itself.
+- [ ] **AI referral traffic**: human visits arriving from chatgpt.com, perplexity.ai, gemini.google.com, copilot.microsoft.com and others, from the same logs or a GA4 connection.
+
+**Done when:** an uploaded access log shows bot visits per page and AI-referred visits per day.
+
+### Day P8: Free public tools
+
+Otterly's free tools are also its marketing. Ours, at `/tools`, need no account:
+
+- [ ] AI crawlability check (from Day P2), content check for a URL (from Day P3), query fan-out for a prompt (ChatGPT's searches, via one Bright Data answer, rate-limited), prompt calculator (how many prompts give a reliable rate), and brand entity check (does AI know your brand: Wikipedia/Wikidata, schema.org Organization, knowledge panel signals).
+
+**Done when:** each tool works logged out and links to sign-up.
+
+### Day P9: Integrations
+
+- [ ] Looker Studio community connector over the Day P6 API (Otterly calls it the Data Studio connector).
+- [ ] Slack and webhook notifications for alerts (Day P1).
+
+**Done when:** a Looker Studio report and a Slack channel both show last week's numbers.
 
 ---
 
@@ -580,7 +616,7 @@ Everything in this phase lives in `ee/`.
 | 3. Tracking engine | 15–20 | Queued, scheduled, budget-capped runs |
 | 4. Analysis | 21–26 | Mentions, sentiment, citations, metrics |
 | 5. Dashboard | 27–33 | Every version 1 insight, plus CSV export |
-| 5b. Otterly parity | P1–P6 | Alerts, GEO audit, recommendations, teams, API |
+| 5b. Otterly parity | P1–P9 | Alerts, GEO audit, recommendations and gaps, teams and workspaces, API and MCP, agent analytics, free tools, integrations |
 | 6. Open-source release | 34–37 | Docker, docs, CI, open core boundary |
 | 7. Hosted billing | 38–44 | Wallet, Stripe, Razorpay, enforcement |
 | 8. Launch | 45–50 | Production, beta, public release |
@@ -595,30 +631,47 @@ Everything in this phase lives in `ee/`.
 
 ## Otterly parity
 
-Otterly's core features (from otterly.ai and its pricing page, 19 October 2026) and where each lives in this plan.
+Every Otterly feature found on otterly.ai (feature pages, sitemap, pricing; 20 October 2026) and where it lives here. ✅ done · 📅 planned · ⏸ deferred · ✗ not planned.
 
 | Otterly feature | Here |
 | --- | --- |
-| ChatGPT, AI Overviews, Perplexity, Copilot; add-ons AI Mode, Gemini, Claude | ChatGPT, Gemini, AI Mode, AI Overviews done. Perplexity, Copilot, Claude deferred (decision log) |
-| Daily tracking | Day 18 |
-| Brand visibility: mentions, coverage, average position | Days 21, 24 |
-| Share of voice | Day 24 |
-| Sentiment | Day 22 |
-| Citation and link analysis, domain ranking | Days 23, 30 |
-| Competitor benchmarking | Day 31 |
-| Prompt research | Day 13 |
-| Prompt tags (branded, non-branded, funnel stage) and filters | Day 13 (auto-tagging), Day 32 |
-| Query fan-out | Day 29 |
-| Multi-country, multi-language | Day 8 (countries); prompts in any language |
-| Date ranges, engine and country filters | Day 32 |
-| Reports and export | Day 32 |
-| Alerts | Day P1 |
-| GEO audit (crawlability, content) | Days P2, P3 |
-| Weekly recommendations | Day P4 |
-| Team members, several brands | Day P5 |
-| API, MCP, Looker Studio connector | Day P6 |
-| ChatGPT ads tracking | Day 29 |
-| Agent analytics (AI bot visits), AI referral traffic | Version 2 (needs server logs or GA4) |
+| **Engines:** ChatGPT, AI Overviews, Perplexity, Copilot (core); AI Mode, Gemini, Claude (paid add-ons) | ✅ ChatGPT, Gemini, AI Mode, AI Overviews (no add-on fees). ⏸ Perplexity, Copilot, Claude |
+| 65+ countries and languages | ✅ 20 countries (Day 8); more is a one-line change. Prompts in any language |
+| Daily tracking | 📅 Day 18 |
+| Prompt tracking with tags (branded, non-branded, funnel) and filters | ✅ Day 13; 📅 filters on results, Day 32 |
+| Prompt research (from keywords, brand or URL) | ✅ Day 13 (from brand, category, competitors) |
+| Prompt calculator (how many prompts you need) | 📅 Day P8 |
+| Query fan-out | 📅 Day 29 (in answers), Day P8 (free tool) |
+| Brand mentions, coverage, average position | 📅 Days 21, 24 |
+| Brand Visibility Index | 📅 Day 24 |
+| Share of voice | 📅 Day 24 |
+| Sentiment, Net Sentiment Score | 📅 Days 22, 24 |
+| Citation tracking: domains, URLs, link position over time | 📅 Days 23, 30 |
+| Domain ranking | 📅 Day 30 |
+| Competitor benchmarking (top 5, all) | 📅 Day 31 |
+| Content gap analysis | 📅 Day P4 |
+| Recommendations (weekly) | 📅 Day P4 |
+| Content briefs | 📅 Day P4 |
+| GEO audit: crawlability checker | 📅 Day P2 |
+| GEO audit: content audit, citation prediction | 📅 Day P3 |
+| ChatGPT ads and shopping cards | 📅 Day 29 |
+| Google AI Overviews ads | 📅 Day 29 |
+| Agent analytics (AI crawler visits) | 📅 Day P7 |
+| AI referral traffic | 📅 Day P7 |
+| Brand reports, trend annotations | 📅 Days 27, 31 |
+| Exports: CSV, PDF | 📅 Day 32 |
+| Alerts | 📅 Day P1 (email), Day P9 (Slack, webhooks) |
+| Looker Studio (Data Studio) connector | 📅 Day P9 |
+| Public API | 📅 Day P6 |
+| MCP server | 📅 Day P6 |
+| Unlimited team members, brands, competitors | ✅ competitors; 📅 members and brands, Day P5 |
+| Workspaces per client, pitch workspaces | 📅 Day P5 |
+| Free tools: crawlability, content check, query fan-out, crawler simulation, brand authority | 📅 Day P8 |
+| Industry benchmarks (by vertical and country) | ✗ for now: needs data across many customers; possible later on the hosted version |
+| AI agent marketplace (Claude skills, n8n templates on the API) | ✗ for now: falls out of the API and MCP once they exist |
+| Semrush App Center app | ✗ not planned |
+| SSO, enterprise terms | ✗ not planned for version 1 |
+| GEO guide, email course, GEO chatbot | ✗ marketing content, not product |
 
 ## Decision log
 
@@ -637,6 +690,7 @@ Record decisions here as you make them, with the date and the reason.
 | 2026-10-19 | Target feature parity with Otterly.ai for version 1: alerts, GEO audit, recommendations, teams and several brands, API, query fan-out and ChatGPT ads join the plan (Phase 5b and Day 29). Agent analytics and referral traffic stay in version 2. | Decided |
 | 2026-10-19 | Prompt suggestions: built from templates by default (free, offline); an AI model writes them when a key is set. | Decided |
 | 2026-10-19 | Queue: no pg-boss. The `run_items` table is the queue, worked by a loop that submits one Bright Data batch per run and engine, checks it, and stores answers; every step is saved, so restarts resume without paying twice. It runs inside the dev server on the embedded database and as `npm run worker` with a real Postgres. Bright Data is batch-shaped (one job per item would be wrong), and pg-boss needs a real Postgres connection. | Decided |
+| 2026-10-20 | Full Otterly parity list (every feature page): adds Brand Visibility Index, Net Sentiment Score, trend annotations, link position over time, PDF export, AI Overviews ads and shopping cards, content gaps and briefs, workspaces per client, agent analytics and AI referral traffic (moved from version 2), free public tools and integrations (Days P7–P9). Industry benchmarks, a marketplace, a Semrush app and SSO are left out. | Decided |
 | | Data source for the hosted version: Bright Data Scale ($1.30 per 1,000) or DataForSEO ($1.20 per 1,000, also covers Claude and AI Overviews) | Decide before Day 38 |
 | | Google AI Overviews: version 2 through a SERP API, or skip | Deferred (Bright Data's AI Mode scraper may cover part of it) |
 | | Web hosting: Vercel or VPS | Decide on Day 45 |
