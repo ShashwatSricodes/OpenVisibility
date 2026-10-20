@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import * as Menu from "@radix-ui/react-dropdown-menu";
-import { Calendar, Check, ChevronDown, ListFilter, StickyNote, X } from "lucide-react";
+import { StickyNote, X } from "lucide-react";
 import {
   CartesianGrid,
   Line,
@@ -15,8 +13,7 @@ import {
   YAxis,
   type TooltipContentProps,
 } from "recharts";
-import { countryName } from "@/core/countries";
-import type { Kpi, KpiId, RangeId } from "@/core/overview";
+import type { Kpi, KpiId } from "@/core/overview";
 import { ENGINE_COLOR, KPI, change, type KpiInfo } from "../_lib/kpi";
 import type { EngineId } from "@/core/providers/types";
 import { addNoteAction, deleteNoteAction } from "../(workspace)/dashboard/actions";
@@ -29,116 +26,6 @@ const longDate = (iso: string) =>
     day: "numeric",
     timeZone: "UTC",
   });
-
-/* ── filters, kept in the URL so a view can be shared ─────── */
-
-const triggerClass =
-  "flex h-8 items-center gap-1.5 rounded-lg border border-line bg-panel px-2.5 text-[13px] text-fg outline-none transition-colors hover:bg-hover focus-visible:ring-2 focus-visible:ring-line-strong data-[state=open]:bg-hover";
-const contentClass =
-  "z-50 min-w-48 rounded-lg border border-line bg-panel p-1 text-[13px] text-fg shadow-[0_8px_24px_rgb(0_0_0/0.08)]";
-const itemClass =
-  "flex h-7 cursor-default items-center justify-between gap-6 rounded-md px-2 outline-none data-[highlighted]:bg-hover";
-
-function useParam() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const params = useSearchParams();
-  return (key: string, value: string | null) => {
-    const next = new URLSearchParams(params.toString());
-    if (value) next.set(key, value);
-    else next.delete(key);
-    router.push(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false });
-  };
-}
-
-export function OverviewFilters({
-  engines,
-  countries,
-  engine,
-  country,
-  range,
-  ranges,
-}: {
-  engines: { id: EngineId; name: string }[];
-  countries: string[];
-  engine?: EngineId;
-  country?: string;
-  range: RangeId;
-  ranges: { id: RangeId; label: string }[];
-}) {
-  const set = useParam();
-  const active = (engine ? 1 : 0) + (country ? 1 : 0);
-  return (
-    <>
-      <Menu.Root>
-        <Menu.Trigger className={triggerClass}>
-          <ListFilter className="size-3.5" />
-          Filter
-          {active > 0 && (
-            <span className="tabular rounded bg-fg px-1.5 text-[11px] font-medium text-panel">
-              {active}
-            </span>
-          )}
-          <ChevronDown className="size-4 text-fg-muted" />
-        </Menu.Trigger>
-        <Menu.Portal>
-          <Menu.Content align="end" sideOffset={6} className={contentClass}>
-            <Menu.Label className="px-2 pb-1 pt-1.5 text-xs text-fg-muted">Engine</Menu.Label>
-            {[{ id: "", name: "All engines" }, ...engines].map((e) => (
-              <Menu.Item
-                key={e.id || "all"}
-                onSelect={() => set("engine", e.id || null)}
-                className={itemClass}
-              >
-                {e.name}
-                {(engine ?? "") === e.id && <Check className="size-4" strokeWidth={2.25} />}
-              </Menu.Item>
-            ))}
-            {countries.length > 1 && (
-              <>
-                <Menu.Separator className="my-1 h-px bg-line" />
-                <Menu.Label className="px-2 pb-1 pt-1.5 text-xs text-fg-muted">Country</Menu.Label>
-                {["", ...countries].map((c) => (
-                  <Menu.Item
-                    key={c || "all"}
-                    onSelect={() => set("country", c || null)}
-                    className={itemClass}
-                  >
-                    {c ? countryName(c) : "All countries"}
-                    {(country ?? "") === c && <Check className="size-4" strokeWidth={2.25} />}
-                  </Menu.Item>
-                ))}
-              </>
-            )}
-          </Menu.Content>
-        </Menu.Portal>
-      </Menu.Root>
-      <Menu.Root>
-        <Menu.Trigger className={cn(triggerClass, "min-w-36 justify-between")}>
-          <span className="flex items-center gap-2">
-            <Calendar className="size-3.5" />
-            {ranges.find((r) => r.id === range)?.label}
-          </span>
-          <ChevronDown className="size-4 text-fg-muted" />
-        </Menu.Trigger>
-        <Menu.Portal>
-          <Menu.Content align="end" sideOffset={6} className={contentClass}>
-            {ranges.map((r) => (
-              <Menu.Item
-                key={r.id}
-                onSelect={() => set("range", r.id === "30d" ? null : r.id)}
-                className={itemClass}
-              >
-                {r.label}
-                {range === r.id && <Check className="size-4" strokeWidth={2.25} />}
-              </Menu.Item>
-            ))}
-          </Menu.Content>
-        </Menu.Portal>
-      </Menu.Root>
-    </>
-  );
-}
 
 /* ── KPI tabs and the trend chart ─────────────────────────── */
 

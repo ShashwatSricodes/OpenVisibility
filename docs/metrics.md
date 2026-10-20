@@ -77,3 +77,13 @@ The dashboard reads from `metrics_daily`, not from answers. It holds counters,
 not ratios, for every workspace × day × engine × country × prompt × tracked
 brand, so any selection is a sum. The worker rebuilds a day's rows when a run
 from that day finishes, and again when its answers are re-analyzed or rated.
+
+## Exporting
+
+Export → "Daily metrics (CSV)" downloads these rows as stored, one per day ×
+engine × country × prompt × brand, with the metrics above worked out per row
+and the raw counters beside them. To combine rows, add up the counters and
+divide again (mention rate = samples naming the brand ÷ samples); averaging
+the per-row rates gives the wrong answer when rows have different sample
+counts. Samples skipped by smart sampling count in the metrics but have no
+answer, so the answers export can have fewer rows than the samples add up to.

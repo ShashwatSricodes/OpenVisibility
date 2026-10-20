@@ -4,12 +4,12 @@ import { Swords } from "lucide-react";
 import type { ReactNode } from "react";
 import { requireWorkspace } from "@/core/auth/session";
 import { competitorView } from "@/core/competitor-results";
-import { RANGES, isRange, type RangeId } from "@/core/overview";
-import { ENGINES, isEngineId } from "@/core/providers/registry";
+import { describeFilter, filterHref, filterOptions, parseFilter } from "@/core/filters";
+import { ENGINES } from "@/core/providers/registry";
 import { listCompetitors } from "@/core/workspace-data";
 import { getDb } from "@/db/client";
 import { EmptyState, Page, buttonSecondary } from "../../_components/page-frame";
-import { Segments } from "../../_components/segments";
+import { PageFilters } from "../../_components/page-filters";
 import { cn } from "../../_lib/cn";
 import { SovChart } from "./sov-chart";
 
@@ -59,10 +59,12 @@ export default async function CompetitorsPage({
 }) {
   const { workspace } = await requireWorkspace();
   const db = getDb();
-  const q = await searchParams;
-  const range: RangeId = isRange(q.range) ? q.range : "30d";
-  const engine = typeof q.engine === "string" && isEngineId(q.engine) ? q.engine : undefined;
-  const tracked = await listCompetitors(db, workspace.id);
+  const filter = parseFilter(await searchParams);
+  const { range } = filter;
+  const [tracked, options] = await Promise.all([
+    listCompetitors(db, workspace.id),
+    filterOptions(db, workspace.id),
+  ]);
 
   const editLink = (
     <Link href="/onboarding" className={buttonSecondary}>
@@ -81,33 +83,21 @@ export default async function CompetitorsPage({
       </Page>
     );
 
-  const v = await competitorView(db, workspace.id, { range, engine });
+  const v = await competitorView(db, workspace.id, filter);
   const brands = v.leaderboard.map((b, i) => ({
     key: b.key,
     name: b.name,
     you: b.competitorId === null,
     color: COLORS[i % COLORS.length],
   }));
-  const href = (r: RangeId, e?: string) => {
-    const p = new URLSearchParams();
-    if (r !== "30d") p.set("range", r);
-    if (e) p.set("engine", e);
-    return `/competitors${p.size ? `?${p}` : ""}`;
-  };
 
   return (
     <Page
       title="Competitors"
-      description={`${tracked.length} tracked · how AI answers compare them with you · ${RANGES[range].label.toLowerCase()}`}
+      description={`${tracked.length} tracked · how AI answers compare them with you · ${describeFilter(filter)}`}
       actions={
         <>
-          <Segments
-            items={(Object.keys(RANGES) as RangeId[]).map((r) => ({
-              href: href(r, engine),
-              label: RANGES[r].label.replace("Last ", ""),
-              active: r === range,
-            }))}
-          />
+          <PageFilters filter={filter} options={options} exports={["metrics", "mentions"]} />
           {editLink}
         </>
       }
@@ -121,19 +111,6 @@ export default async function CompetitorsPage({
         />
       ) : (
         <>
-          {v.engines.length > 1 || engine ? (
-            <Segments
-              items={[
-                { href: href(range), label: "All engines", active: !engine },
-                ...(engine && !v.engines.includes(engine) ? [engine] : v.engines).map((e) => ({
-                  href: href(range, e),
-                  label: ENGINES[e].name,
-                  active: engine === e,
-                })),
-              ]}
-            />
-          ) : null}
-
           <div className="overflow-x-auto rounded-xl border border-line bg-panel">
             <table className="w-full min-w-[720px] text-left text-[13px]">
               <thead className="border-b border-line bg-hover text-xs text-fg-subtle">
@@ -223,7 +200,7 @@ export default async function CompetitorsPage({
                 {v.beaten.slice(0, 10).map((p) => (
                   <li key={p.promptId}>
                     <Link
-                      href={`/prompts/${p.promptId}${range === "30d" ? "" : `?range=${range}`}`}
+                      href={filterHref(`/prompts/${p.promptId}`, { range })}
                       className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-[13px] hover:bg-hover"
                     >
                       <span className="min-w-0 flex-1">{p.text}</span>

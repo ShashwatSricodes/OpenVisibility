@@ -138,3 +138,15 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* the report (and any page) prints on white, with room for the printer's margins */
+@media print {
+  @page {
+    margin: 16mm 14mm;
+  }
+  body {
+    background: #fff;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

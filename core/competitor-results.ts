@@ -7,8 +7,8 @@
 import { and, eq, inArray } from "drizzle-orm";
 import type { AnyDb } from "@/db/client";
 import { brands, prompts } from "@/db/schema";
-import { brandMetrics, metricsBy, type MetricsFilter } from "./metrics-query";
-import { periods, type RangeId } from "./overview";
+import { filterWindow, type ViewFilter } from "./filters";
+import { brandMetrics, metricsBy } from "./metrics-query";
 import { ENGINES, isEngineId } from "./providers/registry";
 import type { EngineId } from "./providers/types";
 
@@ -18,12 +18,11 @@ export const keyOf = (competitorId: string | null) => competitorId ?? "you";
 export async function competitorView(
   db: AnyDb,
   workspaceId: string,
-  { range, engine }: { range: RangeId; engine?: EngineId },
+  f: ViewFilter,
   today = new Date(),
 ) {
-  const p = periods(range, today);
-  const scope = { engines: engine ? [engine] : undefined };
-  const current: MetricsFilter = { ...p.current, ...scope };
+  const { metrics: current, ...p } = filterWindow(f, today);
+  const scope = { engines: current.engines, countries: current.countries };
 
   const [now, before, byDay, byEngine, byPrompt] = await Promise.all([
     brandMetrics(db, workspaceId, current),

@@ -3,12 +3,13 @@ import Link from "next/link";
 import { ListChecks, Sparkles } from "lucide-react";
 import { requireWorkspace } from "@/core/auth/session";
 import { getBrandSetup } from "@/core/brands";
-import { RANGES, isRange, type RangeId } from "@/core/overview";
+import { describeFilter, filterHref, filterOptions, parseFilter } from "@/core/filters";
 import { promptTable } from "@/core/prompt-results";
 import { listBrandPrompts } from "@/core/prompts";
 import { getTrackingConfig } from "@/core/tracking-config";
 import { getDb } from "@/db/client";
 import { EmptyState, Page, buttonSecondary } from "../../_components/page-frame";
+import { PageFilters } from "../../_components/page-filters";
 import { Segments } from "../../_components/segments";
 import { PromptManager } from "./prompt-manager";
 import { ResultsTable } from "./results-table";
@@ -24,16 +25,17 @@ export default async function PromptsPage({
   const db = getDb();
   const q = await searchParams;
   const view = q.view === "manage" ? "manage" : "results";
-  const range: RangeId = isRange(q.range) ? q.range : "30d";
+  const filter = parseFilter(q);
 
-  const [{ brand }, config] = await Promise.all([
+  const [{ brand }, config, options] = await Promise.all([
     getBrandSetup(db, workspace.id),
     getTrackingConfig(db, workspace.id),
+    filterOptions(db, workspace.id),
   ]);
   const rows = brand ? await listBrandPrompts(db, brand.id) : [];
   const active = rows.filter((p) => p.active).length;
   const table =
-    brand && view === "results" ? await promptTable(db, workspace.id, brand.id, range) : null;
+    brand && view === "results" ? await promptTable(db, workspace.id, brand.id, filter) : null;
   const anyResults = table?.rows.some((r) => r.mentionRate !== null) ?? false;
 
   return (
@@ -65,7 +67,11 @@ export default async function PromptsPage({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Segments
               items={[
-                { href: "/prompts", label: "Results", active: view === "results" },
+                {
+                  href: filterHref("/prompts", filter),
+                  label: "Results",
+                  active: view === "results",
+                },
                 {
                   href: "/prompts?view=manage",
                   label: "Manage prompts",
@@ -74,13 +80,7 @@ export default async function PromptsPage({
               ]}
             />
             {view === "results" && (
-              <Segments
-                items={(Object.keys(RANGES) as RangeId[]).map((id) => ({
-                  href: id === "30d" ? "/prompts" : `/prompts?range=${id}`,
-                  label: RANGES[id].label.replace("Last ", ""),
-                  active: id === range,
-                }))}
-              />
+              <PageFilters filter={filter} options={options} exports={["metrics", "answers"]} />
             )}
           </div>
 
@@ -115,10 +115,10 @@ export default async function PromptsPage({
                 </p>
               )}
               <p className="text-xs text-fg-subtle">
-                How often each prompt&rsquo;s answers name {brand.name}, worst first. Open a prompt
-                for its answers and who wins it.
+                How often each prompt&rsquo;s answers name {brand.name}, worst first ·{" "}
+                {describeFilter(filter)}. Open a prompt for its answers and who wins it.
               </p>
-              <ResultsTable rows={table!.rows} engines={table!.engines} range={range} />
+              <ResultsTable rows={table!.rows} engines={table!.engines} range={filter.range} />
             </>
           )}
         </>

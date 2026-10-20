@@ -11,6 +11,7 @@ import {
   desc,
   eq,
   exists,
+  gte,
   ilike,
   inArray,
   isNull,
@@ -31,6 +32,9 @@ import {
 } from "@/db/schema";
 import { loadEntities } from "./analysis";
 import { findMatches } from "./mentions";
+import { filterWindow, isCountry } from "./filters";
+import { isRange, type RangeId } from "./overview";
+import { isEngineId } from "./providers/registry";
 import type { EngineId } from "./providers/types";
 
 export const PAGE_SIZE = 25;
@@ -44,11 +48,43 @@ export type ArchiveFilter = {
   named?: "yes" | "no";
   /** words in the answer or its prompt */
   q?: string;
+  /** answers from this moment on; none: any time */
+  since?: Date;
   page?: number;
 };
 
-export async function listAnswers(db: AnyDb, workspaceId: string, f: ArchiveFilter) {
-  const page = Math.max(1, f.page ?? 1);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The archive's filters from search params. Unlike the dashboards, no range
+ * means any time: the archive is where you look for an old answer.
+ */
+export function archiveFilterFrom(
+  q: Record<string, string | string[] | undefined> | URLSearchParams,
+  today = new Date(),
+): ArchiveFilter & { range?: RangeId } {
+  const one = (k: string) => {
+    const v = q instanceof URLSearchParams ? q.get(k) : q[k];
+    return typeof v === "string" && v ? v : undefined;
+  };
+  const engine = one("engine");
+  const range = one("range");
+  const named = one("named");
+  return {
+    engine: engine && isEngineId(engine) ? engine : undefined,
+    promptId: UUID.test(one("prompt") ?? "") ? one("prompt") : undefined,
+    country: isCountry(one("country")) ? one("country") : undefined,
+    runId: UUID.test(one("run") ?? "") ? one("run") : undefined,
+    named: named === "yes" || named === "no" ? named : undefined,
+    q: one("q"),
+    range: isRange(range) ? range : undefined,
+    since: isRange(range) ? filterWindow({ range }, today).since : undefined,
+    page: Number(one("page")) || 1,
+  };
+}
+
+/** Which answers a filter selects; the archive and the CSV exports share it. */
+export function archiveWhere(db: AnyDb, workspaceId: string, f: ArchiveFilter) {
   const namesYou = exists(
     db
       .select({ id: mentions.id })
@@ -56,7 +92,7 @@ export async function listAnswers(db: AnyDb, workspaceId: string, f: ArchiveFilt
       .where(and(eq(mentions.answerId, answers.id), isNull(mentions.competitorId))),
   );
   const q = f.q?.trim().slice(0, 100);
-  const where = and(
+  return and(
     eq(runs.workspaceId, workspaceId),
     f.engine ? eq(runItems.engine, f.engine) : undefined,
     f.promptId ? eq(runItems.promptId, f.promptId) : undefined,
@@ -70,7 +106,13 @@ export async function listAnswers(db: AnyDb, workspaceId: string, f: ArchiveFilt
           ilike(runItems.promptText, `%${q.replace(/[%_\\]/g, "\\$&")}%`),
         )
       : undefined,
+    f.since ? gte(answers.createdAt, f.since) : undefined,
   );
+}
+
+export async function listAnswers(db: AnyDb, workspaceId: string, f: ArchiveFilter) {
+  const page = Math.max(1, f.page ?? 1);
+  const where = archiveWhere(db, workspaceId, f);
   const base = () =>
     db
       .select({

@@ -7,6 +7,7 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import type { AnyDb } from "@/db/client";
 import { answers, brands, competitors, mentions, prompts, runItems, runs } from "@/db/schema";
+import { filterWindow, type ViewFilter } from "./filters";
 import { brandMetrics, metricsBy, metricsBy2 } from "./metrics-query";
 import { periods, type RangeId } from "./overview";
 import { ENGINES, isEngineId } from "./providers/registry";
@@ -36,19 +37,19 @@ export async function promptTable(
   db: AnyDb,
   workspaceId: string,
   brandId: string,
-  range: RangeId,
+  f: ViewFilter,
   today = new Date(),
 ) {
-  const p = periods(range, today);
+  const { metrics: current, ...p } = filterWindow(f, today);
   const [list, overall, engineCells, dayCells] = await Promise.all([
     db
       .select({ id: prompts.id, text: prompts.text, active: prompts.active, tags: prompts.tags })
       .from(prompts)
       .where(eq(prompts.brandId, brandId))
       .orderBy(asc(prompts.createdAt)),
-    metricsBy(db, workspaceId, p.current, "prompt", null),
-    metricsBy2(db, workspaceId, p.current, ["prompt", "engine"]),
-    metricsBy2(db, workspaceId, p.current, ["prompt", "day"]),
+    metricsBy(db, workspaceId, current, "prompt", null),
+    metricsBy2(db, workspaceId, current, ["prompt", "engine"]),
+    metricsBy2(db, workspaceId, current, ["prompt", "day"]),
   ]);
   const engines = [...new Set(engineCells.map((c) => c.b))]
     .filter((e): e is EngineId => !!e && isEngineId(e))

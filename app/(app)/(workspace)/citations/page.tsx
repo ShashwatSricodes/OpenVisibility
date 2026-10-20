@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import { ExternalLink, Link2 } from "lucide-react";
 import { requireWorkspace } from "@/core/auth/session";
 import { citationSummary, citationsByEngine, ownedPages, pageTrends } from "@/core/citation-stats";
-import { RANGES, isRange, periods, type RangeId } from "@/core/overview";
-import { ENGINES, isEngineId } from "@/core/providers/registry";
+import { describeFilter, filterOptions, filterWindow, parseFilter } from "@/core/filters";
+import { RANGES } from "@/core/overview";
+import { ENGINES } from "@/core/providers/registry";
 import { getDb } from "@/db/client";
 import { EmptyState, Page } from "../../_components/page-frame";
-import { Segments } from "../../_components/segments";
+import { PageFilters } from "../../_components/page-filters";
 import { SourcesTable } from "../../_components/sources-table";
 import { cn } from "../../_lib/cn";
 
@@ -79,19 +80,17 @@ export default async function CitationsPage({
 }) {
   const { workspace } = await requireWorkspace();
   const db = getDb();
-  const q = await searchParams;
-  const range: RangeId = isRange(q.range) ? q.range : "30d";
-  const engine = typeof q.engine === "string" && isEngineId(q.engine) ? q.engine : undefined;
-  const p = periods(range);
-  const since = new Date(`${p.current.from}T00:00:00Z`);
-  const scope = { since, engine };
+  const filter = parseFilter(await searchParams);
+  const { range, engine, country } = filter;
+  const p = filterWindow(filter);
+  const scope = { since: p.since, engine, country };
 
-  const [s, perEngine, pages, owned, allEngines] = await Promise.all([
+  const [s, perEngine, pages, owned, options] = await Promise.all([
     citationSummary(db, workspace.id, scope),
     citationsByEngine(db, workspace.id, scope),
     pageTrends(db, workspace.id, scope),
     ownedPages(db, workspace.id, scope),
-    citationsByEngine(db, workspace.id, { since }),
+    filterOptions(db, workspace.id),
   ]);
 
   // sparklines start at the first day any of these pages was cited
@@ -99,28 +98,17 @@ export default async function CitationsPage({
   const first = p.days.findIndex((d) => cited.has(d));
   const days = p.days.slice(first < 0 ? 0 : Math.max(0, Math.min(first, p.days.length - 7)));
 
-  const href = (r: RangeId, e?: string) => {
-    const params = new URLSearchParams();
-    if (r !== "30d") params.set("range", r);
-    if (e) params.set("engine", e);
-    return `/citations${params.size ? `?${params}` : ""}`;
-  };
-
   return (
     <Page
       title="Citations"
-      description={`The sources AI engines cite when they answer your prompts · ${RANGES[range].label.toLowerCase()}`}
-      actions={
-        <Segments
-          items={(Object.keys(RANGES) as RangeId[]).map((r) => ({
-            href: href(r, engine),
-            label: RANGES[r].label.replace("Last ", ""),
-            active: r === range,
-          }))}
-        />
-      }
+      description={`The sources AI engines cite when they answer your prompts · ${describeFilter(filter)}`}
+      actions={<PageFilters filter={filter} options={options} exports={["citations", "answers"]} />}
     >
-      {s.answers === 0 || s.domains.length === 0 ? (
+      {(s.answers === 0 || s.domains.length === 0) && options.engines.length > 0 ? (
+        <p className="rounded-xl border border-line bg-panel px-4 py-8 text-center text-[13px] text-fg-subtle">
+          No citations for {describeFilter(filter)}. Try a longer range or another engine.
+        </p>
+      ) : s.answers === 0 || s.domains.length === 0 ? (
         <EmptyState
           icon={<Link2 />}
           title="No citations yet"
@@ -129,19 +117,6 @@ export default async function CitationsPage({
         />
       ) : (
         <>
-          {allEngines.length > 1 && (
-            <Segments
-              items={[
-                { href: href(range), label: "All engines", active: !engine },
-                ...allEngines.map((e) => ({
-                  href: href(range, e.engine),
-                  label: ENGINES[e.engine].name,
-                  active: engine === e.engine,
-                })),
-              ]}
-            />
-          )}
-
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Stat
               label="Cite your site"

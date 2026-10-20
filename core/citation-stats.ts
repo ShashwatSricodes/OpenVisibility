@@ -10,7 +10,9 @@ import type { AnyDb } from "@/db/client";
 import { answers, citations, competitors, runItems, runs } from "@/db/schema";
 import type { EngineId } from "./providers/types";
 
-export type Scope = { runId: string } | { since: Date; engine?: EngineId };
+export type Scope = { runId: string } | Period;
+/** answers from a day on, optionally from one engine and country */
+export type Period = { since: Date; engine?: EngineId; country?: string };
 
 export type DomainRow = {
   domain: string;
@@ -41,6 +43,7 @@ function scopeWhere(workspaceId: string, scope: Scope): SQL {
     eq(runs.workspaceId, workspaceId),
     "runId" in scope ? eq(runs.id, scope.runId) : gte(answers.createdAt, scope.since),
     "engine" in scope && scope.engine ? eq(runItems.engine, scope.engine) : undefined,
+    "country" in scope && scope.country ? eq(runItems.country, scope.country) : undefined,
   )!;
 }
 
@@ -210,16 +213,17 @@ export async function pageTrends(
  * period: a page at 0 has stopped being cited. (Pages never cited at all
  * need your sitemap; that comes with the GEO audit.)
  */
-export async function ownedPages(
-  db: AnyDb,
-  workspaceId: string,
-  scope: { since: Date; engine?: EngineId },
-) {
+export async function ownedPages(db: AnyDb, workspaceId: string, scope: Period) {
+  const inPeriod = and(
+    gte(answers.createdAt, scope.since),
+    scope.engine ? eq(runItems.engine, scope.engine) : undefined,
+    scope.country ? eq(runItems.country, scope.country) : undefined,
+  );
   return db
     .select({
       url: citations.url,
       title: sql<string | null>`max(${citations.title})`,
-      inPeriod: sql<number>`count(distinct ${citations.answerId}) filter (where ${answers.createdAt} >= ${scope.since.toISOString()}::timestamptz${scope.engine ? sql` and ${runItems.engine} = ${scope.engine}` : sql``})::int`,
+      inPeriod: sql<number>`count(distinct ${citations.answerId}) filter (where ${inPeriod})::int`,
       allTime: sql<number>`count(distinct ${citations.answerId})::int`,
       lastCited: sql<string>`max(${answers.createdAt})::text`,
     })
