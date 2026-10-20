@@ -29,8 +29,16 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
   );
 }
 
-export default async function RunPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function RunPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = await params;
+  // linked from a prompt's page: open that answer's prompt and point at it
+  const focus = (await searchParams).answer;
   if (!UUID.test(id)) notFound();
   const { workspace } = await requireWorkspace();
   const db = getDb();
@@ -148,7 +156,11 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
         ) : (
           <div className="divide-y divide-line rounded-xl border border-line bg-panel">
             {byPrompt.map((p) => (
-              <details key={p.prompt} className="group">
+              <details
+                key={p.prompt}
+                className="group"
+                open={p.answers.some((a) => a.id === focus) || undefined}
+              >
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-[13px] hover:bg-hover">
                   <span className="font-medium">{p.prompt}</span>
                   <span className="shrink-0 text-xs text-fg-subtle">
@@ -157,7 +169,14 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
                 </summary>
                 <div className="flex flex-col gap-3 px-4 pb-4">
                   {p.answers.map((a) => (
-                    <article key={a.id} className="rounded-lg border border-line px-3.5 py-3">
+                    <article
+                      key={a.id}
+                      id={`answer-${a.id}`}
+                      className={cn(
+                        "scroll-mt-4 rounded-lg border border-line px-3.5 py-3",
+                        a.id === focus && "border-line-strong ring-2 ring-line",
+                      )}
+                    >
                       <p className="flex flex-wrap items-center gap-x-2 text-xs text-fg-subtle">
                         <span className="font-medium text-fg">{ENGINES[a.engine].name}</span>
                         {a.country && <span>{countryName(a.country)}</span>}

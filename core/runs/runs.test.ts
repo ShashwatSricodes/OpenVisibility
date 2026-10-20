@@ -15,6 +15,7 @@ import { citationSummary } from "../citation-stats";
 import { env } from "../env";
 import { brandMetrics, metricsBy } from "../metrics-query";
 import { getOverview, periods, validateNote } from "../overview";
+import { promptDetail, promptTable } from "../prompt-results";
 import { getRunDetail } from "../run-detail";
 import { analysisModel } from "../sentiment";
 import { fireDueSchedules, getSchedule, saveSchedule } from "./schedule";
@@ -865,5 +866,52 @@ describe("the overview", () => {
     expect(validateNote("20/10/2026", "x")).toMatch(/date/);
     expect(validateNote("2026-10-20", "  ")).toMatch(/what changed/);
     expect(validateNote("2026-10-20", "x".repeat(201))).toMatch(/200/);
+  });
+});
+
+describe("prompt results", () => {
+  it("a table row per prompt and a page per prompt, from the metrics", async () => {
+    const r = await createRun(db, workspaceId);
+    if (!r.ok) throw new Error(r.message);
+    const provider = new FakeProvider({
+      reply: (_i, engine) => ({
+        text: engine === "chatgpt" ? "1. Zoho\n2. Ledgerly" : "Zoho only.",
+      }),
+    });
+    await tick({ db, providerFor: async () => provider, analysis: null });
+    const [brand] = await db.select().from(schema.brands);
+
+    const t = await promptTable(db, workspaceId, brand.id, "7d");
+    expect(t.engines).toEqual(["chatgpt", "gemini"]);
+    expect(t.rows.map((x) => [x.text, x.mentionRate, x.byEngine, x.averagePosition])).toEqual([
+      ["best invoicing app", 50, { chatgpt: 100, gemini: 0 }, 2],
+      ["invoice app with UPI", 50, { chatgpt: 100, gemini: 0 }, 2],
+      // paused, never asked: last, without results
+      ["paused one", null, { chatgpt: null, gemini: null }, null],
+    ]);
+    expect(t.rows[0].spark.at(-1)).toBe(50);
+
+    const d = await promptDetail(db, workspaceId, promptIds[0], "7d");
+    expect(d?.own).toMatchObject({ mentionRate: 0.5, averagePosition: 2, samples: 8 });
+    expect(d?.ranking.map((b) => [b.name, b.mentionRate])).toEqual([
+      ["Ledgerly", 0.5],
+      ["Zoho", 1],
+    ]);
+    expect(d?.cells.map((c) => [c.a, c.b, c.mentionRate])).toEqual([
+      ["chatgpt", "GB", 1],
+      ["chatgpt", "US", 1],
+      ["gemini", "GB", 0],
+      ["gemini", "US", 0],
+    ]);
+    expect(d?.answers).toHaveLength(8);
+    const chatgpt = d!.answers.find((a) => a.engine === "chatgpt")!;
+    expect(chatgpt.named).toEqual([
+      { name: "Zoho", own: false },
+      { name: "Ledgerly", own: true },
+    ]);
+    expect(chatgpt.excerpt).toBe("Ledgerly");
+
+    const [other] = await db.insert(schema.workspaces).values({ name: "Other" }).returning();
+    expect(await promptDetail(db, other.id, promptIds[0], "7d")).toBeNull();
   });
 });
