@@ -45,6 +45,20 @@ const schema = z.object({
   AI_GATEWAY_API_KEY: optionalString,
   /** The model that writes prompt suggestions when AI_GATEWAY_API_KEY is set */
   PROMPT_SUGGEST_MODEL: z.string().trim().default("google/gemini-3.5-flash-lite"),
+  /**
+   * The analysis model: rates sentiment and recommendations in answers.
+   * Any OpenAI-compatible API (Groq, Gemini, OpenRouter, Cerebras, DeepSeek,
+   * Ollama…). Off until ANALYSIS_BASE_URL and ANALYSIS_MODEL are set.
+   */
+  ANALYSIS_BASE_URL: optionalString.pipe(z.string().url().optional()),
+  /** optional: a local Ollama needs none */
+  ANALYSIS_API_KEY: optionalString,
+  ANALYSIS_MODEL: optionalString,
+  /** answers rated per call */
+  ANALYSIS_BATCH: z.coerce.number().int().min(1).max(20).default(5),
+  /** US dollars per million tokens, for cost tracking; 0 on free tiers */
+  ANALYSIS_PRICE_INPUT: z.coerce.number().min(0).default(0),
+  ANALYSIS_PRICE_OUTPUT: z.coerce.number().min(0).default(0),
   /** Perplexity's own API, for the Accurate preset on the API route */
   PERPLEXITY_API_KEY: optionalString,
   PERPLEXITY_DIRECT_MODEL: z.string().trim().default("sonar-pro"),

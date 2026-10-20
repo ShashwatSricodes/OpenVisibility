@@ -342,6 +342,12 @@ export const answers = pgTable(
     }),
     /** when mentions were last found (core/analysis.ts); null: waiting, e.g. after names change */
     analyzedAt: timestamp("analyzed_at", { withTimezone: true }),
+    /** when the analysis model rated its mentions (core/sentiment.ts); null: not yet, or no model */
+    ratedAt: timestamp("rated_at", { withTimezone: true }),
+    /** failed rating attempts; rating stops after a few */
+    ratingAttempts: integer("rating_attempts").notNull().default(0),
+    /** what the analysis model cost for this answer */
+    analysisCostUsd: usd("analysis_cost_usd").notNull().default("0"),
     createdAt: createdAt(),
   },
   (t) => [
@@ -364,8 +370,10 @@ export const mentions = pgTable(
     }),
     /** 1 = first brand named; null when the answer doesn't rank brands */
     position: integer("position"),
-    /** -1 (negative) to 1 (positive) */
+    /** -1 (negative) to 1 (positive); null until the analysis model rates it */
     sentiment: real("sentiment"),
+    /** the answer recommends this brand, not just names it; null until rated */
+    recommended: boolean("recommended"),
     /** the surrounding sentence, for the answer archive */
     snippet: text("snippet"),
   },

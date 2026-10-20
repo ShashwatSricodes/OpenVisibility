@@ -1,4 +1,5 @@
 import { PGlite } from "@electric-sql/pglite";
+import { MockLanguageModelV4 } from "ai/test";
 import { count, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
@@ -9,7 +10,9 @@ import { FakeProvider } from "../providers/fake";
 import type { QueryInput } from "../providers/types";
 import { createRun, createTestRun } from "./create";
 import { saveCompetitors } from "../brands";
+import { env } from "../env";
 import { getRunDetail } from "../run-detail";
+import { analysisModel } from "../sentiment";
 import { fireDueSchedules, getSchedule, saveSchedule } from "./schedule";
 import { tick } from "./worker";
 
@@ -532,5 +535,131 @@ describe("mentions", () => {
     expect(after.map((m) => [m.competitorId, m.position])).toEqual(
       Array.from({ length: 4 }, () => [null, 1]),
     );
+  });
+});
+
+describe("sentiment", () => {
+  const usage = {
+    inputTokens: { total: 1000, noCache: 1000, cacheRead: undefined, cacheWrite: undefined },
+    outputTokens: { total: 200, text: 200, reasoning: undefined },
+  };
+  /** a model that rates every listed brand: Ledgerly glowing and recommended, others lukewarm */
+  const ratingModel = (calls: string[]) =>
+    new MockLanguageModelV4({
+      doGenerate: async ({ prompt }) => {
+        const text = JSON.stringify(prompt);
+        calls.push(text);
+        const n = (text.match(/### Answer/g) ?? []).length;
+        const json = {
+          answers: Array.from({ length: n }, (_, i) => ({
+            answer: i + 1,
+            brands: [
+              { name: "ledgerly", sentiment: 1.4, recommended: true },
+              { name: "Zoho", sentiment: -0.2, recommended: false },
+              { name: "Not asked about", sentiment: 1, recommended: true },
+            ],
+          })),
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(json) }],
+          finishReason: { unified: "stop", raw: undefined },
+          usage,
+          warnings: [],
+        };
+      },
+    });
+  const analysis = (model: MockLanguageModelV4) => ({
+    model,
+    batch: 5,
+    priceInput: 0.1,
+    priceOutput: 0.4,
+  });
+  const ranked = new FakeProvider({
+    reply: () => ({ text: "1. **Zoho**: free\n2. **Ledgerly**: the best pick for freelancers" }),
+  });
+  const runOne = async () => {
+    const r = await createRun(db, workspaceId, { engines: ["chatgpt"], promptIds: [promptIds[0]] });
+    if (!r.ok) throw new Error(r.message);
+    return r.runId;
+  };
+
+  it("is off without a model: mentions stay unrated", async () => {
+    await runOne();
+    const report = await tick({ db, providerFor: async () => ranked, analysis: null });
+    expect(report.rated).toBe(0);
+    const found = await db.select().from(schema.mentions);
+    expect(found).toHaveLength(8);
+    expect(found.every((m) => m.sentiment === null && m.recommended === null)).toBe(true);
+  });
+
+  it("rates each mention after detection, and adds the cost to the run", async () => {
+    const runId = await runOne();
+    const calls: string[] = [];
+    const report = await tick({
+      db,
+      providerFor: async () => ranked,
+      analysis: analysis(ratingModel(calls)),
+    });
+    expect(report).toMatchObject({ collected: 4, analyzed: 4, rated: 4 });
+    expect(calls).toHaveLength(1); // the 4 answers fit in one call
+    expect(calls[0]).toContain("Brands: Zoho; Ledgerly");
+
+    const found = await db
+      .select({
+        c: schema.mentions.competitorId,
+        s: schema.mentions.sentiment,
+        r: schema.mentions.recommended,
+      })
+      .from(schema.mentions);
+    expect(found.filter((m) => m.c === null).every((m) => m.s === 1 && m.r === true)).toBe(true);
+    expect(found.filter((m) => m.c !== null).every((m) => m.s === -0.2 && m.r === false)).toBe(
+      true,
+    );
+
+    // 1,000 in × $0.10/M + 200 out × $0.40/M = $0.00018 per call
+    const run = await runOf(runId);
+    expect(Number(run.actualCost)).toBeCloseTo(0.00018, 6);
+    // nothing left: no more calls
+    await tick({ db, providerFor: async () => ranked, analysis: analysis(ratingModel(calls)) });
+    expect(calls).toHaveLength(1);
+  });
+
+  it("doesn't call the model for answers that name no tracked brand", async () => {
+    await runOne();
+    const calls: string[] = [];
+    const nobody = new FakeProvider({ reply: () => ({ text: "Use a spreadsheet." }) });
+    const report = await tick({
+      db,
+      providerFor: async () => nobody,
+      analysis: analysis(ratingModel(calls)),
+    });
+    expect(report.rated).toBe(0);
+    expect(calls).toHaveLength(0);
+    const rows = await db.select({ ratedAt: schema.answers.ratedAt }).from(schema.answers);
+    expect(rows.every((a) => a.ratedAt !== null)).toBe(true);
+  });
+
+  it("retries a failing model a few times, then gives up", async () => {
+    await runOne();
+    let calls = 0;
+    const broken = new MockLanguageModelV4({
+      doGenerate: async () => {
+        calls++;
+        throw new Error("rate limited");
+      },
+    });
+    const opts = { db, providerFor: async () => ranked, analysis: analysis(broken) };
+    for (let i = 0; i < 5; i++) await tick(opts);
+    expect(calls).toBe(3);
+    const rows = await db.select({ a: schema.answers.ratingAttempts }).from(schema.answers);
+    expect(rows.every((r) => r.a === 3)).toBe(true);
+  });
+
+  it("is set up from the environment, with or without a key", () => {
+    expect(analysisModel({ ...env({}), ANALYSIS_MODEL: "x" })).toBeNull();
+    const local = analysisModel(
+      env({ ANALYSIS_BASE_URL: "http://localhost:11434/v1", ANALYSIS_MODEL: "qwen3:8b" }),
+    );
+    expect(local).toMatchObject({ batch: 5, priceInput: 0, priceOutput: 0 });
   });
 });

@@ -74,7 +74,11 @@ export async function analyzePending(db: AnyDb, { limit = 200, now = new Date() 
     );
     for (let i = 0; i < rows.length; i += 500)
       await tx.insert(mentions).values(rows.slice(i, i + 500));
-    await tx.update(answers).set({ analyzedAt: now }).where(inArray(answers.id, ids));
+    // fresh mentions have no ratings yet: rate them again (core/sentiment.ts)
+    await tx
+      .update(answers)
+      .set({ analyzedAt: now, ratedAt: null, ratingAttempts: 0 })
+      .where(inArray(answers.id, ids));
   });
   return pending.length;
 }

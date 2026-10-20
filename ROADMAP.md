@@ -306,11 +306,15 @@ Kept simple on purpose: users see what they can act on, not the plumbing.
 
 ### Day 22: LLM-assisted parsing
 
-- [ ] Send each answer to a cheap model with a Zod schema covering: brands mentioned, their order, sentiment per brand (−1 to 1), and whether the mention is a recommendation.
-- [ ] Reconcile with Day 21's results: deterministic matching wins on whether a brand is mentioned, the model fills in sentiment and handles fuzzy cases.
-- [ ] Store the parsing cost on the answer, so per-run costs include analysis.
+Built and tested; **switched off until a model key is chosen** (20 October 2026: decided to come back to the provider later).
 
-**Done when:** every new answer gets mentions and sentiment automatically, after the main call.
+- [x] Any OpenAI-compatible model (`core/sentiment.ts`), set with `ANALYSIS_BASE_URL`, `ANALYSIS_MODEL` and `ANALYSIS_API_KEY` (optional for a local Ollama), so free tiers work: Groq, Gemini, OpenRouter `:free`, Cerebras, plus DeepSeek (cheap) and Ollama (local). `.env.example` lists the addresses. Without them the step is off and answers keep their mentions without ratings.
+- [x] A Zod schema per answer: for each tracked brand the answer names, sentiment (−1 to 1) and whether it's a recommendation. Several answers per call (`ANALYSIS_BATCH`, default 5), one call per worker tick, so free tiers' request limits aren't reached. Answers that name no tracked brand are skipped without a call.
+- [x] Reconciled with Day 21: deterministic matching decides whether a brand is mentioned; the model only rates those mentions. Brands the model names that the detector didn't find are ignored for now (fuzzy matching can come later).
+- [x] The analysis cost is stored on the answer (`analysis_cost_usd`, from token usage and `ANALYSIS_PRICE_*`) and counted in the run's cost, even when rating finishes after the run. A failing model is retried 3 times, then the answer is left unrated. Renaming the brand or competitors re-rates.
+- [ ] Live check with a real key.
+
+**Done when:** every new answer gets mentions and sentiment automatically, after the main call. ✅ in tests with a mock model; live check pending a key.
 
 ### Day 23: Citation processing
 
