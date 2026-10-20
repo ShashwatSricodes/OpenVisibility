@@ -8,6 +8,7 @@ import { ProviderError } from "../providers/errors";
 import { FakeProvider } from "../providers/fake";
 import type { QueryInput } from "../providers/types";
 import { createRun, createTestRun } from "./create";
+import { getRunDetail } from "../run-detail";
 import { fireDueSchedules, getSchedule, saveSchedule } from "./schedule";
 import { tick } from "./worker";
 
@@ -461,5 +462,32 @@ describe("saving answers", () => {
     const r = await createRun(db, workspaceId);
     if (!r.ok) throw new Error(r.message);
     expect((await runOf(r.runId)).smartSampling).toBe(false);
+  });
+});
+
+describe("a run's page", () => {
+  it("totals per engine, the answers by prompt, and nothing from other workspaces", async () => {
+    const r = await createRun(db, workspaceId);
+    if (!r.ok) throw new Error(r.message);
+    const provider = new FakeProvider({
+      reply: () => ({ text: "Try Ledgerly.", citations: [{ url: "https://ledgerly.app/a" }] }),
+    });
+    await tick({ db, providerFor: async () => provider });
+
+    const detail = await getRunDetail(db, workspaceId, r.runId);
+    expect(detail?.engines).toEqual([
+      { engine: "chatgpt", planned: 6, done: 6, cost: "0.000000" },
+      { engine: "gemini", planned: 6, done: 6, cost: "0.000000" },
+    ]);
+    expect(detail?.byPrompt.map((p) => [p.prompt, p.answers.length])).toEqual([
+      ["best invoicing app", 8],
+      ["invoice app with UPI", 4],
+    ]);
+    expect(detail?.byPrompt[0].answers[0].sources).toEqual([
+      { url: "https://ledgerly.app/a", title: null, domain: "ledgerly.app" },
+    ]);
+
+    const [other] = await db.insert(schema.workspaces).values({ name: "Other" }).returning();
+    expect(await getRunDetail(db, other.id, r.runId)).toBeNull();
   });
 });

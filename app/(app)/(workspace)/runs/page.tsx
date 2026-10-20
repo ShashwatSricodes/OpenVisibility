@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarClock, Clock } from "lucide-react";
+import { CalendarClock, ChevronRight, Clock } from "lucide-react";
 import { requireWorkspace } from "@/core/auth/session";
 import { BRIGHT_DATA_PRICING } from "@/core/providers/registry";
 import { getSchedule } from "@/core/runs/schedule";
@@ -13,42 +13,9 @@ import { EmptyState, Page } from "../../_components/page-frame";
 import { RunNowButton, TestRunButton } from "../../_components/run-now-button";
 import { cn } from "../../_lib/cn";
 import { AutoRefresh } from "./auto-refresh";
+import { STATUS, duration, isActive, usd, visibleNote, when } from "./run-format";
 
 export const metadata: Metadata = { title: "Runs" };
-
-const STATUS: Record<string, { label: string; style: string }> = {
-  queued: { label: "Queued", style: "bg-pressed text-fg-default" },
-  running: {
-    label: "Running",
-    style: "bg-[color-mix(in_srgb,var(--series-1)_14%,transparent)] text-[var(--series-1)]",
-  },
-  completed: {
-    label: "Completed",
-    style: "bg-[color-mix(in_srgb,var(--good)_12%,transparent)] text-good",
-  },
-  partial: {
-    label: "Partly done",
-    style: "bg-[color-mix(in_srgb,var(--series-4)_16%,transparent)] text-[var(--series-4)]",
-  },
-  failed: { label: "Failed", style: "bg-[color-mix(in_srgb,var(--bad)_12%,transparent)] text-bad" },
-  canceled: { label: "Canceled", style: "bg-pressed text-fg-subtle" },
-  skipped: { label: "Skipped", style: "bg-pressed text-fg-subtle" },
-};
-
-const when = (d: Date) =>
-  d.toLocaleString("en-GB", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-  }) + " UTC";
-
-function duration(start: Date | null, end: Date | null) {
-  if (!start) return "–";
-  const s = Math.round(((end ?? new Date()).getTime() - start.getTime()) / 1000);
-  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
-}
 
 export default async function RunsPage() {
   const { workspace } = await requireWorkspace();
@@ -59,7 +26,7 @@ export default async function RunsPage() {
     getTrackingConfig(db, workspace.id),
     getSchedule(db, workspace.id),
   ]);
-  const active = runs.some((r) => r.status === "queued" || r.status === "running");
+  const active = runs.some((r) => isActive(r.status));
 
   return (
     <Page
@@ -121,19 +88,32 @@ export default async function RunsPage() {
                 <th className="px-4 py-2 font-medium">Status</th>
                 <th className="px-4 py-2 font-medium">Answers</th>
                 <th className="px-4 py-2 font-medium">Took</th>
-                <th className="px-4 py-2 font-medium">Cost (list price)</th>
+                <th className="px-4 py-2 font-medium">Cost</th>
+                <th className="w-8" aria-label="Open" />
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
               {runs.map((r) => {
                 const s = STATUS[r.status];
+                const note = visibleNote(r);
                 // samples smart sampling skipped were never going to be answered
                 const total = r.totalItems - r.sampledOutItems;
                 const pct = total ? Math.round((r.doneItems / total) * 100) : 0;
+                const saved = r.reusedItems + r.sampledOutItems;
+                const linked = r.status !== "skipped";
                 return (
-                  <tr key={r.id} className="align-top">
+                  <tr key={r.id} className={cn("relative align-top", linked && "hover:bg-hover")}>
                     <td className="px-4 py-3">
-                      {when(r.createdAt)}
+                      {linked ? (
+                        <Link
+                          href={`/runs/${r.id}`}
+                          className="font-medium after:absolute after:inset-0 hover:underline"
+                        >
+                          {when(r.createdAt)}
+                        </Link>
+                      ) : (
+                        when(r.createdAt)
+                      )}
                       <span className="block text-xs text-fg-subtle">
                         {r.trigger === "manual" ? "Run now" : "Scheduled"}
                       </span>
@@ -142,49 +122,49 @@ export default async function RunsPage() {
                       <span className={cn("rounded px-1.5 py-px text-[11px] font-medium", s.style)}>
                         {s.label}
                       </span>
-                      {r.note && (
-                        <span className="mt-1 block max-w-xs text-xs text-fg-subtle">{r.note}</span>
+                      {note && (
+                        <span className="mt-1 block max-w-xs text-xs text-fg-subtle">{note}</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="tabular">
-                        {r.doneItems.toLocaleString("en-US")} / {total.toLocaleString("en-US")}
-                      </span>
-                      <span className="mt-1.5 block h-1 w-28 overflow-hidden rounded-full bg-pressed">
-                        <span
-                          className="block h-full rounded-full bg-fg"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </span>
-                      {(r.reusedItems > 0 || r.sampledOutItems > 0) && (
-                        <span className="mt-1.5 block text-xs text-fg-subtle">
-                          {[
-                            r.reusedItems > 0 && `${r.reusedItems.toLocaleString("en-US")} reused`,
-                            r.sampledOutItems > 0 &&
-                              `${r.sampledOutItems.toLocaleString("en-US")} not needed`,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </span>
+                      {total > 0 ? (
+                        <>
+                          <span className="tabular">
+                            {r.doneItems.toLocaleString("en-US")} / {total.toLocaleString("en-US")}
+                          </span>
+                          {isActive(r.status) && (
+                            <span className="mt-1.5 block h-1 w-28 overflow-hidden rounded-full bg-pressed">
+                              <span
+                                className="block h-full rounded-full bg-fg"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-fg-subtle">–</span>
                       )}
                     </td>
                     <td className="tabular px-4 py-3 text-fg-subtle">
                       {duration(r.startedAt, r.finishedAt)}
                     </td>
                     <td className="tabular px-4 py-3 text-fg-subtle">
-                      ${Number(r.actualCost).toFixed(4)}
-                      <span className="block text-xs">
-                        est. ${Number(r.estimatedCost).toFixed(4)}
-                      </span>
-                      {(r.reusedItems > 0 || r.sampledOutItems > 0) && (
+                      {isActive(r.status) ? (
+                        <>
+                          {usd(r.actualCost)}
+                          <span className="block text-xs">of about {usd(r.estimatedCost)}</span>
+                        </>
+                      ) : (
+                        usd(r.actualCost)
+                      )}
+                      {saved > 0 && (
                         <span className="block text-xs text-good">
-                          saved $
-                          {(
-                            (r.reusedItems + r.sampledOutItems) *
-                            BRIGHT_DATA_PRICING.perAnswerUsd
-                          ).toFixed(4)}
+                          saved {usd(saved * BRIGHT_DATA_PRICING.perAnswerUsd)}
                         </span>
                       )}
+                    </td>
+                    <td className="w-8 py-3 pr-3 text-fg-muted">
+                      {linked && <ChevronRight className="size-4" />}
                     </td>
                   </tr>
                 );
