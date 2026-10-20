@@ -6,6 +6,7 @@ import { getBrandSetup } from "@/core/brands";
 import { citationSummary, ownedPages } from "@/core/citation-stats";
 import { competitorView } from "@/core/competitor-results";
 import { describeFilter, filterWindow, parseFilter } from "@/core/filters";
+import { SOURCE_NOTE, VARIANCE_NOTE } from "@/core/framing";
 import { RANGES, getOverview } from "@/core/overview";
 import { ENGINES } from "@/core/providers/registry";
 import type { EngineId } from "@/core/providers/types";
@@ -339,9 +340,7 @@ export default async function ReportPage({
         )}
 
         <footer className="border-t border-line pt-3 text-xs text-fg-subtle">
-          Answers were collected by asking each engine your prompts as a logged-out visitor.
-          Signed-in or paying users may see different answers, and answers vary from one asking to
-          the next, so treat single-point moves with care. Made with OpenVisibility.
+          {SOURCE_NOTE} {VARIANCE_NOTE} Made with OpenVisibility.
         </footer>
       </div>
     </>

@@ -70,7 +70,7 @@ export function ResultsTable({
       <table className="w-full min-w-[760px] text-left text-[13px]">
         <thead className="border-b border-line bg-hover text-xs text-fg-subtle">
           <tr>
-            <th className="px-4 py-2 font-medium">Prompt</th>
+            <th className="min-w-52 px-4 py-2 font-medium">Prompt</th>
             <th className="px-3 py-2 text-right font-medium">Named in</th>
             {engines.map((e) => (
               <th key={e} className="w-24 px-1.5 py-2 text-center font-medium">

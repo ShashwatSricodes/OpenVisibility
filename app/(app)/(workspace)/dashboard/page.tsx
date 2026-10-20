@@ -13,6 +13,7 @@ import { requireWorkspace } from "@/core/auth/session";
 import { getBrandSetup } from "@/core/brands";
 import { citationSummary } from "@/core/citation-stats";
 import { describeFilter, filterOptions, parseFilter } from "@/core/filters";
+import { SOURCE_NOTE, VARIANCE_NOTE } from "@/core/framing";
 import { RANGES, getOverview } from "@/core/overview";
 import { ENGINES } from "@/core/providers/registry";
 import { getDb } from "@/db/client";
@@ -97,7 +98,7 @@ export default async function OverviewPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-base font-semibold">Overview</h1>
-          <p className="truncate text-xs text-fg-subtle">
+          <p className="text-xs text-fg-subtle sm:truncate">
             {setup.brand.name} · {o.samples.toLocaleString("en-US")} answers ·{" "}
             {describeFilter(filter)}
           </p>
@@ -306,6 +307,10 @@ export default async function OverviewPage({
           ]}
         />
       </div>
+
+      <p className="text-xs text-fg-subtle">
+        {SOURCE_NOTE} {VARIANCE_NOTE}
+      </p>
     </div>
   );
 }

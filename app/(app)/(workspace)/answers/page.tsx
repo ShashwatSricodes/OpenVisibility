@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, MessageSquareText, Search } from "lucide-rea
 import { archiveFilterFrom, archiveOptions, listAnswers } from "@/core/answer-archive";
 import { requireWorkspace } from "@/core/auth/session";
 import { countryName } from "@/core/countries";
+import { SOURCE_NOTE } from "@/core/framing";
 import { RANGES, type RangeId } from "@/core/overview";
 import { ENGINES } from "@/core/providers/registry";
 import { getDb } from "@/db/client";
@@ -72,7 +73,10 @@ export default async function AnswersPage({
       title="Answers"
       description={`${list.total.toLocaleString("en-US")} ${filtered ? "matching " : ""}${list.total === 1 ? "answer" : "answers"}, newest first`}
       actions={
-        <ExportMenu items={exportItems(shown, ["answers", "mentions", "citations"], false)} />
+        <ExportMenu
+          items={exportItems(shown, ["answers", "mentions", "citations"], false)}
+          note={SOURCE_NOTE}
+        />
       }
     >
       <form method="get" className="flex flex-wrap items-center gap-2">
