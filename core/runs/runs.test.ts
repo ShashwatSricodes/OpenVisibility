@@ -7,7 +7,7 @@ import * as schema from "@/db/schema";
 import { ProviderError } from "../providers/errors";
 import { FakeProvider } from "../providers/fake";
 import type { QueryInput } from "../providers/types";
-import { createRun } from "./create";
+import { createRun, createTestRun } from "./create";
 import { tick } from "./worker";
 
 let db: ReturnType<typeof drizzle<typeof schema>>;
@@ -198,5 +198,38 @@ describe("the worker", () => {
     const report = await tick({ db, providerFor, now: () => now, staleAfterMs: 30 * 60_000 });
     expect(report.requeued).toBe(4);
     expect((await itemsOf(r.runId)).every((i) => i.error?.includes("No answer"))).toBe(true);
+  });
+});
+
+describe("test runs and polling", () => {
+  it("a test run asks 3 prompts once, on the first engine and country", async () => {
+    const r = await createTestRun(db, workspaceId);
+    // only 2 active prompts exist here; one engine (chatgpt), one country (US), once each
+    expect(r).toMatchObject({ ok: true, items: 2 });
+    if (!r.ok) return;
+    const items = await itemsOf(r.runId);
+    expect(new Set(items.map((i) => `${i.engine}:${i.country}:${i.sampleIndex}`))).toEqual(
+      new Set(["chatgpt:US:0"]),
+    );
+  });
+
+  it("checks a slow batch only every so often", async () => {
+    const r = await createRun(db, workspaceId, { engines: ["gemini"], promptIds: [promptIds[0]] });
+    if (!r.ok) throw new Error(r.message);
+    const provider = new FakeProvider({ pendingChecks: 1_000 });
+    let checks = 0;
+    const check = provider.check.bind(provider);
+    provider.check = async (id: string) => {
+      checks++;
+      return check(id);
+    };
+    const providerFor = async () => provider;
+    let t = Date.parse("2026-10-20T10:00:00Z");
+    for (let i = 0; i < 6; i++) {
+      await tick({ db, providerFor, now: () => new Date(t), checkEveryMs: 15_000 });
+      t += 5_000; // a tick every 5 seconds
+    }
+    // 30 seconds of ticks, checked at 0s, 15s and 30s... minus the submit tick's own check
+    expect(checks).toBeLessThanOrEqual(3);
   });
 });

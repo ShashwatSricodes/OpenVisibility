@@ -15,6 +15,35 @@ import { getTrackingConfig } from "../tracking-config";
 export type CreateRunResult =
   { ok: true; runId: string; items: number } | { ok: false; message: string; runId?: string };
 
+export const TEST_RUN = { prompts: 3, samples: 1 } as const;
+
+/**
+ * A cheap first run to check the key and setup: the first few active prompts,
+ * on the first engine, in the first country, asked once (about 3 answers).
+ */
+export async function createTestRun(db: AnyDb, workspaceId: string): Promise<CreateRunResult> {
+  const [brand] = await db
+    .select({ id: brands.id })
+    .from(brands)
+    .where(eq(brands.workspaceId, workspaceId))
+    .orderBy(asc(brands.createdAt))
+    .limit(1);
+  if (!brand) return { ok: false, message: "Set up your brand first." };
+  const config = await getTrackingConfig(db, workspaceId);
+  const first = await db
+    .select({ id: prompts.id })
+    .from(prompts)
+    .where(and(eq(prompts.brandId, brand.id), eq(prompts.active, true)))
+    .orderBy(asc(prompts.createdAt))
+    .limit(TEST_RUN.prompts);
+  return createRun(db, workspaceId, {
+    promptIds: first.map((p) => p.id),
+    engines: config.engines.slice(0, 1),
+    countries: config.countries.slice(0, 1),
+    samples: TEST_RUN.samples,
+  });
+}
+
 /** A run is in progress while it's queued or running; only one at a time per workspace. */
 export async function activeRun(db: AnyDb, workspaceId: string) {
   const [row] = await db
@@ -32,12 +61,18 @@ export async function createRun(
     trigger = "manual",
     promptIds,
     engines: onlyEngines,
+    samples: samplesOverride,
+    countries: countriesOverride,
   }: {
     trigger?: "manual" | "scheduled";
     /** run just these prompts (a test run); default every active prompt */
     promptIds?: string[];
     /** run just these engines; default the workspace's */
     engines?: EngineId[];
+    /** ask each prompt this many times instead of the workspace's setting */
+    samples?: number;
+    /** ask in just these countries instead of each prompt's or the workspace's */
+    countries?: string[];
   } = {},
 ): Promise<CreateRunResult> {
   const busy = await activeRun(db, workspaceId);
@@ -77,15 +112,16 @@ export async function createRun(
 
   const items = chosen.flatMap((p) =>
     engines.flatMap((engine) =>
-      (p.countries.length ? p.countries : config.countries).flatMap((country) =>
-        Array.from({ length: config.samples }, (_, sampleIndex) => ({
-          promptId: p.id,
-          promptText: p.text,
-          engine,
-          source: ENGINES[engine].source,
-          country,
-          sampleIndex,
-        })),
+      (countriesOverride ?? (p.countries.length ? p.countries : config.countries)).flatMap(
+        (country) =>
+          Array.from({ length: samplesOverride ?? config.samples }, (_, sampleIndex) => ({
+            promptId: p.id,
+            promptText: p.text,
+            engine,
+            source: ENGINES[engine].source,
+            country,
+            sampleIndex,
+          })),
       ),
     ),
   );

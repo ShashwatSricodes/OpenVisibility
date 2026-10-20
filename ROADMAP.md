@@ -244,12 +244,14 @@ This is the key piece of the architecture: the worker, the analysis and the dash
 
 ### Day 16: Executing run items
 
-- [ ] The handler calls the provider, stores the answer with its raw response and cost, and updates the item's status.
-- [ ] Per-provider concurrency limits (e.g. 4 at a time per engine) and exponential backoff on rate limits.
-- [ ] Idempotency: a retried job must never store a second answer or charge twice.
-- [ ] When every item finishes, mark the run `completed` or `partial` and total up `actual_cost`.
+- [x] The worker calls the provider, stores each answer with its raw record, cost, latency and labelled citations, and updates the item (built on Day 15).
+- [x] Concurrency: one batch per run and engine, so a run is a handful of Bright Data jobs, not one per item; the account-wide rate guard (Day 10) spaces requests. Each batch is checked every 15 seconds, not every tick.
+- [x] Backoff: a batch that fails to submit waits a minute; failed answers are re-queued up to 3 tries.
+- [x] Idempotency: one answer per item (unique key), and a batch already paid for is resumed by its job ID, never resubmitted (tested).
+- [x] Runs close as completed, partial or failed, with `actual_cost` totalled from the answers.
+- [x] Test run: 3 prompts, one engine and country, asked once (about 3 answers), to check a key and setup cheaply.
 
-**Done when:** a full run on the seed data finishes, with every answer and cost in the database.
+**Done when:** a full run on the seed data finishes, with every answer and cost in the database. ✅ 20 October 2026: a real test run (3 ChatGPT answers, US) completed in 4 min 25 s; each answer stored with 3,000–4,000 characters, its raw record, $0.0015, and 2–3 citations labelled third-party; the run totalled $0.0045.
 
 ### Day 17: Cost estimate and budget caps
 

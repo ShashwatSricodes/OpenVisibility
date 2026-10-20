@@ -53,7 +53,12 @@ export function startWorker({ intervalMs = 5_000 }: { intervalMs?: number } = {}
     if (busy || stopped) return;
     busy = true;
     try {
-      const r = await tick({ db: getDb(), providerFor: defaultProviderFor });
+      const r = await tick({
+        db: getDb(),
+        providerFor: defaultProviderFor,
+        // fake answers are instant; Bright Data batches take minutes, so don't ask every tick
+        checkEveryMs: process.env.OV_FAKE_ANSWERS === "1" ? 0 : 15_000,
+      });
       if (r.submitted || r.collected || r.requeued || r.finished.length)
         console.log(
           `Worker: submitted ${r.submitted}, answered ${r.collected}, retrying ${r.requeued}` +

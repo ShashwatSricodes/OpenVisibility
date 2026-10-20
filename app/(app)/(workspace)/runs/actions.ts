@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireWorkspace } from "@/core/auth/session";
 import { checkFreeTier } from "@/core/estimate";
-import { createRun } from "@/core/runs/create";
+import { createRun, createTestRun } from "@/core/runs/create";
 import { estimateWorkspaceRun, getFreeTierUsage } from "@/core/usage";
 import { getDb } from "@/db/client";
 
@@ -36,6 +36,16 @@ export async function runNowAction(force = false): Promise<RunNowResult> {
   }
 
   const r = await createRun(db, workspace.id);
+  if (!r.ok) return { ok: false, message: r.message };
+  revalidatePath("/", "layout");
+  return { ok: true, runId: r.runId, items: r.items };
+}
+
+/** A cheap first run: 3 prompts, one engine and country, asked once. */
+export async function testRunAction(): Promise<RunNowResult> {
+  const { workspace, role } = await requireWorkspace();
+  if (role !== "owner") return { ok: false, message: "Only the workspace owner can start runs." };
+  const r = await createTestRun(getDb(), workspace.id);
   if (!r.ok) return { ok: false, message: r.message };
   revalidatePath("/", "layout");
   return { ok: true, runId: r.runId, items: r.items };

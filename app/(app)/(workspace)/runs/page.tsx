@@ -6,7 +6,7 @@ import { estimateWorkspaceRun } from "@/core/usage";
 import { listRuns } from "@/core/workspace-data";
 import { getDb } from "@/db/client";
 import { EmptyState, Page } from "../../_components/page-frame";
-import { RunNowButton } from "../../_components/run-now-button";
+import { RunNowButton, TestRunButton } from "../../_components/run-now-button";
 import { cn } from "../../_lib/cn";
 import { AutoRefresh } from "./auto-refresh";
 
@@ -63,7 +63,14 @@ export default async function RunsPage() {
           ? `A run asks ${estimate.prompts} active prompts on ${config.engines.length} engines: about ${estimate.answers.toLocaleString("en-US")} Bright Data answers`
           : "Each run asks every active prompt on every engine you track"
       }
-      actions={estimate.prompts ? <RunNowButton /> : undefined}
+      actions={
+        estimate.prompts ? (
+          <>
+            <TestRunButton />
+            <RunNowButton />
+          </>
+        ) : undefined
+      }
     >
       <AutoRefresh active={active} />
       {runs.length === 0 ? (
