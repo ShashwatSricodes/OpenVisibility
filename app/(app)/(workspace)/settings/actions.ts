@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireWorkspace } from "@/core/auth/session";
 import { saveCap, validateCap } from "@/core/budget";
+import { saveSchedule } from "@/core/runs/schedule";
+import { formatInZone, validateSchedule, type Schedule } from "@/core/schedule-rules";
 import {
   deleteCredential,
   markVerified,
@@ -108,5 +110,23 @@ export async function saveCapAction(cap: number | null): Promise<KeyFormState> {
       cap === null
         ? "Limit removed."
         : `Limit set to ${cap.toLocaleString("en-US")} answers a month.`,
+  };
+}
+
+/** Turn automatic runs on or off, or move them. */
+export async function saveScheduleAction(input: Schedule): Promise<KeyFormState> {
+  const { workspace, role } = await requireWorkspace();
+  if (role !== "owner")
+    return { ok: false, message: "Only the workspace owner can change the schedule." };
+  const problem = validateSchedule(input);
+  if (problem) return { ok: false, message: problem };
+  const next = await saveSchedule(getDb(), workspace.id, input);
+  revalidatePath("/settings");
+  revalidatePath("/runs");
+  return {
+    ok: true,
+    message: next
+      ? `Saved. Next run ${formatInZone(next, input.timezone)}.`
+      : "Saved. Runs only start when you press Run now.",
   };
 }

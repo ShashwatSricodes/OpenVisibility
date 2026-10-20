@@ -2,7 +2,7 @@
 
 **The open-source alternative to Profound.** Track how ChatGPT, Gemini, Google AI Mode, Google AI Overviews, Perplexity and Claude talk about your brand: how often you're mentioned, where you rank, who you're compared with, and which sources the answers cite.
 
-> **Status: early development.** The data layer works and is tested; the dashboard, scheduling and billing are being built in the open. See [ROADMAP.md](ROADMAP.md) for the day-by-day plan.
+> **Status: early development.** The data layer works and is tested; scheduled runs work; the dashboard and billing are being built in the open. See [ROADMAP.md](ROADMAP.md) for the day-by-day plan.
 
 ## Why
 

@@ -1,5 +1,6 @@
 /**
- * Runs the worker on a timer. With the embedded development database it
+ * Runs the worker on a timer: start scheduled runs that are due, then work
+ * through the queue. With the embedded development database it
  * runs inside the Next.js server (only one process can open that database);
  * with DATABASE_URL it runs as its own process: `npm run worker`.
  *
@@ -13,6 +14,7 @@ import { env } from "../env";
 import { FakeProvider } from "../providers/fake";
 import { getProvider } from "../providers/index";
 import type { Provider } from "../providers/types";
+import { fireDueSchedules } from "./schedule";
 import { tick, type ProviderFor } from "./worker";
 
 /* one fake provider for the process: its jobs live in memory between ticks */
@@ -53,6 +55,12 @@ export function startWorker({ intervalMs = 5_000 }: { intervalMs?: number } = {}
     if (busy || stopped) return;
     busy = true;
     try {
+      for (const f of await fireDueSchedules(getDb()))
+        console.log(
+          f.runId
+            ? `Schedule: started run ${f.runId}`
+            : `Schedule: skipped a run for workspace ${f.workspaceId}: ${f.skipped}`,
+        );
       const r = await tick({
         db: getDb(),
         providerFor: defaultProviderFor,
