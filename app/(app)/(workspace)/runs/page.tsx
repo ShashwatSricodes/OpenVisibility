@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CalendarClock, Clock } from "lucide-react";
 import { requireWorkspace } from "@/core/auth/session";
+import { BRIGHT_DATA_PRICING } from "@/core/providers/registry";
 import { getSchedule } from "@/core/runs/schedule";
 import { describeSchedule, formatInZone } from "@/core/schedule-rules";
 import { getTrackingConfig } from "@/core/tracking-config";
@@ -126,7 +127,9 @@ export default async function RunsPage() {
             <tbody className="divide-y divide-line">
               {runs.map((r) => {
                 const s = STATUS[r.status];
-                const pct = r.totalItems ? Math.round((r.doneItems / r.totalItems) * 100) : 0;
+                // samples smart sampling skipped were never going to be answered
+                const total = r.totalItems - r.sampledOutItems;
+                const pct = total ? Math.round((r.doneItems / total) * 100) : 0;
                 return (
                   <tr key={r.id} className="align-top">
                     <td className="px-4 py-3">
@@ -145,8 +148,7 @@ export default async function RunsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="tabular">
-                        {r.doneItems.toLocaleString("en-US")} /{" "}
-                        {r.totalItems.toLocaleString("en-US")}
+                        {r.doneItems.toLocaleString("en-US")} / {total.toLocaleString("en-US")}
                       </span>
                       <span className="mt-1.5 block h-1 w-28 overflow-hidden rounded-full bg-pressed">
                         <span
@@ -154,6 +156,17 @@ export default async function RunsPage() {
                           style={{ width: `${pct}%` }}
                         />
                       </span>
+                      {(r.reusedItems > 0 || r.sampledOutItems > 0) && (
+                        <span className="mt-1.5 block text-xs text-fg-subtle">
+                          {[
+                            r.reusedItems > 0 && `${r.reusedItems.toLocaleString("en-US")} reused`,
+                            r.sampledOutItems > 0 &&
+                              `${r.sampledOutItems.toLocaleString("en-US")} not needed`,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
+                      )}
                     </td>
                     <td className="tabular px-4 py-3 text-fg-subtle">
                       {duration(r.startedAt, r.finishedAt)}
@@ -163,6 +176,15 @@ export default async function RunsPage() {
                       <span className="block text-xs">
                         est. ${Number(r.estimatedCost).toFixed(4)}
                       </span>
+                      {(r.reusedItems > 0 || r.sampledOutItems > 0) && (
+                        <span className="block text-xs text-good">
+                          saved $
+                          {(
+                            (r.reusedItems + r.sampledOutItems) *
+                            BRIGHT_DATA_PRICING.perAnswerUsd
+                          ).toFixed(4)}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );

@@ -2,7 +2,10 @@
  * The run worker. The run_items table is the queue; each `tick` moves it on:
  *
  *   1. submit:   queued items go out as one batch per run and engine, and the
- *                provider's job ID is saved on each item (status "running")
+ *                provider's job ID is saved on each item (status "running").
+ *                With smart sampling, samples after the first two wait until
+ *                those are back, and are skipped if the two agree on whether
+ *                the brand is mentioned.
  *   2. collect:  running batches are checked; finished ones are stored as
  *                answers (with citations), failed answers are re-queued or failed
  *   3. finish:   runs with nothing left to do are closed with their totals
@@ -12,10 +15,12 @@
  * Storing an answer is idempotent (one answer per item).
  */
 
-import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import type { AnyDb } from "@/db/client";
 import { answers, brands, citations, competitors, runItems, runs } from "@/db/schema";
+import { mentionsBrand } from "../brand-mention";
 import { getBudget } from "../budget";
+import { SAMPLING_DECIDES_FROM } from "../savings";
 import { ProviderError } from "../providers/errors";
 import type { EngineId, ItemError, Provider, QueryResult } from "../providers/types";
 
@@ -75,6 +80,7 @@ export async function tick(opts: WorkerOptions): Promise<TickReport> {
 async function submitQueued(opts: WorkerOptions, report: TickReport) {
   const { db, providerFor, maxBatch = 200 } = opts;
   const now = (opts.now ?? (() => new Date()))();
+  const held = await smartSample(db, now);
 
   const queued = await db
     .select({ item: runItems, workspaceId: runs.workspaceId })
@@ -85,6 +91,7 @@ async function submitQueued(opts: WorkerOptions, report: TickReport) {
 
   const groups = new Map<string, { workspaceId: string; items: ItemRow[] }>();
   for (const { item, workspaceId } of queued) {
+    if (held.has(item.id)) continue;
     const key = `${item.runId}:${item.engine}`;
     if (!groups.has(key)) groups.set(key, { workspaceId, items: [] });
     groups.get(key)!.items.push(item);
@@ -103,6 +110,7 @@ async function submitQueued(opts: WorkerOptions, report: TickReport) {
           .update(runItems)
           .set({
             status: "skipped",
+            skipReason: "limit",
             error: "Monthly answer limit reached",
             finishedAt: now,
           })
@@ -168,6 +176,87 @@ async function submitQueued(opts: WorkerOptions, report: TickReport) {
       }
     }
   }
+}
+
+/**
+ * Smart sampling. For each prompt, engine and country, the samples after the
+ * first two wait until those two are answered. If both name the brand, or
+ * neither does, the rest are skipped and carry that result over (so mention
+ * rates stay honest); if they disagree, or one failed, the rest are asked.
+ * Returns the items still waiting.
+ */
+async function smartSample(db: AnyDb, now: Date): Promise<Set<string>> {
+  const later = await db
+    .select({ item: runItems, brandId: runs.brandId })
+    .from(runItems)
+    .innerJoin(runs, eq(runItems.runId, runs.id))
+    .where(
+      and(
+        eq(runs.smartSampling, true),
+        inArray(runs.status, ["queued", "running"]),
+        eq(runItems.status, "queued"),
+        gte(runItems.sampleIndex, SAMPLING_DECIDES_FROM),
+      ),
+    );
+  const held = new Set<string>();
+  if (!later.length) return held;
+
+  const runIds = [...new Set(later.map((l) => l.item.runId))];
+  const brandIds = [...new Set(later.map((l) => l.brandId))];
+  const [firsts, brandRows] = await Promise.all([
+    db
+      .select({
+        runId: runItems.runId,
+        promptText: runItems.promptText,
+        engine: runItems.engine,
+        country: runItems.country,
+        status: runItems.status,
+        text: answers.text,
+      })
+      .from(runItems)
+      .leftJoin(answers, eq(answers.runItemId, runItems.id))
+      .where(and(inArray(runItems.runId, runIds), lt(runItems.sampleIndex, SAMPLING_DECIDES_FROM))),
+    db
+      .select({ id: brands.id, name: brands.name, domains: brands.domains })
+      .from(brands)
+      .where(inArray(brands.id, brandIds)),
+  ]);
+  const brandOf = new Map(brandRows.map((b) => [b.id, b]));
+  const key = (i: { runId: string; promptText: string; engine: string; country: string | null }) =>
+    `${i.runId} ${i.engine} ${i.country ?? ""} ${i.promptText}`;
+  const groups = new Map<string, typeof firsts>();
+  for (const f of firsts) {
+    if (!groups.has(key(f))) groups.set(key(f), []);
+    groups.get(key(f))!.push(f);
+  }
+
+  const skip = { true: [] as string[], false: [] as string[] };
+  for (const { item, brandId } of later) {
+    const first = groups.get(key(item)) ?? [];
+    if (first.length < SAMPLING_DECIDES_FROM || first.some((f) => f.status !== "done")) {
+      // still being asked: wait; failed or skipped: nothing to go on, so ask
+      if (first.some((f) => f.status === "queued" || f.status === "running")) held.add(item.id);
+      continue;
+    }
+    const brand = brandOf.get(brandId);
+    if (!brand) continue;
+    const seen = first.map((f) => mentionsBrand(f.text ?? "", brand));
+    if (seen.every((m) => m === seen[0])) skip[String(seen[0]) as "true" | "false"].push(item.id);
+  }
+  for (const mentioned of [true, false])
+    if (skip[`${mentioned}`].length)
+      await db
+        .update(runItems)
+        .set({
+          status: "skipped",
+          skipReason: "sampling",
+          inferredMentioned: mentioned,
+          error: null,
+          finishedAt: now,
+        })
+        .where(inArray(runItems.id, skip[`${mentioned}`]));
+  for (const id of [...skip.true, ...skip.false]) held.add(id);
+  return held;
 }
 
 /* ── 2. collect ────────────────────────────────────────────── */
@@ -399,18 +488,24 @@ async function finishRuns(opts: WorkerOptions): Promise<string[]> {
       .groupBy(runItems.status);
     const n = (s: string) => counts.find((c) => c.status === s)?.n ?? 0;
     const done = n("done");
+    const [sampled] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(runItems)
+      .where(and(eq(runItems.runId, id), eq(runItems.skipReason, "sampling")));
     const [cost] = await db
       .select({ total: sql<string>`coalesce(sum(${answers.costUsd}), 0)::text` })
       .from(answers)
       .innerJoin(runItems, eq(answers.runItemId, runItems.id))
       .where(eq(runItems.runId, id));
 
-    const progress = { doneItems: done, actualCost: cost.total };
+    const progress = { doneItems: done, actualCost: cost.total, sampledOutItems: sampled.n };
     if (n("queued") + n("running") > 0) {
       await db.update(runs).set(progress).where(eq(runs.id, id));
       continue;
     }
-    const status = done === 0 ? "failed" : n("failed") + n("skipped") > 0 ? "partial" : "completed";
+    // samples smart sampling didn't need aren't missing answers
+    const missing = n("failed") + n("skipped") - sampled.n;
+    const status = done === 0 ? "failed" : missing > 0 ? "partial" : "completed";
     await db
       .update(runs)
       .set({ ...progress, status, finishedAt: now })

@@ -274,11 +274,11 @@ This is the key piece of the architecture: the worker, the analysis and the dash
 
 These features are what make the product cheap to run, so build them early.
 
-- [ ] Cache: reuse an identical (engine, model, prompt, country) answer that's under N hours old, configurable and off by default for scheduled runs.
-- [ ] Smart sampling (optional per workspace): if the first two samples agree on whether you're mentioned, skip the rest. Record skipped samples so the mention rate stays honest.
-- [ ] Show the savings in the run summary.
+- [x] Answer reuse (`core/runs/cache.ts`): a run copies this workspace's answers to the same (engine, country, prompt) that are under N hours old (1–168, Settings), with their citations, at no cost; each sample takes a different earlier answer. Only answers that were really asked are reused, never copies, so nothing outlives its age limit. The model isn't part of the match because Bright Data doesn't let us pick it. Off by default; when on, scheduled runs still ask fresh unless "Scheduled runs too" is ticked, and test runs always ask fresh. Reused answers don't count against the monthly limit.
+- [x] Smart sampling (per workspace, needs 3+ samples): the worker asks samples 1 and 2 first and holds the rest. If both name the brand or neither does, the rest are skipped with `skip_reason = sampling` and `inferred_mentioned` set to the agreed result, so mention rates (Day 24) can count them; if they disagree or one failed, the rest are asked. Skipped samples don't make a run "partly done". It uses a simple brand-name check (`core/brand-mention.ts`) until mention detection lands on Day 21.
+- [x] The Runs page shows "N reused · N not needed" and "saved $X" per run, and leaves skipped samples out of the progress total.
 
-**Done when:** the same run costs measurably less with both options on, and the metrics still make sense.
+**Done when:** the same run costs measurably less with both options on, and the metrics still make sense. ✅ 20 October 2026 (fake answers): with 3 samples, smart sampling asked 96 of 144 answers (48 not needed, saved $0.072); with reuse on as well, the same run asked none (144 reused, est. $0.0000, saved $0.216). Tests check that each skipped sample carries the agreed mention result. Note for Day 24: count `inferred_mentioned` samples in mention rates.
 
 ### Day 20: Run history page
 
@@ -319,7 +319,7 @@ These features are what make the product cheap to run, so build them early.
 ### Day 24: Metrics aggregation
 
 - [ ] Define every metric precisely in `docs/metrics.md` first:
-  - **Mention rate:** samples that mention the brand ÷ total samples
+  - **Mention rate:** samples that mention the brand ÷ total samples (samples skipped by smart sampling count with their `inferred_mentioned` result)
   - **Average position:** mean position across samples where the brand appears
   - **Share of voice:** brand mentions ÷ all tracked-brand mentions
   - **Owned citation share:** owned citations ÷ all citations

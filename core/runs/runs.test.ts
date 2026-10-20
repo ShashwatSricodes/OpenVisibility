@@ -341,3 +341,125 @@ describe("schedules", () => {
     expect(await fireDueSchedules(db, new Date("2030-01-01T00:00:00Z"))).toEqual([]);
   });
 });
+
+describe("saving answers", () => {
+  const setWs = (values: Partial<typeof schema.workspaces.$inferInsert>) =>
+    db.update(schema.workspaces).set(values).where(eq(schema.workspaces.id, workspaceId));
+  const ledgerly = () =>
+    new FakeProvider({
+      reply: () => ({
+        text: "Try Ledgerly.",
+        citations: [{ url: "https://ledgerly.app/pricing", title: "Ledgerly" }],
+      }),
+    });
+  const drained = async (provider = ledgerly()) => {
+    const r = await createRun(db, workspaceId);
+    if (!r.ok) throw new Error(r.message);
+    await tick({ db, providerFor: async () => provider });
+    return r;
+  };
+
+  it("reuses recent answers instead of asking again, at no cost", async () => {
+    const first = await drained();
+    await setWs({ cacheHours: 24, monthlyAnswerCap: 12 }); // the limit is already spent
+    const again = await createRun(db, workspaceId);
+    if (!again.ok) throw new Error(again.message);
+    expect(again).toMatchObject({ items: 12, reused: 12 });
+
+    const provider = new FakeProvider();
+    await tick({ db, providerFor: async () => provider });
+    expect(provider.submitted).toHaveLength(0);
+    expect(await runOf(again.runId)).toMatchObject({
+      status: "completed",
+      doneItems: 12,
+      reusedItems: 12,
+      actualCost: "0.000000",
+      estimatedCost: "0.000000",
+    });
+
+    // each sample gets a different earlier answer, and the citations come along
+    const copies = await db
+      .select({ from: schema.answers.reusedFromId, cost: schema.answers.costUsd })
+      .from(schema.answers)
+      .innerJoin(schema.runItems, eq(schema.answers.runItemId, schema.runItems.id))
+      .where(eq(schema.runItems.runId, again.runId));
+    expect(new Set(copies.map((c) => c.from)).size).toBe(12);
+    const firstAnswers = await db
+      .select({ id: schema.answers.id })
+      .from(schema.answers)
+      .innerJoin(schema.runItems, eq(schema.answers.runItemId, schema.runItems.id))
+      .where(eq(schema.runItems.runId, first.runId));
+    expect(copies.every((c) => firstAnswers.some((a) => a.id === c.from))).toBe(true);
+    expect((await db.select({ n: count() }).from(schema.citations))[0].n).toBe(24);
+  });
+
+  it("asks again once answers are older than the limit", async () => {
+    await drained();
+    await setWs({ cacheHours: 2 });
+    const later = await createRun(db, workspaceId, { now: new Date(Date.now() + 3 * 3_600_000) });
+    expect(later).toMatchObject({ ok: true, reused: 0 });
+  });
+
+  it("is off for scheduled runs and test runs unless asked", async () => {
+    await drained();
+    await setWs({ cacheHours: 24 });
+    const scheduled = await createRun(db, workspaceId, { trigger: "scheduled" });
+    expect(scheduled).toMatchObject({ ok: true, reused: 0 });
+    await db.delete(schema.runs).where(eq(schema.runs.trigger, "scheduled"));
+
+    expect(await createTestRun(db, workspaceId)).toMatchObject({ ok: true, reused: 0 });
+    await db.delete(schema.runs).where(eq(schema.runs.status, "queued"));
+
+    await setWs({ cacheScheduled: true });
+    expect(await createRun(db, workspaceId, { trigger: "scheduled" })).toMatchObject({
+      ok: true,
+      reused: 12,
+    });
+  });
+
+  it("smart sampling: asks two samples, skips the rest when they agree", async () => {
+    await setWs({ samples: 4, smartSampling: true });
+    const r = await createRun(db, workspaceId);
+    if (!r.ok) throw new Error(r.message);
+    const provider = ledgerly();
+    const providerFor = async () => provider;
+
+    await tick({ db, providerFor }); // samples 0 and 1 asked and answered
+    expect(provider.submitted.flatMap((s) => s.inputs)).toHaveLength(12);
+    await tick({ db, providerFor }); // agreed: 2 and 3 skipped
+    expect(provider.submitted.flatMap((s) => s.inputs)).toHaveLength(12);
+
+    const run = await runOf(r.runId);
+    expect(run).toMatchObject({ status: "completed", doneItems: 12, sampledOutItems: 12 });
+    const skipped = (await itemsOf(r.runId)).filter((i) => i.status === "skipped");
+    expect(skipped).toHaveLength(12);
+    expect(skipped.every((i) => i.skipReason === "sampling" && i.inferredMentioned)).toBe(true);
+    expect(skipped.every((i) => i.sampleIndex >= 2)).toBe(true);
+  });
+
+  it("smart sampling: asks the rest when the first two disagree", async () => {
+    await setWs({ samples: 3, smartSampling: true });
+    const r = await createRun(db, workspaceId, { engines: ["chatgpt"], promptIds: [promptIds[0]] });
+    if (!r.ok) throw new Error(r.message);
+    // per country: the first answer names Ledgerly, the next doesn't
+    const asked = new Map<string, number>();
+    const provider = new FakeProvider({
+      reply: ({ country = "" }) => {
+        asked.set(country, (asked.get(country) ?? 0) + 1);
+        return { text: asked.get(country) === 1 ? "Try Ledgerly." : "Try Zoho." };
+      },
+    });
+    const providerFor = async () => provider;
+    await tick({ db, providerFor });
+    await tick({ db, providerFor });
+    expect(provider.submitted.map((s) => s.inputs.length)).toEqual([4, 2]);
+    expect(await runOf(r.runId)).toMatchObject({ status: "completed", sampledOutItems: 0 });
+  });
+
+  it("smart sampling is ignored with two samples or fewer", async () => {
+    await setWs({ smartSampling: true }); // samples: 2
+    const r = await createRun(db, workspaceId);
+    if (!r.ok) throw new Error(r.message);
+    expect((await runOf(r.runId)).smartSampling).toBe(false);
+  });
+});

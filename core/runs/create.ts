@@ -3,6 +3,10 @@
  * prompt × engine × country × sample. The worker (worker.ts) then works
  * through them. Prompt text is copied onto each item, so history stays
  * readable even if the prompt is later edited or deleted.
+ *
+ * With answer reuse on (Settings), items that match a recent answer are
+ * filled from it straight away (cache.ts) and only the rest are asked; only
+ * those count against the monthly limit.
  */
 
 import { and, asc, eq, inArray } from "drizzle-orm";
@@ -11,10 +15,13 @@ import { brands, prompts, runItems, runs } from "@/db/schema";
 import { BRIGHT_DATA_PRICING, ENGINES } from "../providers/registry";
 import type { EngineId } from "../providers/types";
 import { capProblem, getBudget } from "../budget";
+import { getSavings, SAMPLING_DECIDES_FROM } from "../savings";
 import { getTrackingConfig } from "../tracking-config";
+import { findReusable, reuseKey, storeReused, type Reusable } from "./cache";
 
 export type CreateRunResult =
-  { ok: true; runId: string; items: number } | { ok: false; message: string; runId?: string };
+  | { ok: true; runId: string; items: number; reused: number }
+  | { ok: false; message: string; runId?: string };
 
 export const TEST_RUN = { prompts: 3, samples: 1 } as const;
 
@@ -42,6 +49,8 @@ export async function createTestRun(db: AnyDb, workspaceId: string): Promise<Cre
     engines: config.engines.slice(0, 1),
     countries: config.countries.slice(0, 1),
     samples: TEST_RUN.samples,
+    // a test run checks the key and setup, so it always really asks
+    reuse: false,
   });
 }
 
@@ -64,6 +73,8 @@ export async function createRun(
     engines: onlyEngines,
     samples: samplesOverride,
     countries: countriesOverride,
+    reuse,
+    now = new Date(),
   }: {
     trigger?: "manual" | "scheduled";
     /** run just these prompts (a test run); default every active prompt */
@@ -74,6 +85,9 @@ export async function createRun(
     samples?: number;
     /** ask in just these countries instead of each prompt's or the workspace's */
     countries?: string[];
+    /** reuse recent answers; default per the workspace's settings and the trigger */
+    reuse?: boolean;
+    now?: Date;
   } = {},
 ): Promise<CreateRunResult> {
   const busy = await activeRun(db, workspaceId);
@@ -92,7 +106,10 @@ export async function createRun(
     .limit(1);
   if (!brand) return { ok: false, message: "Set up your brand first." };
 
-  const config = await getTrackingConfig(db, workspaceId);
+  const [config, savings] = await Promise.all([
+    getTrackingConfig(db, workspaceId),
+    getSavings(db, workspaceId),
+  ]);
   const engines = onlyEngines
     ? config.engines.filter((e) => onlyEngines.includes(e))
     : config.engines;
@@ -127,7 +144,29 @@ export async function createRun(
     ),
   );
 
-  const over = capProblem(await getBudget(db, workspaceId), items.length);
+  // match items to recent answers: sample k takes the k-th newest answer
+  const useCache =
+    (reuse ?? (trigger === "manual" || savings.cacheScheduled)) && savings.cacheHours !== null;
+  const reusable = useCache
+    ? await findReusable(
+        db,
+        workspaceId,
+        chosen.map((p) => p.text),
+        savings.cacheHours!,
+        now,
+      )
+    : new Map<string, Reusable[]>();
+  const taken = new Map<string, number>();
+  const planned = items.map((it) => {
+    const key = reuseKey(it.engine, it.country, it.promptText);
+    const k = taken.get(key) ?? 0;
+    taken.set(key, k + 1);
+    return { ...it, id: crypto.randomUUID(), from: reusable.get(key)?.[k] };
+  });
+  const fresh = planned.filter((it) => !it.from).length;
+  const reused = planned.length - fresh;
+
+  const over = capProblem(await getBudget(db, workspaceId), fresh);
   if (over) return { ok: false, message: over };
 
   const runId = await db.transaction(async (tx) => {
@@ -137,18 +176,30 @@ export async function createRun(
         workspaceId,
         brandId: brand.id,
         trigger,
-        totalItems: items.length,
-        // list price; the free tier is checked separately before starting
-        estimatedCost: (items.length * BRIGHT_DATA_PRICING.perAnswerUsd).toFixed(6),
+        totalItems: planned.length,
+        // list price for what will really be asked; the free tier is checked separately
+        estimatedCost: (fresh * BRIGHT_DATA_PRICING.perAnswerUsd).toFixed(6),
+        smartSampling:
+          savings.smartSampling && (samplesOverride ?? config.samples) > SAMPLING_DECIDES_FROM,
+        reusedItems: reused,
+        startedAt: reused ? now : null,
       })
       .returning({ id: runs.id });
     // inserted in chunks: a big workspace can fan out to thousands of items
-    for (let i = 0; i < items.length; i += 500)
-      await tx
-        .insert(runItems)
-        .values(items.slice(i, i + 500).map((it) => ({ ...it, runId: run.id })));
+    for (let i = 0; i < planned.length; i += 500)
+      await tx.insert(runItems).values(
+        planned.slice(i, i + 500).map(({ from, ...it }) => ({
+          ...it,
+          runId: run.id,
+          ...(from ? { status: "done" as const, startedAt: now, finishedAt: now } : {}),
+        })),
+      );
+    await storeReused(
+      tx,
+      planned.flatMap((it) => (it.from ? [{ itemId: it.id, from: it.from }] : [])),
+    );
     return run.id;
   });
 
-  return { ok: true, runId, items: items.length };
+  return { ok: true, runId, items: planned.length, reused };
 }

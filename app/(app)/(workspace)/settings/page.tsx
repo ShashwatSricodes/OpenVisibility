@@ -5,11 +5,13 @@ import { getCredentialInfo } from "@/core/credentials";
 import { env } from "@/core/env";
 import { BRIGHT_DATA_PRICING, ENGINES } from "@/core/providers/registry";
 import { getSchedule } from "@/core/runs/schedule";
+import { getSavings } from "@/core/savings";
 import { getTrackingConfig } from "@/core/tracking-config";
 import { estimateWorkspaceRun, getFreeTierUsage } from "@/core/usage";
 import { getDb } from "@/db/client";
 import { BrightDataKeyForm, type KeyStatus } from "./key-form";
 import { Page } from "../../_components/page-frame";
+import { SavingsForm } from "./savings-form";
 import { ScheduleForm } from "./schedule-form";
 import { TrackingForm } from "./tracking-form";
 import { UsageSection } from "./usage-section";
@@ -25,12 +27,13 @@ const listFormat = new Intl.ListFormat("en", { type: "conjunction" });
 export default async function SettingsPage() {
   const { workspace, role } = await requireWorkspace();
   const db = getDb();
-  const [info, tracking, usage, estimate, schedule] = await Promise.all([
+  const [info, tracking, usage, estimate, schedule, savings] = await Promise.all([
     getCredentialInfo(db, workspace.id),
     getTrackingConfig(db, workspace.id),
     getFreeTierUsage(db, workspace.id),
     estimateWorkspaceRun(db, workspace.id),
     getSchedule(db, workspace.id),
+    getSavings(db, workspace.id),
   ]);
 
   const status: KeyStatus = info
@@ -91,6 +94,16 @@ export default async function SettingsPage() {
           cap={workspace.monthlyAnswerCap}
           canEdit={role === "owner"}
         />
+      </section>
+
+      <section className="rounded-xl border border-line bg-panel">
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="text-sm font-semibold">Saving answers</h2>
+          <p className="mt-1 text-[13px] text-fg-subtle">
+            Two ways to pay for fewer Bright Data answers. Both are off until you turn them on.
+          </p>
+        </div>
+        <SavingsForm savings={savings} samples={tracking.samples} canEdit={role === "owner"} />
       </section>
 
       <section className="rounded-xl border border-line bg-panel">

@@ -10,6 +10,7 @@
 
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   index,
   integer,
@@ -80,6 +81,12 @@ export const workspaces = pgTable("workspaces", {
   scheduleTimezone: text("schedule_timezone").notNull().default("UTC"),
   /** when the worker starts the next scheduled run; null when off */
   scheduleNextAt: timestamp("schedule_next_at", { withTimezone: true }),
+  /** reuse an identical answer this many hours old or newer instead of paying again; null: off */
+  cacheHours: integer("cache_hours"),
+  /** whether scheduled runs reuse answers too; off, so tracking over time stays fresh */
+  cacheScheduled: boolean("cache_scheduled").notNull().default(false),
+  /** skip the remaining samples when the first two agree on whether the brand is mentioned */
+  smartSampling: boolean("smart_sampling").notNull().default(false),
   createdAt: createdAt(),
 });
 
@@ -229,6 +236,9 @@ export const runStatus = pgEnum("run_status", [
 
 export const itemStatus = pgEnum("item_status", ["queued", "running", "done", "failed", "skipped"]);
 
+/** Why an item was skipped: the monthly limit, or smart sampling (not a failure). */
+export const skipReason = pgEnum("skip_reason", ["limit", "sampling"]);
+
 export const citationKind = pgEnum("citation_kind", ["owned", "competitor", "third_party"]);
 
 /** One tracking run: every active prompt × engine × country × sample for a brand. */
@@ -252,6 +262,12 @@ export const runs = pgTable(
     finishedAt: timestamp("finished_at", { withTimezone: true }),
     /** why a run failed or finished partly, in words for the run page */
     note: text("note"),
+    /** smart sampling was on when the run started */
+    smartSampling: boolean("smart_sampling").notNull().default(false),
+    /** answers reused from earlier runs instead of asked again */
+    reusedItems: integer("reused_items").notNull().default(0),
+    /** samples smart sampling didn't need to ask */
+    sampledOutItems: integer("sampled_out_items").notNull().default(0),
     createdAt: createdAt(),
   },
   (t) => [
@@ -282,6 +298,12 @@ export const runItems = pgTable(
     externalId: text("external_id"),
     /** position in that job's batch, so each answer goes back to the right item */
     batchIndex: integer("batch_index"),
+    skipReason: skipReason("skip_reason"),
+    /**
+     * Smart sampling: whether the brand was mentioned in the samples that were
+     * asked, carried over to this unasked one so mention rates stay honest.
+     */
+    inferredMentioned: boolean("inferred_mentioned"),
     startedAt: timestamp("started_at", { withTimezone: true }),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
   },
@@ -312,6 +334,10 @@ export const answers = pgTable("answers", {
   inputTokens: integer("input_tokens"),
   outputTokens: integer("output_tokens"),
   costUsd: usd("cost_usd").notNull().default("0"),
+  /** set when this answer was copied from an earlier one instead of asked again (cost 0) */
+  reusedFromId: uuid("reused_from_id").references((): AnyPgColumn => answers.id, {
+    onDelete: "set null",
+  }),
   createdAt: createdAt(),
 });
 
