@@ -5,7 +5,7 @@
 
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type { AnyDb } from "@/db/client";
-import { answers, citations, runItems, runs } from "@/db/schema";
+import { answers, brands, citations, competitors, mentions, runItems, runs } from "@/db/schema";
 import type { EngineId } from "./providers/types";
 
 /** a run page shows at most this many answers; bigger runs say so */
@@ -76,16 +76,45 @@ export async function getRunDetail(db: AnyDb, workspaceId: string, runId: string
     }
   }
 
+  // tracked brands each answer names, in order; own: the workspace's brand
+  const [brand] = await db
+    .select({ name: brands.name })
+    .from(brands)
+    .where(eq(brands.id, run.brandId));
+  const named = new Map<string, { name: string; own: boolean }[]>();
+  for (let i = 0; i < rows.length; i += 1000) {
+    const found = await db
+      .select({
+        answerId: mentions.answerId,
+        competitor: competitors.name,
+        position: mentions.position,
+      })
+      .from(mentions)
+      .leftJoin(competitors, eq(mentions.competitorId, competitors.id))
+      .where(
+        inArray(
+          mentions.answerId,
+          rows.slice(i, i + 1000).map((r) => r.id),
+        ),
+      )
+      .orderBy(asc(mentions.position));
+    for (const m of found) {
+      if (!named.has(m.answerId)) named.set(m.answerId, []);
+      named.get(m.answerId)!.push({ name: m.competitor ?? brand?.name ?? "", own: !m.competitor });
+    }
+  }
+
   // grouped by prompt, in order
   const byPrompt: {
     prompt: string;
     answers: ((typeof rows)[number] & {
       sources: { url: string; title: string | null; domain: string }[];
+      named: { name: string; own: boolean }[];
     })[];
   }[] = [];
   for (const r of rows) {
     const last = byPrompt.at(-1);
-    const answer = { ...r, sources: sources.get(r.id) ?? [] };
+    const answer = { ...r, sources: sources.get(r.id) ?? [], named: named.get(r.id) ?? [] };
     if (last?.prompt === r.promptText) last.answers.push(answer);
     else byPrompt.push({ prompt: r.promptText, answers: [answer] });
   }

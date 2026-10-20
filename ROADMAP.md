@@ -297,11 +297,12 @@ Kept simple on purpose: users see what they can act on, not the plumbing.
 
 ### Day 21: Deterministic mention detection
 
-- [ ] Match brand and competitor names plus aliases in the answer text: case-insensitive, word-boundary aware and Unicode-safe.
-- [ ] Extract position from numbered and bulleted lists, otherwise from order of first appearance.
-- [ ] Store each match in `mentions` with a short surrounding snippet.
+- [x] Match brand and competitor names, aliases and domains in the answer text (`core/mentions.ts`): case-insensitive, whole-word and Unicode-safe. A single plain-word name ("Wave", "Square") must be capitalised, so common words don't count; scripts without capitals are exempt. In URLs only the host counts. The longest name wins when names overlap.
+- [x] Position from numbered and bulleted lists (including "### 1." headings), then order of first appearance for brands named outside the list. Only tracked brands are ranked.
+- [x] Each match is stored in `mentions` (one per brand per answer) with the sentence around it. A worker step analyzes any answer not analyzed yet (`answers.analyzed_at`, `core/analysis.ts`), so new answers, reused copies and older answers are all covered, and editing the brand's names or competitors re-checks past answers. Smart sampling now uses the same detector.
+- [x] The run page shows the tracked brands each answer names, in order, with yours highlighted, or "Doesn't name you".
 
-**Done when:** tests cover tricky cases: names that are common words, possessives, and brands inside URLs.
+**Done when:** tests cover tricky cases: names that are common words, possessives, and brands inside URLs. ✅ 20 October 2026: 15 detector tests (also aliases, overlaps, Unicode, symbols, lists, headings, snippets) plus storage and re-analysis tests; the 579 answers already in the dev database were analyzed on startup.
 
 ### Day 22: LLM-assisted parsing
 

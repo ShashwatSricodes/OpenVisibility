@@ -10,6 +10,7 @@
 import { and, asc, eq, notInArray } from "drizzle-orm";
 import type { AnyDb } from "@/db/client";
 import { brandAliases, brands, competitors } from "@/db/schema";
+import { reanalyzeBrand } from "./analysis";
 import type { BrandSetup, CompetitorSetup } from "./brand-setup";
 
 export type BrandWithCompetitors = {
@@ -91,6 +92,8 @@ export async function saveBrand(
     await tx.delete(brandAliases).where(eq(brandAliases.brandId, brandId));
     if (input.aliases.length)
       await tx.insert(brandAliases).values(input.aliases.map((alias) => ({ brandId, alias })));
+    // names may have changed: find mentions in past answers again
+    if (existing) await reanalyzeBrand(tx, brandId);
     return brandId;
   });
 }
@@ -132,6 +135,7 @@ export async function saveCompetitors(db: AnyDb, brandId: string, list: Competit
           ? and(eq(competitors.brandId, brandId), notInArray(competitors.id, kept))
           : eq(competitors.brandId, brandId),
       );
+    await reanalyzeBrand(tx, brandId);
   });
 }
 

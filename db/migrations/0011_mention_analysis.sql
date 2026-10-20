@@ -1,0 +1,2 @@
+ALTER TABLE "answers" ADD COLUMN "analyzed_at" timestamp with time zone;--> statement-breakpoint
+CREATE INDEX "answers_unanalyzed_idx" ON "answers" USING btree ("id") WHERE "answers"."analyzed_at" is null;

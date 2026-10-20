@@ -8,7 +8,8 @@
  *                the brand is mentioned.
  *   2. collect:  running batches are checked; finished ones are stored as
  *                answers (with citations), failed answers are re-queued or failed
- *   3. finish:   runs with nothing left to do are closed with their totals
+ *   3. analyze:  mentions are found in new answers (core/analysis.ts)
+ *   4. finish:   runs with nothing left to do are closed with their totals
  *
  * Every step is written to the database before the next, so a restart picks
  * up where it left off and a batch already paid for is never submitted again.
@@ -18,8 +19,9 @@
 import { and, asc, eq, gte, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import type { AnyDb } from "@/db/client";
 import { answers, brands, citations, competitors, runItems, runs } from "@/db/schema";
-import { mentionsBrand } from "../brand-mention";
+import { analyzePending, loadEntities } from "../analysis";
 import { getBudget } from "../budget";
+import { detectMentions } from "../mentions";
 import { SAMPLING_DECIDES_FROM } from "../savings";
 import { ProviderError } from "../providers/errors";
 import type { EngineId, ItemError, Provider, QueryResult } from "../providers/types";
@@ -44,6 +46,7 @@ export type TickReport = {
   submitted: number;
   collected: number;
   requeued: number;
+  analyzed: number;
   finished: string[];
 };
 
@@ -68,9 +71,16 @@ const matches = (domain: string, owned: string[]) =>
   owned.some((d) => domain === d || domain.endsWith(`.${d}`));
 
 export async function tick(opts: WorkerOptions): Promise<TickReport> {
-  const report: TickReport = { submitted: 0, collected: 0, requeued: 0, finished: [] };
+  const report: TickReport = {
+    submitted: 0,
+    collected: 0,
+    requeued: 0,
+    analyzed: 0,
+    finished: [],
+  };
   await submitQueued(opts, report);
   await collectRunning(opts, report);
+  report.analyzed = await analyzePending(opts.db, { now: (opts.now ?? (() => new Date()))() });
   report.finished = await finishRuns(opts);
   return report;
 }
@@ -203,7 +213,7 @@ async function smartSample(db: AnyDb, now: Date): Promise<Set<string>> {
 
   const runIds = [...new Set(later.map((l) => l.item.runId))];
   const brandIds = [...new Set(later.map((l) => l.brandId))];
-  const [firsts, brandRows] = await Promise.all([
+  const [firsts, entities] = await Promise.all([
     db
       .select({
         runId: runItems.runId,
@@ -216,14 +226,10 @@ async function smartSample(db: AnyDb, now: Date): Promise<Set<string>> {
       .from(runItems)
       .leftJoin(answers, eq(answers.runItemId, runItems.id))
       .where(and(inArray(runItems.runId, runIds), lt(runItems.sampleIndex, SAMPLING_DECIDES_FROM))),
-    db
-      .select({ id: brands.id, name: brands.name, domains: brands.domains })
-      .from(brands)
-      .where(inArray(brands.id, brandIds)),
+    loadEntities(db, brandIds),
   ]);
-  const brandOf = new Map(brandRows.map((b) => [b.id, b]));
   const key = (i: { runId: string; promptText: string; engine: string; country: string | null }) =>
-    `${i.runId} ${i.engine} ${i.country ?? ""} ${i.promptText}`;
+    `${i.runId}\u0000${i.engine}\u0000${i.country ?? ""}\u0000${i.promptText}`;
   const groups = new Map<string, typeof firsts>();
   for (const f of firsts) {
     if (!groups.has(key(f))) groups.set(key(f), []);
@@ -238,9 +244,10 @@ async function smartSample(db: AnyDb, now: Date): Promise<Set<string>> {
       if (first.some((f) => f.status === "queued" || f.status === "running")) held.add(item.id);
       continue;
     }
-    const brand = brandOf.get(brandId);
-    if (!brand) continue;
-    const seen = first.map((f) => mentionsBrand(f.text ?? "", brand));
+    // only the workspace's own brand decides
+    const own = (entities.get(brandId) ?? []).filter((e) => e.competitorId === null);
+    if (!own.length) continue;
+    const seen = first.map((f) => detectMentions(f.text ?? "", own).length > 0);
     if (seen.every((m) => m === seen[0])) skip[String(seen[0]) as "true" | "false"].push(item.id);
   }
   for (const mentioned of [true, false])

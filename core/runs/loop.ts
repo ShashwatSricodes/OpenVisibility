@@ -67,9 +67,9 @@ export function startWorker({ intervalMs = 5_000 }: { intervalMs?: number } = {}
         // fake answers are instant; Bright Data batches take minutes, so don't ask every tick
         checkEveryMs: process.env.OV_FAKE_ANSWERS === "1" ? 0 : 15_000,
       });
-      if (r.submitted || r.collected || r.requeued || r.finished.length)
+      if (r.submitted || r.collected || r.requeued || r.analyzed || r.finished.length)
         console.log(
-          `Worker: submitted ${r.submitted}, answered ${r.collected}, retrying ${r.requeued}` +
+          `Worker: submitted ${r.submitted}, answered ${r.collected}, retrying ${r.requeued}, analyzed ${r.analyzed}` +
             (r.finished.length ? `, finished ${r.finished.length} run(s)` : ""),
         );
     } catch (err) {
