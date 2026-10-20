@@ -282,11 +282,14 @@ These features are what make the product cheap to run, so build them early.
 
 ### Day 20: Run history page
 
-- [ ] Table of runs: date, trigger, status, items done/total, estimated vs actual cost.
-- [ ] Run detail: cost breakdown by engine, failed items with their errors, and a retry-failed button.
-- [ ] Live progress while a run is in flight (polling every few seconds is fine).
+Kept simple on purpose: users see what they can act on, not the plumbing.
 
-**Done when:** you can watch a run progress and then see exactly what it cost.
+- [x] Table of runs: when, trigger, status, answers, time taken, cost and savings. Each row opens the run. The estimate shows only while a run is going; notes show only when there's something to do (limit reached, key refused, skipped), not passing hiccups the worker retries on its own.
+- [x] Run page (`/runs/[id]`, `core/run-detail.ts`): status, answers, time, cost, savings, answers and cost per engine, and the answers themselves grouped by prompt (collapsed), with their sources.
+- [x] Live progress: both pages refresh every few seconds while a run is going, with progress bars only then.
+- Decided against: listing failed items with their errors and a retry-failed button. The worker already re-asks failed answers up to 3 times; a run that still ends short says why in one line.
+
+**Done when:** you can watch a run progress and then see exactly what it cost. ✅ 20 October 2026.
 
 ---
 
