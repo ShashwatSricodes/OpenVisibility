@@ -10,6 +10,7 @@ import { FakeProvider } from "../providers/fake";
 import type { QueryInput } from "../providers/types";
 import { createRun, createTestRun } from "./create";
 import { saveCompetitors } from "../brands";
+import { citationSummary } from "../citation-stats";
 import { env } from "../env";
 import { getRunDetail } from "../run-detail";
 import { analysisModel } from "../sentiment";
@@ -661,5 +662,63 @@ describe("sentiment", () => {
       env({ ANALYSIS_BASE_URL: "http://localhost:11434/v1", ANALYSIS_MODEL: "qwen3:8b" }),
     );
     expect(local).toMatchObject({ batch: 5, priceInput: 0, priceOutput: 0 });
+  });
+});
+
+describe("citations", () => {
+  const citing = new FakeProvider({
+    reply: () => ({
+      text: "Try Ledgerly.",
+      citations: [
+        { url: "https://www.g2.com/categories/invoicing?utm_source=chatgpt.com", title: "G2" },
+        { url: "https://g2.com/categories/invoicing#:~:text=best" },
+        { url: "https://zoho.com/invoice" },
+        { url: "https://ledgerly.app/pricing" },
+      ],
+    }),
+  });
+
+  it("lists the most-cited domains for a run, each page once per answer", async () => {
+    const r = await createRun(db, workspaceId);
+    if (!r.ok) throw new Error(r.message);
+    await tick({ db, providerFor: async () => citing });
+
+    const s = await citationSummary(db, workspaceId, { runId: r.runId });
+    expect(s).toMatchObject({
+      answers: 12,
+      withSources: 12,
+      citingOwned: 12,
+      citingCompetitor: 12,
+    });
+    const [zoho] = await db.select().from(schema.competitors);
+    expect(s.domains.map((d) => [d.domain, d.kind, d.competitor, d.answers, d.citations])).toEqual([
+      ["g2.com", "third_party", null, 12, 12],
+      ["ledgerly.app", "owned", null, 12, 12],
+      ["zoho.com", "competitor", zoho.name, 12, 12],
+    ]);
+    expect(s.domains[0].pages).toEqual([
+      { url: "https://g2.com/categories/invoicing", title: "G2", answers: 12 },
+    ]);
+
+    // another workspace sees nothing
+    const [other] = await db.insert(schema.workspaces).values({ name: "Other" }).returning();
+    expect((await citationSummary(db, other.id, { runId: r.runId })).domains).toEqual([]);
+  });
+
+  it("relabels past citations when domains change", async () => {
+    const r = await createRun(db, workspaceId, { engines: ["chatgpt"], promptIds: [promptIds[0]] });
+    if (!r.ok) throw new Error(r.message);
+    await tick({ db, providerFor: async () => citing });
+
+    const [brand] = await db.select().from(schema.brands);
+    await saveCompetitors(db, brand.id, [{ name: "G2", domains: ["g2.com"], aliases: [] }]);
+    await tick({ db, providerFor: async () => citing });
+
+    const s = await citationSummary(db, workspaceId, { runId: r.runId });
+    expect(Object.fromEntries(s.domains.map((d) => [d.domain, d.competitor ?? d.kind]))).toEqual({
+      "g2.com": "G2",
+      "ledgerly.app": "owned",
+      "zoho.com": "third_party",
+    });
   });
 });

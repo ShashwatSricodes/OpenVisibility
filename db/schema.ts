@@ -396,6 +396,8 @@ export const citations = pgTable(
     title: text("title"),
     position: integer("position"),
     kind: citationKind("kind").notNull(),
+    /** whose page it is, when kind is "competitor" */
+    competitorId: uuid("competitor_id").references(() => competitors.id, { onDelete: "set null" }),
   },
   (t) => [index("citations_answer_idx").on(t.answerId), index("citations_domain_idx").on(t.domain)],
 );

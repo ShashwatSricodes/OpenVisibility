@@ -1,5 +1,5 @@
 /**
- * Finding mentions in stored answers. The worker runs analyzePending every
+ * Finding mentions in stored answers, and labelling their citations. The worker runs analyzePending every
  * tick: any answer not analyzed yet (new, reused, or reset because the brand's
  * names changed) gets its mentions found and stored. Rerunning is safe: an
  * answer's mentions are replaced, never added twice.
@@ -7,7 +7,17 @@
 
 import { asc, eq, inArray, isNull } from "drizzle-orm";
 import type { AnyDb } from "@/db/client";
-import { answers, brandAliases, brands, competitors, mentions, runItems, runs } from "@/db/schema";
+import {
+  answers,
+  brandAliases,
+  brands,
+  citations,
+  competitors,
+  mentions,
+  runItems,
+  runs,
+} from "@/db/schema";
+import { classify, normalizeUrl, ownersOf } from "./citations";
 import { detectMentions, type Entity } from "./mentions";
 
 /** The brand and its competitors, as detectMentions wants them, per brand id. */
@@ -74,6 +84,7 @@ export async function analyzePending(db: AnyDb, { limit = 200, now = new Date() 
     );
     for (let i = 0; i < rows.length; i += 500)
       await tx.insert(mentions).values(rows.slice(i, i + 500));
+    await relabelCitations(tx, pending, entities);
     // fresh mentions have no ratings yet: rate them again (core/sentiment.ts)
     await tx
       .update(answers)
@@ -92,4 +103,49 @@ export async function reanalyzeBrand(db: AnyDb, brandId: string) {
     .innerJoin(runs, eq(runItems.runId, runs.id))
     .where(eq(runs.brandId, brandId));
   await db.update(answers).set({ analyzedAt: null }).where(inArray(answers.id, ids));
+}
+
+/**
+ * Bring citations up to date: cleaned URLs, each page once per answer, and
+ * labelled with whose page it is under the brand's current domains.
+ */
+async function relabelCitations(
+  db: AnyDb,
+  pending: { id: string; brandId: string }[],
+  entities: Map<string, Entity[]>,
+) {
+  const brandOf = new Map(pending.map((p) => [p.id, p.brandId]));
+  const owners = new Map([...entities].map(([id, list]) => [id, ownersOf(list)]));
+  const rows = await db
+    .select()
+    .from(citations)
+    .where(inArray(citations.answerId, [...brandOf.keys()]))
+    .orderBy(asc(citations.position), asc(citations.id));
+
+  const seen = new Set<string>();
+  const duplicates: string[] = [];
+  for (const c of rows) {
+    const n = normalizeUrl(c.url) ?? { url: c.url, domain: c.domain };
+    const key = `${c.answerId} ${n.url}`;
+    if (seen.has(key)) {
+      duplicates.push(c.id);
+      continue;
+    }
+    seen.add(key);
+    const label = classify(
+      n.domain,
+      owners.get(brandOf.get(c.answerId)!) ?? { owned: [], competitors: [] },
+    );
+    if (
+      n.url !== c.url ||
+      n.domain !== c.domain ||
+      label.kind !== c.kind ||
+      label.competitorId !== c.competitorId
+    )
+      await db
+        .update(citations)
+        .set({ url: n.url, domain: n.domain, ...label })
+        .where(eq(citations.id, c.id));
+  }
+  if (duplicates.length) await db.delete(citations).where(inArray(citations.id, duplicates));
 }

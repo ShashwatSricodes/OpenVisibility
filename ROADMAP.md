@@ -318,11 +318,12 @@ Built and tested; **switched off until a model key is chosen** (20 October 2026:
 
 ### Day 23: Citation processing
 
-- [ ] Normalize URLs (strip tracking parameters, lowercase hosts, remove `www.`) and extract the domain.
-- [ ] Classify each citation as owned (matches brand domains), competitor (matches competitor domains) or third-party.
-- [ ] Keep the citation title where the provider gave one.
+- [x] Normalize URLs (`core/citations.ts`): strip click-tracking parameters (`utm_*`, `gclid`, `fbclid`, `srsltid`…) but keep ones that may change the page (`ref`, `tab`…), drop Google's `#:~:text=` highlights and other fragments, lowercase hosts, remove `www.` and default ports, and store each page once per answer.
+- [x] Classify each citation as owned, competitor (and which one: `citations.competitor_id`) or third-party, subdomains included. The analysis step re-labels past citations when the brand's or competitors' domains change; existing citations were cleaned up once by the migration.
+- [x] Keep the citation title where the provider gave one.
+- [x] The Citations page (last 30 days): how often answers cite your site, a competitor's or any source, then the most-cited domains, each opening to its most-cited pages. The run page has the same list for that run.
 
-**Done when:** you can list the most-cited domains for a run.
+**Done when:** you can list the most-cited domains for a run. ✅ 20 October 2026: on the run page and in `citationSummary` (tested, including that another workspace sees nothing).
 
 ### Day 24: Metrics aggregation
 
