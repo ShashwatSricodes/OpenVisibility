@@ -327,19 +327,11 @@ Built and tested; **switched off until a model key is chosen** (20 October 2026:
 
 ### Day 24: Metrics aggregation
 
-- [ ] Define every metric precisely in `docs/metrics.md` first:
-  - **Mention rate:** samples that mention the brand ÷ total samples (samples skipped by smart sampling count with their `inferred_mentioned` result)
-  - **Average position:** mean position across samples where the brand appears
-  - **Share of voice:** brand mentions ÷ all tracked-brand mentions
-  - **Owned citation share:** owned citations ÷ all citations
-  - **Sentiment:** mean sentiment across mentions
-  - **Net Sentiment Score** (Otterly parity): % positive − % negative mentions, −100 to +100
-  - **Brand Visibility Index** (Otterly parity): one 0–100 score combining mention rate, position and share of voice, comparable over time and against competitors
-  - **Coverage:** prompts where the brand appears at least once ÷ prompts tracked
-- [ ] Build a daily rollup table (workspace × day × engine × country × prompt) that the worker refreshes after each run.
-- [ ] Write query helpers for the dashboard that read from the rollup, not from raw answers.
+- [x] Every metric defined in [`docs/metrics.md`](docs/metrics.md), with a worked example: mention rate (smart-sampling samples count with their inferred result, for your brand only), average position, share of voice, citation share (owned citation share for your brand), sentiment, Net Sentiment Score (positive ≥ 0.25, negative ≤ −0.25), coverage, and Brand Visibility Index = 100 × (0.5 × mention rate + 0.25 × mean 1/position + 0.25 × share of voice). All are computed for your brand and each competitor alike (`core/metrics.ts`).
+- [x] Daily rollup `metrics_daily` (workspace × day × engine × country × prompt × tracked brand) of counters, not ratios, so any selection is a sum (`core/rollup.ts`). The worker rebuilds a day when one of its runs finishes, and again after its answers are re-analyzed or rated; runs still going and answers awaiting mention detection aren't counted.
+- [x] Query helpers that read only the rollup (`core/metrics-query.ts`): `brandMetrics` (your brand first, then competitors by visibility index, with coverage) and `metricsBy` day, engine, country or prompt, filterable by dates, engines, countries and prompts.
 
-**Done when:** the numbers from your helpers match a hand calculation on seed data.
+**Done when:** the numbers from your helpers match a hand calculation on seed data. ✅ 20 October 2026: the worked example and a 12-sample run match by hand (`core/metrics.test.ts`, `core/runs/runs.test.ts`); existing dev runs were rolled up on startup.
 
 ### Day 25: Accuracy check
 

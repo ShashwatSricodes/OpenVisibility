@@ -12,6 +12,7 @@ import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
   boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -268,6 +269,8 @@ export const runs = pgTable(
     reusedItems: integer("reused_items").notNull().default(0),
     /** samples smart sampling didn't need to ask */
     sampledOutItems: integer("sampled_out_items").notNull().default(0),
+    /** when this run's day was last added up into metrics_daily; null: due (core/rollup.ts) */
+    rolledUpAt: timestamp("rolled_up_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [
@@ -400,4 +403,45 @@ export const citations = pgTable(
     competitorId: uuid("competitor_id").references(() => competitors.id, { onDelete: "set null" }),
   },
   (t) => [index("citations_answer_idx").on(t.answerId), index("citations_domain_idx").on(t.domain)],
+);
+
+/**
+ * Daily counters behind every dashboard number (docs/metrics.md): one row per
+ * workspace × day × engine × country × prompt × tracked brand. Counters, not
+ * ratios, so any selection is a sum. Rebuilt a day at a time (core/rollup.ts).
+ */
+export const metricsDaily = pgTable(
+  "metrics_daily",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    brandId: uuid("brand_id")
+      .notNull()
+      .references(() => brands.id, { onDelete: "cascade" }),
+    /** the day the runs started, UTC */
+    day: date("day", { mode: "string" }).notNull(),
+    engine: engine("engine").notNull(),
+    country: text("country").notNull().default(""),
+    /** null once the prompt is deleted */
+    promptId: uuid("prompt_id").references(() => prompts.id, { onDelete: "set null" }),
+    /** null: the workspace's own brand */
+    competitorId: uuid("competitor_id").references(() => competitors.id, { onDelete: "cascade" }),
+    samples: integer("samples").notNull().default(0),
+    asked: integer("asked").notNull().default(0),
+    mentioned: integer("mentioned").notNull().default(0),
+    mentions: integer("mentions").notNull().default(0),
+    positioned: integer("positioned").notNull().default(0),
+    positionSum: integer("position_sum").notNull().default(0),
+    reciprocalSum: real("reciprocal_sum").notNull().default(0),
+    allMentions: integer("all_mentions").notNull().default(0),
+    citations: integer("citations").notNull().default(0),
+    allCitations: integer("all_citations").notNull().default(0),
+    rated: integer("rated").notNull().default(0),
+    sentimentSum: real("sentiment_sum").notNull().default(0),
+    positive: integer("positive").notNull().default(0),
+    negative: integer("negative").notNull().default(0),
+  },
+  (t) => [index("metrics_daily_workspace_day_idx").on(t.workspaceId, t.day)],
 );

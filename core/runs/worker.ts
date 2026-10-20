@@ -11,6 +11,8 @@
  *   3. analyze:  mentions are found in new answers (core/analysis.ts), then,
  *                if an analysis model is set up, rated (core/sentiment.ts)
  *   4. finish:   runs with nothing left to do are closed with their totals
+ *   5. roll up:  the daily metrics are rebuilt for days with a finished
+ *                run that changed (core/rollup.ts)
  *
  * Every step is written to the database before the next, so a restart picks
  * up where it left off and a batch already paid for is never submitted again.
@@ -24,6 +26,7 @@ import { analyzePending, loadEntities } from "../analysis";
 import { citationRows, ownersOf, type Owners } from "../citations";
 import { getBudget } from "../budget";
 import { detectMentions } from "../mentions";
+import { rollupPending } from "../rollup";
 import { SAMPLING_DECIDES_FROM } from "../savings";
 import { ratePending, type AnalysisModel } from "../sentiment";
 import { ProviderError } from "../providers/errors";
@@ -54,6 +57,8 @@ export type TickReport = {
   analyzed: number;
   rated: number;
   finished: string[];
+  /** workspace-days whose metrics were rebuilt */
+  rolledUp: number;
 };
 
 type ItemRow = typeof runItems.$inferSelect;
@@ -73,6 +78,7 @@ export async function tick(opts: WorkerOptions): Promise<TickReport> {
     analyzed: 0,
     rated: 0,
     finished: [],
+    rolledUp: 0,
   };
   await submitQueued(opts, report);
   await collectRunning(opts, report);
@@ -80,6 +86,7 @@ export async function tick(opts: WorkerOptions): Promise<TickReport> {
   report.analyzed = await analyzePending(opts.db, { now });
   report.rated = await ratePending(opts.db, opts.analysis, now);
   report.finished = await finishRuns(opts);
+  report.rolledUp = await rollupPending(opts.db, now);
   return report;
 }
 

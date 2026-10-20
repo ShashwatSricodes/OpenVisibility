@@ -35,6 +35,7 @@ describe("migrations", () => {
       "competitors",
       "memberships",
       "mentions",
+      "metrics_daily",
       "prompts",
       "provider_credentials",
       "run_items",
