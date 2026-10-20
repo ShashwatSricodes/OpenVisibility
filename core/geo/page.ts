@@ -5,6 +5,7 @@
  * whose text only appears after scripts load is a blank page to them.
  */
 
+import type { ContentFacts } from "./content";
 import { CRAWLERS, matters, type Crawler } from "./crawlers";
 import { verdictFor, type RobotsFile } from "./robots";
 
@@ -125,6 +126,8 @@ export type PageCheck = {
   blocked: string[];
   /** training crawlers it keeps off: a choice, not a problem for answers */
   blockedTraining: string[];
+  /** what's on the page, for the content score (core/geo/content.ts); absent before Day P3 */
+  content?: ContentFacts | null;
 };
 
 export type Issue = {

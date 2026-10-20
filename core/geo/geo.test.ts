@@ -4,6 +4,7 @@ import { migrate } from "drizzle-orm/pglite/migrator";
 import { beforeEach, describe, expect, it } from "vitest";
 import * as schema from "@/db/schema";
 import { auditPending, getAudit, parseSitemap, pickPages, queueAudits } from "./audit";
+import { fixesOf, readContent, scoreContent, scoreOf } from "./content";
 import { isPrivateAddress, safeGet, type Net } from "./fetch";
 import { headerRobots, pageIssues, readPage, visibleText, type PageCheck } from "./page";
 import { parseRobots, verdict, verdictFor } from "./robots";
@@ -321,5 +322,139 @@ describe("the audit", () => {
       ["https://ledgerly.app/compare", "cited"],
       ["https://ledgerly.app/pricing", "sitemap"],
     ]);
+  });
+
+  it("scores every page, and compares with the pages AI cites from other sites", async () => {
+    const [brand] = await db.select().from(schema.brands);
+    const [run] = await db
+      .insert(schema.runs)
+      .values({ workspaceId, brandId: brand.id, trigger: "manual" })
+      .returning();
+    const [item] = await db
+      .insert(schema.runItems)
+      .values({ runId: run.id, promptText: "x", engine: "chatgpt", source: "consumer_app" })
+      .returning();
+    const [answer] = await db
+      .insert(schema.answers)
+      .values({ runItemId: item.id, text: "x" })
+      .returning();
+    // two pages on g2.com (one per site is kept) and one on a review blog
+    await db.insert(schema.citations).values(
+      [
+        "https://g2.com/best-invoicing",
+        "https://g2.com/other",
+        "https://reviews.example/invoicing",
+      ].map((url) => ({
+        answerId: answer.id,
+        url,
+        domain: new URL(url).hostname,
+        kind: "third_party" as const,
+      })),
+    );
+    const { net } = ledgerly();
+    const pages: Record<string, string> = {
+      "https://g2.com/best-invoicing": rich,
+      "https://reviews.example/invoicing": rich,
+    };
+    const both: Net = {
+      ...net,
+      fetch: async (url, init) =>
+        pages[url]
+          ? new Response(pages[url], { headers: { "content-type": "text/html" } })
+          : net.fetch(url, init),
+    };
+    await queueAudits(db, workspaceId);
+    for (let i = 0; i < 4; i++) await auditPending(db, both, { pages: 3 });
+    const [a] = await getAudit(db, workspaceId, NOW);
+
+    // every page of yours that could be read has a score and fixes; benchmarks aren't listed
+    expect(a.pages).toHaveLength(5);
+    expect(a.pages.every((p) => p.source !== "benchmark")).toBe(true);
+    for (const p of a.pages.filter((p) => p.check?.status === 200)) {
+      expect(p.score).toBeGreaterThanOrEqual(0);
+      expect(p.fixes.length).toBeGreaterThan(0);
+    }
+    expect(a.pages.find((p) => p.url.endsWith("/old"))?.score).toBeNull();
+    expect(a.comparison?.citedPages.map((p) => [p.url, p.score])).toEqual([
+      ["https://g2.com/best-invoicing", 100],
+      ["https://reviews.example/invoicing", 100],
+    ]);
+    expect(a.comparison?.cited).toMatchObject({ pages: 2, questionHeadings: 1, answerSchema: 1 });
+    expect(a.comparison?.yours).toMatchObject({ pages: 4, questionHeadings: 0, answerSchema: 0 });
+  });
+});
+
+const NOW = new Date("2026-10-20T00:00:00Z");
+
+/** A page that does everything the checklist asks. */
+const rich = `<html><head><title>Ledgerly invoicing: pricing and plans</title>
+<meta name="description" content="What Ledgerly costs, which plan suits freelancers, and how it compares with Zoho Invoice.">
+<meta name="author" content="Asha Rao">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[
+  {"@type":"SoftwareApplication","name":"Ledgerly","datePublished":"2026-03-01","dateModified":"2026-09-15"},
+  {"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much does Ledgerly cost?"}]}]}</script>
+</head><body><h1>Ledgerly pricing</h1>
+<h2>How much does Ledgerly cost?</h2><p>${"Ledgerly costs nine dollars a month for freelancers. ".repeat(60)}</p>
+<h2>Which plan is best for freelancers?</h2>
+<ul><li>Starter</li><li>Pro</li><li>Team</li></ul>
+<table><tr><th>Plan</th><th>Price</th></tr><tr><td>Starter</td><td>$9</td></tr></table>
+</body></html>`;
+
+describe("the content score", () => {
+  it("gives full marks to a page with everything quotable", () => {
+    const f = readContent(rich, ["Ledgerly"]);
+    expect(f).toMatchObject({
+      title: "Ledgerly invoicing: pricing and plans",
+      h1: ["Ledgerly pricing"],
+      headings: 2,
+      questionHeadings: 2,
+      lists: 1,
+      tables: 1,
+      schema: ["FAQPage", "Question", "SoftwareApplication"],
+      published: "2026-03-01",
+      modified: "2026-09-15",
+      author: true,
+      metaDescription: true,
+      brandInTitle: true,
+    });
+    expect(f.words).toBeGreaterThan(400);
+    const checks = scoreContent(f, NOW);
+    expect(scoreOf(checks)).toBe(100);
+    expect(fixesOf(checks)).toEqual([]);
+  });
+
+  it("explains what a thin page is missing, biggest gaps first", () => {
+    const f = readContent(
+      `<title>Home</title><h1>Welcome</h1><h1>Again</h1><p>Invoices made simple.</p>`,
+      ["Ledgerly"],
+    );
+    const checks = scoreContent(f, NOW);
+    expect(scoreOf(checks)).toBe(5); // only the title
+    expect(fixesOf(checks).map((c) => c.id)).toEqual([
+      "text",
+      "questions",
+      "structure",
+      "schema",
+      "dated",
+      "brand",
+      "title",
+      "answer-schema",
+      "fresh",
+      "author",
+      "description",
+    ]);
+    expect(fixesOf(checks).find((c) => c.id === "title")?.fix).toBe("Use one <h1>, not 2.");
+  });
+
+  it("knows question headings, stale dates and brand names", () => {
+    const f = readContent(
+      `<h2>Is Ledgerly free?</h2><h2>Pricing</h2><h3>Best apps for 2026</h3><time datetime="2024-01-10">Jan 2024</time><p>ledgerly and LEDGERLY</p><p>Ledgerlyish</p>`,
+      ["Ledgerly", "LG"],
+    );
+    expect(f).toMatchObject({ headings: 3, questionHeadings: 2, published: "2024-01-10" });
+    expect(f.brandMentions).toBe(3); // not "Ledgerlyish"
+    const fresh = scoreContent(f, NOW).find((c) => c.id === "fresh")!;
+    expect(fresh.points).toBe(0);
+    expect(fresh.fix).toMatch(/Last dated 3\d months ago/);
   });
 });

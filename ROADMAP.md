@@ -437,10 +437,10 @@ Deferred with teams, integrations and access (decision log, 20 October 2026).
 
 ### Day P3: GEO audit, part 2 (is the page ready to be cited?)
 
-- [ ] Content checks: headings that answer questions, lists and tables, schema.org markup (FAQ, Product, Organization, Review), dates, author, word count, and the brand named clearly.
-- [ ] A score per page with the reasons, and a comparison with the pages AI actually cites for your prompts (from citations).
+- [x] Content checks (`core/geo/content.ts`), on the HTML a crawler gets: words of text, a title and one h1, subheadings phrased as questions, lists and tables, schema.org types from JSON-LD and microdata (Organization, Product, SoftwareApplication, Article, FAQPage, HowTo, Review and others), published and updated dates, an author, a meta description, and the brand (or its other names) in the title or h1 and in the text.
+- [x] A score out of 100 per page from 11 weighted checks; each lost point comes with a fix in plain words, biggest first (three shown, the rest folded). Called a checklist, not a prediction, on the page itself. The audit also fetches the 5 pages from other sites that answers cite most for your prompts (last 90 days, one per site), runs the same checks, and shows your pages and theirs side by side.
 
-**Done when:** every owned page cited or not cited has a score and a list of fixes.
+**Done when:** every owned page cited or not cited has a score and a list of fixes. ✅ 20 October 2026: tests score a complete page 100 and list a thin page's 11 fixes in order; on the dev data the real ledgerly.app home page scored 10/100, against four real cited sites (median 2,095 words, 75% with question headings and structured data).
 
 ### Day P4: Recommendations and content gaps
 
@@ -666,7 +666,7 @@ Every Otterly feature found on otterly.ai (feature pages, sitemap, pricing; 20 O
 | Recommendations (weekly) | 📅 Day P4 |
 | Content briefs | 📅 Day P4 |
 | GEO audit: crawlability checker | ✅ Day P2 |
-| GEO audit: content audit, citation prediction | 📅 Day P3 |
+| GEO audit: content audit, citation prediction | ✅ Day P3 (a checklist score and a comparison with cited pages; not a prediction) |
 | ChatGPT ads and shopping cards | ⏸ deferred |
 | Google AI Overviews ads | ⏸ deferred |
 | Agent analytics (AI crawler visits) | 📅 Day P7 |
