@@ -428,10 +428,12 @@ Deferred with teams, integrations and access (decision log, 20 October 2026).
 
 ### Day P2: GEO audit, part 1 (can AI crawlers read your pages?)
 
-- [ ] For a URL: robots.txt rules for GPTBot, OAI-SearchBot, ChatGPT-User, Google-Extended, PerplexityBot, ClaudeBot and others; meta robots and X-Robots-Tag; HTTP status, redirects and load time; whether the main text is in the HTML without JavaScript; `llms.txt`.
-- [ ] Audit every owned domain's top pages from the sitemap; cached results with a re-run button.
+- [x] For a URL: robots.txt read the way crawlers read it (RFC 9309: the crawler's own group or else `*`, longest rule wins, `*` and `$` patterns; no file allows everything, an unreachable one blocks everything) for 14 crawlers in `core/geo/crawlers.ts`, each marked as feeding answers (OAI-SearchBot, ChatGPT-User, Googlebot, PerplexityBot, Perplexity-User, Claude-SearchBot, Claude-User, Bingbot) or training only (GPTBot, Google-Extended, ClaudeBot, Applebot-Extended, CCBot, Meta-ExternalAgent). Meta robots and X-Robots-Tag (noindex, nosnippet, per-crawler), HTTP status, redirects, load time, words of text without JavaScript, and `llms.txt` (reported as optional: no major engine says it reads one).
+- [x] Audit every owned domain (`core/geo/audit.ts`): the home page, the owned pages answers cite, then sitemap pages (index sitemaps followed), up to 25. The worker fetches a few pages per tick, so audits never hold up runs; results stay until "Run again". New Site audit page under "Improve". Fetches refuse private and internal addresses on every redirect (`OV_AUDIT_PRIVATE=1` lifts that for self-hosters).
+- Blocking a training crawler such as GPTBot is shown as a note, not a problem: it doesn't keep a page out of ChatGPT's answers (OAI-SearchBot does that).
+- Limit: some sites serve a different robots.txt depending on who asks (Reddit serves `Disallow: /` to everyone but Google). The audit sees what a generic visitor gets.
 
-**Done when:** the audit flags a page blocked to GPTBot and one that needs JavaScript to show its text.
+**Done when:** the audit flags a page blocked to GPTBot and one that needs JavaScript to show its text. ✅ 20 October 2026: tests flag a page robots.txt closes to OAI-SearchBot, a GPTBot block (as a training note) and a script-only page; on live sites, nytimes.com's robots.txt reads as blocking GPTBot and OAI-SearchBot, and the real ledgerly.app (a Bubble app) was flagged as showing 0 words without JavaScript.
 
 ### Day P3: GEO audit, part 2 (is the page ready to be cited?)
 
@@ -663,7 +665,7 @@ Every Otterly feature found on otterly.ai (feature pages, sitemap, pricing; 20 O
 | Content gap analysis | 📅 Day P4 |
 | Recommendations (weekly) | 📅 Day P4 |
 | Content briefs | 📅 Day P4 |
-| GEO audit: crawlability checker | 📅 Day P2 |
+| GEO audit: crawlability checker | ✅ Day P2 |
 | GEO audit: content audit, citation prediction | 📅 Day P3 |
 | ChatGPT ads and shopping cards | ⏸ deferred |
 | Google AI Overviews ads | ⏸ deferred |

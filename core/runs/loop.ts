@@ -1,6 +1,6 @@
 /**
- * Runs the worker on a timer: start scheduled runs that are due, then work
- * through the queue. With the embedded development database it
+ * Runs the worker on a timer: start scheduled runs that are due, work
+ * through the queue, then check a few pages of any site audit. With the embedded development database it
  * runs inside the Next.js server (only one process can open that database);
  * with DATABASE_URL it runs as its own process: `npm run worker`.
  *
@@ -11,6 +11,8 @@
 import { getDb } from "@/db/client";
 import { resolveProviderKeys } from "../credentials";
 import { env } from "../env";
+import { auditPending } from "../geo/audit";
+import { defaultNet } from "../geo/fetch";
 import { FakeProvider } from "../providers/fake";
 import { getProvider } from "../providers/index";
 import type { Provider } from "../providers/types";
@@ -81,6 +83,9 @@ export function startWorker({ intervalMs = 5_000 }: { intervalMs?: number } = {}
             (r.finished.length ? `, finished ${r.finished.length} run(s)` : "") +
             (r.rolledUp ? `, metrics updated for ${r.rolledUp} day(s)` : ""),
         );
+      // site audits fetch other people's sites: a few pages a tick, never holding up runs
+      const audited = await auditPending(getDb(), defaultNet());
+      if (audited) console.log(`Audit: checked ${audited} page(s)`);
     } catch (err) {
       console.error("Worker tick failed:", err);
     } finally {
