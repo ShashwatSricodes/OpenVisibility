@@ -391,9 +391,14 @@ Built on Day 23's page and queries (`core/citation-stats.ts`), filterable by 7, 
 
 ### Day 31: Competitors page
 
-- [ ] Share of voice over time: your brand against each competitor.
-- [ ] Head-to-head per engine: mention rate and average position side by side.
-- [ ] Sentiment comparison.
+- [x] Leaderboard: you and each competitor by visibility index, with mention rate, position, share of voice (and its change from the previous period) and own-site citation share (`core/competitor-results.ts`).
+- [x] Share of voice over time: one line per brand, yours drawn heavier.
+- [x] Head-to-head per engine: mention rate and average position side by side, the leader in bold.
+- [x] Where they beat you: prompts where a competitor is named more often than you, biggest gap first, linking to the prompt.
+- [x] Sentiment comparison: average sentiment and Net Sentiment Score per brand once an analysis model rates answers; until then a line explaining how to turn it on.
+- [x] Filters for 7, 30 or 90 days and per engine, like the other pages.
+
+**Done when:** (not set in the plan) ✅ 20 October 2026: checked in the browser; tested against hand-built answers (leaderboard, share of voice per day, head-to-head, prompts lost).
 
 ### Day 32: Filters and CSV export
 
