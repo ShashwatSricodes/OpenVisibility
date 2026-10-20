@@ -5,9 +5,11 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import { requireWorkspace } from "@/core/auth/session";
 import { countryName } from "@/core/countries";
 import { BRIGHT_DATA_PRICING, ENGINES } from "@/core/providers/registry";
+import { citationSummary } from "@/core/citation-stats";
 import { getRunDetail, MAX_ANSWERS_SHOWN } from "@/core/run-detail";
 import { getDb } from "@/db/client";
 import { Page, buttonSecondary } from "../../../_components/page-frame";
+import { SourcesTable } from "../../../_components/sources-table";
 import { cn } from "../../../_lib/cn";
 import { AutoRefresh } from "../auto-refresh";
 import { STATUS, duration, isActive, usd, visibleNote, when } from "../run-format";
@@ -31,7 +33,11 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
   const { id } = await params;
   if (!UUID.test(id)) notFound();
   const { workspace } = await requireWorkspace();
-  const detail = await getRunDetail(getDb(), workspace.id, id);
+  const db = getDb();
+  const [detail, sources] = await Promise.all([
+    getRunDetail(db, workspace.id, id),
+    citationSummary(db, workspace.id, { runId: id }, { limit: 10, pagesPerDomain: 3 }),
+  ]);
   if (!detail) notFound();
   const { run, engines, byPrompt, shown } = detail;
 
@@ -125,6 +131,13 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
           </tbody>
         </table>
       </section>
+
+      {sources.domains.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold">Most-cited sources</h2>
+          <SourcesTable domains={sources.domains} answers={sources.answers} />
+        </section>
+      )}
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold">Answers</h2>

@@ -19,8 +19,9 @@
 
 import { and, asc, eq, gte, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import type { AnyDb } from "@/db/client";
-import { answers, brands, citations, competitors, runItems, runs } from "@/db/schema";
+import { answers, citations, runItems, runs } from "@/db/schema";
 import { analyzePending, loadEntities } from "../analysis";
+import { citationRows, ownersOf, type Owners } from "../citations";
 import { getBudget } from "../budget";
 import { detectMentions } from "../mentions";
 import { SAMPLING_DECIDES_FROM } from "../savings";
@@ -63,17 +64,6 @@ const backoff = new Map<string, number>();
 const lastChecked = new Map<string, number>();
 
 const describe = (e: ItemError | { message: string }) => e.message.slice(0, 500);
-
-function domainOf(url: string) {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "").toLowerCase();
-  } catch {
-    return null;
-  }
-}
-
-const matches = (domain: string, owned: string[]) =>
-  owned.some((d) => domain === d || domain.endsWith(`.${d}`));
 
 export async function tick(opts: WorkerOptions): Promise<TickReport> {
   const report: TickReport = {
@@ -364,7 +354,11 @@ async function collectRunning(opts: WorkerOptions, report: TickReport) {
     } catch {
       continue; // the download failed; it's still there next tick
     }
-    const owners = await citationOwners(db, job.runId);
+    const [run] = await db
+      .select({ brandId: runs.brandId })
+      .from(runs)
+      .where(eq(runs.id, job.runId));
+    const owners = ownersOf((await loadEntities(db, [run.brandId])).get(run.brandId) ?? []);
     const errors: (ItemError | null)[] = [];
     for (const [i, item] of items.entries()) {
       const r = results[i];
@@ -418,27 +412,8 @@ async function settle(
   }
 }
 
-/** The brand's and competitors' domains, to label each citation. */
-async function citationOwners(db: AnyDb, runId: string) {
-  const [run] = await db.select({ brandId: runs.brandId }).from(runs).where(eq(runs.id, runId));
-  const [[brand], rivals] = await Promise.all([
-    db.select({ domains: brands.domains }).from(brands).where(eq(brands.id, run.brandId)),
-    db
-      .select({ domains: competitors.domains })
-      .from(competitors)
-      .where(eq(competitors.brandId, run.brandId)),
-  ]);
-  return { owned: brand?.domains ?? [], rival: rivals.flatMap((c) => c.domains) };
-}
-
 /** Store one answer and its citations, once: a repeated call changes nothing. */
-async function storeAnswer(
-  db: AnyDb,
-  item: ItemRow,
-  r: QueryResult,
-  owners: { owned: string[]; rival: string[] },
-  now: Date,
-) {
+async function storeAnswer(db: AnyDb, item: ItemRow, r: QueryResult, owners: Owners, now: Date) {
   await db.transaction(async (tx) => {
     const [answer] = await tx
       .insert(answers)
@@ -456,26 +431,9 @@ async function storeAnswer(
       .returning({ id: answers.id });
 
     if (answer && r.citations.length) {
-      const rows = r.citations.flatMap((c) => {
-        const domain = domainOf(c.url);
-        if (!domain) return [];
-        const kind = matches(domain, owners.owned)
-          ? ("owned" as const)
-          : matches(domain, owners.rival)
-            ? ("competitor" as const)
-            : ("third_party" as const);
-        return [
-          {
-            answerId: answer.id,
-            url: c.url,
-            domain,
-            title: c.title ?? null,
-            position: c.position ?? null,
-            kind,
-          },
-        ];
-      });
-      if (rows.length) await tx.insert(citations).values(rows);
+      const rows = citationRows(r.citations, owners);
+      if (rows.length)
+        await tx.insert(citations).values(rows.map((c) => ({ ...c, answerId: answer.id })));
     }
     await tx
       .update(runItems)
