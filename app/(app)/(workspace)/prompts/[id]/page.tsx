@@ -218,7 +218,7 @@ export default async function PromptPage({
                     ))}
                   </span>
                   <Link
-                    href={`/runs/${a.runId}?answer=${a.answerId}#answer-${a.answerId}`}
+                    href={`/answers/${a.answerId}`}
                     className="ml-auto inline-flex items-center gap-0.5 hover:text-fg"
                   >
                     Full answer

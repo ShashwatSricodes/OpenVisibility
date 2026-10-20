@@ -83,7 +83,7 @@ export function citationRows(
   owners: Owners,
 ) {
   const seen = new Set<string>();
-  return cited.flatMap((c) => {
+  return cited.flatMap((c, i) => {
     const n = normalizeUrl(c.url);
     if (!n || seen.has(n.url)) return [];
     seen.add(n.url);
@@ -92,7 +92,8 @@ export function citationRows(
         url: n.url,
         domain: n.domain,
         title: c.title?.trim() || null,
-        position: c.position ?? null,
+        // without one from the provider, the order it was cited in
+        position: c.position ?? i + 1,
         ...classify(n.domain, owners),
       },
     ];

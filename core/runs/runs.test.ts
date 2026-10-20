@@ -10,6 +10,7 @@ import { FakeProvider } from "../providers/fake";
 import type { QueryInput } from "../providers/types";
 import { createRun, createTestRun } from "./create";
 import { reanalyzeBrand } from "../analysis";
+import { fanOut, getAnswer, listAnswers } from "../answer-archive";
 import { saveCompetitors } from "../brands";
 import { citationSummary } from "../citation-stats";
 import { env } from "../env";
@@ -913,5 +914,67 @@ describe("prompt results", () => {
 
     const [other] = await db.insert(schema.workspaces).values({ name: "Other" }).returning();
     expect(await promptDetail(db, other.id, promptIds[0], "7d")).toBeNull();
+  });
+});
+
+describe("the answer archive", () => {
+  it("filters, searches and opens answers, only in their workspace", async () => {
+    const r = await createRun(db, workspaceId);
+    if (!r.ok) throw new Error(r.message);
+    const provider = new FakeProvider({
+      reply: (_i, engine) =>
+        engine === "chatgpt"
+          ? {
+              text: "1. Zoho\n2. Ledgerly, see ledgerly.app",
+              citations: [
+                { url: "https://zoho.com/x", title: "Zoho" },
+                { url: "https://g2.com/y" },
+              ],
+            }
+          : { text: "Spreadsheets are fine." },
+    });
+    await tick({ db, providerFor: async () => provider, analysis: null });
+
+    expect((await listAnswers(db, workspaceId, {})).total).toBe(12);
+    const named = await listAnswers(db, workspaceId, { named: "yes" });
+    expect(named.total).toBe(6);
+    expect(named.rows.every((a) => a.engine === "chatgpt" && a.namesYou)).toBe(true);
+    expect(named.rows[0].named).toEqual(["Zoho", null]);
+    expect((await listAnswers(db, workspaceId, { named: "no" })).total).toBe(6);
+    expect((await listAnswers(db, workspaceId, { engine: "gemini", country: "IN" })).total).toBe(2);
+    expect((await listAnswers(db, workspaceId, { q: "spreadsheet" })).total).toBe(6);
+    expect((await listAnswers(db, workspaceId, { q: "UPI" })).total).toBe(4); // the prompt's words
+    expect((await listAnswers(db, workspaceId, { q: "50%_" })).total).toBe(0);
+    expect((await listAnswers(db, workspaceId, { promptId: promptIds[1] })).total).toBe(4);
+
+    const id = named.rows[0].id;
+    const a = await getAnswer(db, workspaceId, id);
+    expect(a?.named.map((m) => [m.name, m.position])).toEqual([
+      ["Zoho", 1],
+      ["Ledgerly", 2],
+    ]);
+    expect(a?.cited.map((c) => [c.domain, c.kind, c.competitor])).toEqual([
+      ["zoho.com", "competitor", "Zoho"],
+      ["g2.com", "third_party", null],
+    ]);
+    // every place a tracked brand is named, for highlighting: Zoho, Ledgerly and its domain
+    expect(a?.matches.map((m) => a.text.slice(m.start, m.end))).toEqual([
+      "Zoho",
+      "Ledgerly",
+      "ledgerly.app",
+    ]);
+
+    const [other] = await db.insert(schema.workspaces).values({ name: "Other" }).returning();
+    expect((await listAnswers(db, other.id, {})).total).toBe(0);
+    expect(await getAnswer(db, other.id, id)).toBeNull();
+  });
+
+  it("reads ChatGPT's searches from the raw answer", () => {
+    expect(
+      fanOut({ web_search_query: ["best invoicing app 2026", "zoho invoice pricing"] }),
+    ).toEqual(["best invoicing app 2026", "zoho invoice pricing"]);
+    expect(fanOut({ web_search_query: "invoicing apps" })).toEqual(["invoicing apps"]);
+    expect(fanOut({ web_search_query: null })).toEqual([]);
+    expect(fanOut(null)).toEqual([]);
   });
 });
