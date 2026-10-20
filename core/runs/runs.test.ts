@@ -8,6 +8,7 @@ import { ProviderError } from "../providers/errors";
 import { FakeProvider } from "../providers/fake";
 import type { QueryInput } from "../providers/types";
 import { createRun, createTestRun } from "./create";
+import { saveCompetitors } from "../brands";
 import { getRunDetail } from "../run-detail";
 import { fireDueSchedules, getSchedule, saveSchedule } from "./schedule";
 import { tick } from "./worker";
@@ -489,5 +490,47 @@ describe("a run's page", () => {
 
     const [other] = await db.insert(schema.workspaces).values({ name: "Other" }).returning();
     expect(await getRunDetail(db, other.id, r.runId)).toBeNull();
+  });
+});
+
+describe("mentions", () => {
+  it("are found in new answers, once, and found again when names change", async () => {
+    const r = await createRun(db, workspaceId, { engines: ["chatgpt"], promptIds: [promptIds[0]] });
+    if (!r.ok) throw new Error(r.message);
+    const provider = new FakeProvider({
+      reply: () => ({ text: "1. **Zoho**: free\n2. **Ledgerly**: simple\n\nSee zoho.com." }),
+    });
+    const report = await tick({ db, providerFor: async () => provider });
+    expect(report.analyzed).toBe(4);
+
+    const found = await db
+      .select({
+        competitorId: schema.mentions.competitorId,
+        position: schema.mentions.position,
+        snippet: schema.mentions.snippet,
+      })
+      .from(schema.mentions);
+    expect(found).toHaveLength(8);
+    const [zoho] = await db.select().from(schema.competitors);
+    expect(found.filter((m) => m.competitorId === zoho.id).every((m) => m.position === 1)).toBe(
+      true,
+    );
+    expect(found.filter((m) => m.competitorId === null)[0]).toMatchObject({
+      position: 2,
+      snippet: "Ledgerly: simple",
+    });
+
+    // nothing left to do: a second tick doesn't add any
+    expect((await tick({ db, providerFor: async () => provider })).analyzed).toBe(0);
+    expect((await db.select({ n: count() }).from(schema.mentions))[0].n).toBe(8);
+
+    // rename the competitor: past answers are checked again
+    const [brand] = await db.select().from(schema.brands);
+    await saveCompetitors(db, brand.id, [{ name: "Wave", domains: [], aliases: [] }]);
+    expect((await tick({ db, providerFor: async () => provider })).analyzed).toBe(4);
+    const after = await db.select().from(schema.mentions);
+    expect(after.map((m) => [m.competitorId, m.position])).toEqual(
+      Array.from({ length: 4 }, () => [null, 1]),
+    );
   });
 });

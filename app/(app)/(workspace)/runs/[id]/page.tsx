@@ -155,6 +155,26 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
                           </span>
                         )}
                       </p>
+                      <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+                        {a.named.some((m) => m.own) ? null : (
+                          <span className="rounded bg-pressed px-1.5 py-px text-fg-subtle">
+                            Doesn&rsquo;t name you
+                          </span>
+                        )}
+                        {a.named.map((m, i) => (
+                          <span
+                            key={i}
+                            className={cn(
+                              "rounded px-1.5 py-px",
+                              m.own
+                                ? "bg-[color-mix(in_srgb,var(--good)_14%,transparent)] font-medium text-good"
+                                : "bg-pressed text-fg-default",
+                            )}
+                          >
+                            #{i + 1} {m.name}
+                          </span>
+                        ))}
+                      </p>
                       <p className="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap text-[13px] leading-relaxed">
                         {a.text || <span className="text-fg-subtle">(empty answer)</span>}
                       </p>

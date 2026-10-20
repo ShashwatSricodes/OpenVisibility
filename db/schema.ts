@@ -315,31 +315,41 @@ export const runItems = pgTable(
 );
 
 /** What the engine said. One per successful run item. */
-export const answers = pgTable("answers", {
-  id: id(),
-  runItemId: uuid("run_item_id")
-    .notNull()
-    .unique()
-    .references(() => runItems.id, { onDelete: "cascade" }),
-  text: text("text").notNull(),
-  /** the provider record, minus bulky HTML; kept so answers can be re-parsed */
-  raw: jsonb("raw"),
-  /** the model the app or API reported, e.g. Gemini's logged-out "Flash-Lite" */
-  model: text("model"),
-  /** ChatGPT reports whether it actually searched; null when unknown */
-  webSearchTriggered: boolean("web_search_triggered"),
-  /** AI Overviews only: whether Google showed an overview at all */
-  shown: boolean("shown"),
-  latencyMs: integer("latency_ms"),
-  inputTokens: integer("input_tokens"),
-  outputTokens: integer("output_tokens"),
-  costUsd: usd("cost_usd").notNull().default("0"),
-  /** set when this answer was copied from an earlier one instead of asked again (cost 0) */
-  reusedFromId: uuid("reused_from_id").references((): AnyPgColumn => answers.id, {
-    onDelete: "set null",
-  }),
-  createdAt: createdAt(),
-});
+export const answers = pgTable(
+  "answers",
+  {
+    id: id(),
+    runItemId: uuid("run_item_id")
+      .notNull()
+      .unique()
+      .references(() => runItems.id, { onDelete: "cascade" }),
+    text: text("text").notNull(),
+    /** the provider record, minus bulky HTML; kept so answers can be re-parsed */
+    raw: jsonb("raw"),
+    /** the model the app or API reported, e.g. Gemini's logged-out "Flash-Lite" */
+    model: text("model"),
+    /** ChatGPT reports whether it actually searched; null when unknown */
+    webSearchTriggered: boolean("web_search_triggered"),
+    /** AI Overviews only: whether Google showed an overview at all */
+    shown: boolean("shown"),
+    latencyMs: integer("latency_ms"),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    costUsd: usd("cost_usd").notNull().default("0"),
+    /** set when this answer was copied from an earlier one instead of asked again (cost 0) */
+    reusedFromId: uuid("reused_from_id").references((): AnyPgColumn => answers.id, {
+      onDelete: "set null",
+    }),
+    /** when mentions were last found (core/analysis.ts); null: waiting, e.g. after names change */
+    analyzedAt: timestamp("analyzed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("answers_unanalyzed_idx")
+      .on(t.id)
+      .where(sql`${t.analyzedAt} is null`),
+  ],
+);
 
 /** A brand named in an answer: the tracked brand (competitorId null) or a competitor. */
 export const mentions = pgTable(
