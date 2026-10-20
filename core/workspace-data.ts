@@ -70,6 +70,8 @@ export async function listRuns(db: AnyDb, workspaceId: string, limit = 50) {
       estimatedCost: runs.estimatedCost,
       actualCost: runs.actualCost,
       note: runs.note,
+      reusedItems: runs.reusedItems,
+      sampledOutItems: runs.sampledOutItems,
       createdAt: runs.createdAt,
       startedAt: runs.startedAt,
       finishedAt: runs.finishedAt,

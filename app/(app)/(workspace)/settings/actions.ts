@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireWorkspace } from "@/core/auth/session";
 import { saveCap, validateCap } from "@/core/budget";
 import { saveSchedule } from "@/core/runs/schedule";
+import { saveSavings, validateSavings, type SavingsSettings } from "@/core/savings";
 import { formatInZone, validateSchedule, type Schedule } from "@/core/schedule-rules";
 import {
   deleteCredential,
@@ -129,4 +130,15 @@ export async function saveScheduleAction(input: Schedule): Promise<KeyFormState>
       ? `Saved. Next run ${formatInZone(next, input.timezone)}.`
       : "Saved. Runs only start when you press Run now.",
   };
+}
+
+/** Answer reuse and smart sampling. */
+export async function saveSavingsAction(input: SavingsSettings): Promise<KeyFormState> {
+  const { workspace, role } = await requireWorkspace();
+  if (role !== "owner") return { ok: false, message: "Only the workspace owner can change this." };
+  const problem = validateSavings(input);
+  if (problem) return { ok: false, message: problem };
+  await saveSavings(getDb(), workspace.id, input);
+  revalidatePath("/settings");
+  return { ok: true, message: "Saved. The next run uses these settings." };
 }

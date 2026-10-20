@@ -71,6 +71,13 @@
       "when": 1792473766982,
       "tag": "0009_schedules",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792474888495,
+      "tag": "0010_caching_and_sampling",
+      "breakpoints": true
     }
   ]
 }
