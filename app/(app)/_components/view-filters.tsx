@@ -96,7 +96,7 @@ export function ViewFilters({
         </Menu.Portal>
       </Menu.Root>
       <Menu.Root>
-        <Menu.Trigger className={cn(triggerClass, "min-w-36 justify-between")}>
+        <Menu.Trigger className={cn(triggerClass, "justify-between sm:min-w-36")}>
           <span className="flex items-center gap-2">
             <Calendar className="size-3.5" />
             {ranges.find((r) => r.id === range)?.label}
@@ -125,14 +125,17 @@ export function ViewFilters({
 /** Downloads of what's on screen: CSV files, and the report to save as a PDF. */
 export function ExportMenu({
   items,
+  note,
 }: {
   items: { href: string; label: string; hint: string; newTab?: boolean }[];
+  /** how the answers were collected; shown under the downloads */
+  note: string;
 }) {
   return (
     <Menu.Root>
-      <Menu.Trigger className={triggerClass}>
+      <Menu.Trigger className={triggerClass} aria-label="Export">
         <Download className="size-3.5" />
-        Export
+        <span className="hidden sm:inline">Export</span>
         <ChevronDown className="size-4 text-fg-muted" />
       </Menu.Trigger>
       <Menu.Portal>
@@ -149,6 +152,8 @@ export function ExportMenu({
               </a>
             </Menu.Item>
           ))}
+          <Menu.Separator className="my-1 h-px bg-line" />
+          <p className="px-2 pb-1.5 pt-0.5 text-xs leading-snug text-fg-subtle">{note}</p>
         </Menu.Content>
       </Menu.Portal>
     </Menu.Root>

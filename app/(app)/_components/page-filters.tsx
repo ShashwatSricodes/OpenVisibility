@@ -1,5 +1,6 @@
 import { EXPORTS, type ExportKind } from "@/core/exports";
 import { DEFAULT_RANGE, filterParams, type ViewFilter } from "@/core/filters";
+import { SOURCE_NOTE } from "@/core/framing";
 import { RANGES, type RangeId } from "@/core/overview";
 import type { EngineId } from "@/core/providers/types";
 import { ExportMenu, ViewFilters } from "./view-filters";
@@ -52,7 +53,9 @@ export function PageFilters({
         ranges={RANGE_ITEMS}
         defaultRange={DEFAULT_RANGE}
       />
-      {exports.length > 0 && <ExportMenu items={exportItems(filterParams(filter), exports)} />}
+      {exports.length > 0 && (
+        <ExportMenu items={exportItems(filterParams(filter), exports)} note={SOURCE_NOTE} />
+      )}
     </div>
   );
 }

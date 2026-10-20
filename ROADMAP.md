@@ -410,9 +410,11 @@ Built on Day 23's page and queries (`core/citation-stats.ts`), filterable by 7, 
 
 ### Day 33: Polish and honest framing
 
-- [ ] Loading and error states on every page.
-- [ ] Add the "API answers, not the consumer apps" note to the overview and to every export.
-- [ ] Make the layout usable on a phone.
+- [x] Loading and error states on every page: a skeleton in the page's shape while data loads (streamed before the page), a "This page didn't load" page with Try again, and a Not found page for deleted answers, prompts and runs, all inside the app's layout. Setup and the report get the same error page. No error details on screen; they go to the logs.
+- [x] The honest-framing note, reworded for how answers are now collected (the consumer apps as a logged-out visitor, Claude through its API; `core/framing.ts`): at the foot of the Overview, under every Export menu and at the end of the report. The CSV files stay plain (header row first) so they load straight into a spreadsheet or database.
+- [x] Usable on a phone: checked every page at 390px wide; nothing spills sideways (wide tables scroll inside their box). Page descriptions wrap instead of being cut off, the filter menus fit on one row (Export shows its icon only), and the Prompts table keeps its prompt column readable.
+
+**Done when:** ✅ 20 October 2026: a page made to fail showed the error page with the sidebar still there; a missing answer showed Not found; the skeleton was streamed ahead of each page; all pages passed the 390px check with a clean console.
 
 ---
 
