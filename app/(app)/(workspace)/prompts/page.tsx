@@ -3,23 +3,38 @@ import Link from "next/link";
 import { ListChecks, Sparkles } from "lucide-react";
 import { requireWorkspace } from "@/core/auth/session";
 import { getBrandSetup } from "@/core/brands";
+import { RANGES, isRange, type RangeId } from "@/core/overview";
+import { promptTable } from "@/core/prompt-results";
 import { listBrandPrompts } from "@/core/prompts";
 import { getTrackingConfig } from "@/core/tracking-config";
 import { getDb } from "@/db/client";
 import { EmptyState, Page, buttonSecondary } from "../../_components/page-frame";
+import { Segments } from "../../_components/segments";
 import { PromptManager } from "./prompt-manager";
+import { ResultsTable } from "./results-table";
 
 export const metadata: Metadata = { title: "Prompts" };
 
-export default async function PromptsPage() {
+export default async function PromptsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { workspace, role } = await requireWorkspace();
   const db = getDb();
+  const q = await searchParams;
+  const view = q.view === "manage" ? "manage" : "results";
+  const range: RangeId = isRange(q.range) ? q.range : "30d";
+
   const [{ brand }, config] = await Promise.all([
     getBrandSetup(db, workspace.id),
     getTrackingConfig(db, workspace.id),
   ]);
   const rows = brand ? await listBrandPrompts(db, brand.id) : [];
   const active = rows.filter((p) => p.active).length;
+  const table =
+    brand && view === "results" ? await promptTable(db, workspace.id, brand.id, range) : null;
+  const anyResults = table?.rows.some((r) => r.mentionRate !== null) ?? false;
 
   return (
     <Page
@@ -46,17 +61,67 @@ export default async function PromptsPage() {
           action={{ href: "/onboarding", label: "Set up your brand" }}
         />
       ) : (
-        <PromptManager
-          prompts={rows.map(({ id, text, tags, countries, active }) => ({
-            id,
-            text,
-            tags,
-            countries,
-            active,
-          }))}
-          defaultCountries={config.countries}
-          canEdit={role === "owner"}
-        />
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Segments
+              items={[
+                { href: "/prompts", label: "Results", active: view === "results" },
+                {
+                  href: "/prompts?view=manage",
+                  label: "Manage prompts",
+                  active: view === "manage",
+                },
+              ]}
+            />
+            {view === "results" && (
+              <Segments
+                items={(Object.keys(RANGES) as RangeId[]).map((id) => ({
+                  href: id === "30d" ? "/prompts" : `/prompts?range=${id}`,
+                  label: RANGES[id].label.replace("Last ", ""),
+                  active: id === range,
+                }))}
+              />
+            )}
+          </div>
+
+          {view === "manage" ? (
+            <PromptManager
+              prompts={rows.map(({ id, text, tags, countries, active }) => ({
+                id,
+                text,
+                tags,
+                countries,
+                active,
+              }))}
+              defaultCountries={config.countries}
+              canEdit={role === "owner"}
+            />
+          ) : !rows.length ? (
+            <EmptyState
+              icon={<ListChecks />}
+              title="No prompts yet"
+              description="Add the questions your customers ask AI, then run them to see where you're named."
+              action={{ href: "/prompts?view=manage", label: "Add prompts" }}
+            />
+          ) : (
+            <>
+              {!anyResults && (
+                <p className="rounded-lg border border-line bg-hover px-3 py-2 text-[13px] text-fg-default">
+                  No results in this period yet. Run your prompts from{" "}
+                  <Link href="/runs" className="underline underline-offset-2">
+                    Runs
+                  </Link>{" "}
+                  and they&rsquo;ll fill in here.
+                </p>
+              )}
+              <p className="text-xs text-fg-subtle">
+                How often each prompt&rsquo;s answers name {brand.name}, worst first. Open a prompt
+                for its answers and who wins it.
+              </p>
+              <ResultsTable rows={table!.rows} engines={table!.engines} range={range} />
+            </>
+          )}
+        </>
       )}
     </Page>
   );

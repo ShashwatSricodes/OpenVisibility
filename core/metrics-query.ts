@@ -164,3 +164,36 @@ export async function metricsBy(
     ...metricsOf(counters(r)),
   }));
 }
+
+/**
+ * Metrics split by two dimensions at once, e.g. prompt × engine for a
+ * heatmap or prompt × day for sparklines; for one brand (null: yours).
+ */
+export async function metricsBy2(
+  db: AnyDb,
+  workspaceId: string,
+  filter: MetricsFilter,
+  [a, b]: [Dimension, Dimension],
+  competitorId: string | null = null,
+): Promise<({ a: string | null; b: string | null } & Metrics)[]> {
+  const ca = DIMENSION[a];
+  const cb = DIMENSION[b];
+  const rows = await db
+    .select({ a: ca, b: cb, ...sums })
+    .from(metricsDaily)
+    .where(
+      and(
+        where(workspaceId, filter),
+        competitorId === null
+          ? sql`${metricsDaily.competitorId} is null`
+          : eq(metricsDaily.competitorId, competitorId),
+      ),
+    )
+    .groupBy(ca, cb)
+    .orderBy(ca, cb);
+  return rows.map((r) => ({
+    a: r.a === null ? null : String(r.a),
+    b: r.b === null ? null : String(r.b),
+    ...metricsOf(counters(r)),
+  }));
+}

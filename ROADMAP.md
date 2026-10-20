@@ -363,8 +363,10 @@ Catch up on anything that slipped. If you're on track, write tests for the run p
 
 ### Day 28: Prompts page with results
 
-- [ ] A table where each prompt shows its mention rate per engine (a small heatmap), average position and a trend sparkline.
-- [ ] Prompt detail: results per engine and country, with links to the underlying answers.
+- [x] The Prompts page opens on **Results** (the editor moved to **Manage prompts**): each prompt's mention rate overall and per engine as a small heatmap, average position and a trend sparkline, worst first, over 7, 30 or 90 days (`core/prompt-results.ts`, `metricsBy2` for prompt × engine and prompt × day). Paused prompts and prompts without results are marked, not hidden.
+- [x] Prompt page (`/prompts/[id]`): named in, position, share of voice and visibility index; who wins the prompt (your brand against each competitor); results per engine and country; the latest 20 answers with the brands each names, an excerpt of what it says about you, and a link that opens that exact answer on its run page.
+
+**Done when:** (not set in the plan) ✅ 20 October 2026: browser-checked from the table to a prompt to the highlighted answer on its run page; tested against hand-built results.
 
 ### Day 29: Answer archive
 
