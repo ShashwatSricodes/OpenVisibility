@@ -364,8 +364,7 @@ Catch up on anything that slipped. If you're on track, write tests for the run p
 - [ ] List of answers filterable by engine, prompt, country, run, and mentioned or not.
 - [ ] Detail view: full answer text with brand and competitor mentions highlighted, citations tagged owned or third-party, and metadata (model, preset, sample number, country, cost).
 - [ ] **Query fan-out** (Otterly parity): show the web searches the engine ran for the answer. Bright Data returns ChatGPT's as `web_search_query`.
-- [ ] **ChatGPT ads and shopping cards** (Otterly parity): show ads and product cards shown with the answer (Bright Data's `ads` and `shopping` fields), and count them per brand.
-- [ ] **Google AI Overviews ads** (Otterly parity): the Google results scraper returns the ads on the page; show whose ads appear next to the overview.
+- ⏸ ChatGPT ads and shopping cards, Google AI Overviews ads: deferred (decision log, 20 October 2026). The raw answers keep Bright Data's `ads` and `shopping` fields, so this can be added later without re-asking.
 
 **Done when:** you can find and read any answer from any run.
 
@@ -403,12 +402,9 @@ Catch up on anything that slipped. If you're on track, write tests for the run p
 
 Otterly.ai is the closest affordable competitor ($29–$489 a month; checked 19 October 2026). Its core features, mapped onto this plan, are in the [parity table](#otterly-parity) below. These days cover what the plan was missing.
 
-### Day P1: Alerts
+### Day P1: Alerts ⏸
 
-- [ ] Email when a run shows a real change: brand mention rate up or down by more than a set amount, a competitor overtaking you on an engine, a new domain cited for your prompts, or a run failing.
-- [ ] Per-workspace alert settings; a weekly summary email as the default.
-
-**Done when:** a seeded drop in mention rate sends one clear email.
+Deferred with teams, integrations and access (decision log, 20 October 2026).
 
 ### Day P2: GEO audit, part 1 (can AI crawlers read your pages?)
 
@@ -434,22 +430,20 @@ Otterly.ai is the closest affordable competitor ($29–$489 a month; checked 19 
 
 **Done when:** the demo workspace gets at least five specific, data-backed recommendations.
 
-### Day P5: Teams and several brands
+### Day P5: Teams, several brands and workspaces ⏸
 
-- [ ] Invite members by email (owner or member); remove them.
-- [ ] Several brands per workspace (agencies): a brand switcher, with prompts, competitors and results kept per brand.
-- [ ] Several workspaces per user (Otterly parity: one per client, each with its own members, reports, prompts and audits), with a workspace switcher; "pitch" workspaces for prospects.
+Deferred (decision log, 20 October 2026).
 
-**Done when:** a second user joins by invite, and an agency workspace tracks two brands separately.
+### Day P6: MCP server
 
-### Day P6: API and Looker Studio
+An MCP server, so Claude, ChatGPT, Cursor or any MCP client can read a workspace's results and act on them, Otterly-style.
 
-- [ ] A read-only REST API with workspace API keys: brands, prompts, runs, answers, citations and the metrics rollup.
-- [ ] Looker Studio through the API (or a Google Sheets export), and an MCP server over the same endpoints.
+- [ ] `npm run mcp` (stdio) and an HTTP endpoint (`/api/mcp`, streamable HTTP) authenticated with a per-workspace MCP key, created and revoked in Settings and stored hashed.
+- [ ] Read tools: brand and setup, prompts, latest metrics (Brand Visibility Index, mention rate, share of voice, sentiment, position) by engine and country, competitor comparison, citations and top domains, content gaps, recommendations, answers for a prompt, runs and usage.
+- [ ] Action tools, owners only: add, pause or delete prompts; start a run (with the free-tier check); run a GEO audit on a URL.
+- [ ] Resources: the workspace's prompt list and the latest brand report as markdown.
 
-**Done when:** a script with an API key pulls last week's metrics, and a Looker Studio report shows them.
-
----
+**Done when:** Claude Desktop, connected to the server, answers "How visible is Ledgerly on Gemini this week, and who beats us?" from real data, and can add a prompt.
 
 ### Day P7: Agent analytics and AI referral traffic
 
@@ -466,12 +460,9 @@ Otterly's free tools are also its marketing. Ours, at `/tools`, need no account:
 
 **Done when:** each tool works logged out and links to sign-up.
 
-### Day P9: Integrations
+### Day P9: Integrations ⏸
 
-- [ ] Looker Studio community connector over the Day P6 API (Otterly calls it the Data Studio connector).
-- [ ] Slack and webhook notifications for alerts (Day P1).
-
-**Done when:** a Looker Studio report and a Slack channel both show last week's numbers.
+Looker Studio connector, public REST API, Slack and webhooks: deferred (decision log, 20 October 2026).
 
 ---
 
@@ -616,7 +607,7 @@ Everything in this phase lives in `ee/`.
 | 3. Tracking engine | 15–20 | Queued, scheduled, budget-capped runs |
 | 4. Analysis | 21–26 | Mentions, sentiment, citations, metrics |
 | 5. Dashboard | 27–33 | Every version 1 insight, plus CSV export |
-| 5b. Otterly parity | P1–P9 | Alerts, GEO audit, recommendations and gaps, teams and workspaces, API and MCP, agent analytics, free tools, integrations |
+| 5b. Otterly parity | P2–P8 | GEO audit, recommendations and gaps, MCP server, agent analytics, free tools |
 | 6. Open-source release | 34–37 | Docker, docs, CI, open core boundary |
 | 7. Hosted billing | 38–44 | Wallet, Stripe, Razorpay, enforcement |
 | 8. Launch | 45–50 | Production, beta, public release |
@@ -654,18 +645,18 @@ Every Otterly feature found on otterly.ai (feature pages, sitemap, pricing; 20 O
 | Content briefs | 📅 Day P4 |
 | GEO audit: crawlability checker | 📅 Day P2 |
 | GEO audit: content audit, citation prediction | 📅 Day P3 |
-| ChatGPT ads and shopping cards | 📅 Day 29 |
-| Google AI Overviews ads | 📅 Day 29 |
+| ChatGPT ads and shopping cards | ⏸ deferred |
+| Google AI Overviews ads | ⏸ deferred |
 | Agent analytics (AI crawler visits) | 📅 Day P7 |
 | AI referral traffic | 📅 Day P7 |
 | Brand reports, trend annotations | 📅 Days 27, 31 |
 | Exports: CSV, PDF | 📅 Day 32 |
-| Alerts | 📅 Day P1 (email), Day P9 (Slack, webhooks) |
-| Looker Studio (Data Studio) connector | 📅 Day P9 |
-| Public API | 📅 Day P6 |
+| Alerts | ⏸ deferred |
+| Looker Studio (Data Studio) connector | ⏸ deferred |
+| Public API | ⏸ deferred |
 | MCP server | 📅 Day P6 |
-| Unlimited team members, brands, competitors | ✅ competitors; 📅 members and brands, Day P5 |
-| Workspaces per client, pitch workspaces | 📅 Day P5 |
+| Unlimited team members, brands, competitors | ✅ competitors; ⏸ members and brands |
+| Workspaces per client, pitch workspaces | ⏸ deferred |
 | Free tools: crawlability, content check, query fan-out, crawler simulation, brand authority | 📅 Day P8 |
 | Industry benchmarks (by vertical and country) | ✗ for now: needs data across many customers; possible later on the hosted version |
 | AI agent marketplace (Claude skills, n8n templates on the API) | ✗ for now: falls out of the API and MCP once they exist |
@@ -691,6 +682,7 @@ Record decisions here as you make them, with the date and the reason.
 | 2026-10-19 | Prompt suggestions: built from templates by default (free, offline); an AI model writes them when a key is set. | Decided |
 | 2026-10-19 | Queue: no pg-boss. The `run_items` table is the queue, worked by a loop that submits one Bright Data batch per run and engine, checks it, and stores answers; every step is saved, so restarts resume without paying twice. It runs inside the dev server on the embedded database and as `npm run worker` with a real Postgres. Bright Data is batch-shaped (one job per item would be wrong), and pg-boss needs a real Postgres connection. | Decided |
 | 2026-10-20 | Full Otterly parity list (every feature page): adds Brand Visibility Index, Net Sentiment Score, trend annotations, link position over time, PDF export, AI Overviews ads and shopping cards, content gaps and briefs, workspaces per client, agent analytics and AI referral traffic (moved from version 2), free public tools and integrations (Days P7–P9). Industry benchmarks, a marketplace, a Semrush app and SSO are left out. | Decided |
+| 2026-10-20 | Scope: build every Otterly feature except ads (ChatGPT ads and shopping, AI Overviews ads) and teams, integrations and access (alerts, team members and workspaces, public API, Looker Studio, Slack). The MCP server stays and gets its own day (P6). | Decided |
 | | Data source for the hosted version: Bright Data Scale ($1.30 per 1,000) or DataForSEO ($1.20 per 1,000, also covers Claude and AI Overviews) | Decide before Day 38 |
 | | Google AI Overviews: version 2 through a SERP API, or skip | Deferred (Bright Data's AI Mode scraper may cover part of it) |
 | | Web hosting: Vercel or VPS | Decide on Day 45 |
