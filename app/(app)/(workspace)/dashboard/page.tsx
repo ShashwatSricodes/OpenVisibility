@@ -12,11 +12,13 @@ import {
 import { requireWorkspace } from "@/core/auth/session";
 import { getBrandSetup } from "@/core/brands";
 import { citationSummary } from "@/core/citation-stats";
-import { RANGES, getOverview, isRange, type RangeId } from "@/core/overview";
-import { ENGINES, isEngineId } from "@/core/providers/registry";
+import { describeFilter, filterOptions, parseFilter } from "@/core/filters";
+import { RANGES, getOverview } from "@/core/overview";
+import { ENGINES } from "@/core/providers/registry";
 import { getDb } from "@/db/client";
 import { BarListCard } from "../../_components/bar-list-card";
-import { OverviewFilters, TrendPanel } from "../../_components/overview-top";
+import { TrendPanel } from "../../_components/overview-top";
+import { PageFilters } from "../../_components/page-filters";
 import { ENGINE_COLOR, change } from "../../_lib/kpi";
 import { EmptyState } from "../../_components/page-frame";
 import { RunNowButton } from "../../_components/run-now-button";
@@ -55,12 +57,13 @@ export default async function OverviewPage({
   if (!setup.brand) redirect("/onboarding");
 
   const q = await searchParams;
-  const range: RangeId = isRange(q.range) ? q.range : "30d";
-  const engine = typeof q.engine === "string" && isEngineId(q.engine) ? q.engine : undefined;
-  const country =
-    typeof q.country === "string" && /^[A-Z]{2}$/.test(q.country) ? q.country : undefined;
+  const filter = parseFilter(q);
+  const { range, engine, country } = filter;
 
-  const o = await getOverview(db, workspace.id, { range, engine, country });
+  const [o, options] = await Promise.all([
+    getOverview(db, workspace.id, filter),
+    filterOptions(db, workspace.id),
+  ]);
   const today = new Date().toISOString().slice(0, 10);
   const periodLabel = RANGES[range].label;
 
@@ -80,7 +83,7 @@ export default async function OverviewPage({
   const sources = await citationSummary(
     db,
     workspace.id,
-    { since: new Date(`${o.period.from}T00:00:00Z`) },
+    { since: new Date(`${o.period.from}T00:00:00Z`), engine, country },
     { limit: 20, pagesPerDomain: 10 },
   );
 
@@ -96,21 +99,14 @@ export default async function OverviewPage({
           <h1 className="text-base font-semibold">Overview</h1>
           <p className="truncate text-xs text-fg-subtle">
             {setup.brand.name} · {o.samples.toLocaleString("en-US")} answers ·{" "}
-            {periodLabel.toLowerCase()}
-            {engine ? ` · ${ENGINES[engine].name}` : ""}
+            {describeFilter(filter)}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <OverviewFilters
-            engines={o.engines.map((e) => ({ id: e, name: ENGINES[e].name }))}
-            countries={o.countries}
-            engine={engine}
-            country={country}
-            range={range}
-            ranges={(Object.keys(RANGES) as RangeId[]).map((id) => ({
-              id,
-              label: RANGES[id].label,
-            }))}
+          <PageFilters
+            filter={filter}
+            options={options}
+            exports={["metrics", "answers", "mentions", "citations"]}
           />
           <RunNowButton />
         </div>

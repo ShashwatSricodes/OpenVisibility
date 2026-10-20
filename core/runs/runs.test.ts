@@ -15,6 +15,8 @@ import { saveCompetitors } from "../brands";
 import { competitorView } from "../competitor-results";
 import { citationSummary, citationsByEngine, ownedPages, pageTrends } from "../citation-stats";
 import { env } from "../env";
+import { csvCell, csvRow, csvStream, exportRows, type Cell, type ExportKind } from "../exports";
+import { filterHref, filterParams, filterWindow, parseFilter } from "../filters";
 import { brandMetrics, metricsBy } from "../metrics-query";
 import { getOverview, periods, validateNote } from "../overview";
 import { promptDetail, promptTable } from "../prompt-results";
@@ -883,7 +885,7 @@ describe("prompt results", () => {
     await tick({ db, providerFor: async () => provider, analysis: null });
     const [brand] = await db.select().from(schema.brands);
 
-    const t = await promptTable(db, workspaceId, brand.id, "7d");
+    const t = await promptTable(db, workspaceId, brand.id, { range: "7d" });
     expect(t.engines).toEqual(["chatgpt", "gemini"]);
     expect(t.rows.map((x) => [x.text, x.mentionRate, x.byEngine, x.averagePosition])).toEqual([
       ["best invoicing app", 50, { chatgpt: 100, gemini: 0 }, 2],
@@ -1076,5 +1078,152 @@ describe("the competitors page", () => {
       ["invoice app with UPI", "Zoho", 100, 50],
     ]);
     expect(v.rated).toBe(false);
+  });
+});
+
+describe("filters and exports", () => {
+  it("reads the filters from the URL and writes them back short", () => {
+    expect(parseFilter({ range: "7d", engine: "gemini", country: "IN" })).toEqual({
+      range: "7d",
+      engine: "gemini",
+      country: "IN",
+    });
+    // unknown values fall back, so a mangled link still opens
+    expect(parseFilter({ range: "1y", engine: "bing", country: "india" })).toEqual({
+      range: "30d",
+      engine: undefined,
+      country: undefined,
+    });
+    expect(parseFilter(new URLSearchParams("engine=chatgpt")).engine).toBe("chatgpt");
+    expect(filterParams({ range: "30d", engine: "chatgpt" }).toString()).toBe("engine=chatgpt");
+    expect(filterHref("/citations", { range: "90d", country: "GB" })).toBe(
+      "/citations?range=90d&country=GB",
+    );
+    expect(filterHref("/prompts", { range: "30d" })).toBe("/prompts");
+  });
+
+  it("writes cells a spreadsheet opens as text, never as a formula", () => {
+    expect(csvCell('He said "hi", then left')).toBe('"He said ""hi"", then left"');
+    expect(csvCell("line one\nline two")).toBe('"line one\nline two"');
+    expect(csvCell('=HYPERLINK("http://x")')).toBe(`"'=HYPERLINK(""http://x"")"`);
+    expect(csvCell("+1 555")).toBe(`"'+1 555"`);
+    expect(csvCell("@sum")).toBe(`"'@sum"`);
+    expect(csvCell(-0.25)).toBe("-0.25"); // numbers stay numbers
+    expect(csvCell(true)).toBe("yes");
+    expect(csvCell(null)).toBe("");
+    expect(csvCell(Number.NaN)).toBe("");
+    expect(csvRow(["a", 1, null])).toBe('"a",1,\r\n');
+  });
+
+  describe("from a run", () => {
+    beforeEach(async () => {
+      const r = await createRun(db, workspaceId);
+      if (!r.ok) throw new Error(r.message);
+      const provider = new FakeProvider({
+        reply: (_i, engine) =>
+          engine === "chatgpt"
+            ? {
+                text: "1. Zoho\n2. Ledgerly",
+                citations: [
+                  { url: "https://zoho.com/invoice", title: "Zoho Invoice" },
+                  { url: "https://ledgerly.app/pricing?utm_source=x", title: "Pricing" },
+                ],
+              }
+            : { text: '=1+1, or "spreadsheets", work too.\nReally.' },
+      });
+      await tick({ db, providerFor: async () => provider, analysis: null });
+    });
+
+    const all = async (kind: ExportKind, q = "", batch = 5) => {
+      const f = parseFilter(new URLSearchParams(q));
+      const w = filterWindow(f);
+      const out: Cell[][] = [];
+      for await (const row of exportRows(db, workspaceId, kind, {
+        archive: { engine: f.engine, country: f.country, since: w.since },
+        metrics: w.metrics,
+        batch,
+      }))
+        out.push(row);
+      return { header: out[0] as string[], rows: out.slice(1) };
+    };
+    const col = (t: { header: string[]; rows: Cell[][] }, name: string) =>
+      t.rows.map((r) => r[t.header.indexOf(name)]);
+
+    it("answers: every answer once across batches, filtered like the page", async () => {
+      const a = await all("answers");
+      expect(a.rows).toHaveLength(12);
+      expect(new Set(col(a, "Answer ID")).size).toBe(12);
+      const chatgpt = a.rows.find((r) => r[a.header.indexOf("Engine")] === "ChatGPT")!;
+      expect(
+        ["Names you", "Your position", "Brands named", "Sources cited"].map(
+          (h) => chatgpt[a.header.indexOf(h)],
+        ),
+      ).toEqual([true, 2, "Zoho; Ledgerly", 2]);
+      expect((await all("answers", "country=IN")).rows).toHaveLength(4);
+      expect(col(await all("answers", "engine=gemini&country=IN"), "Country")).toEqual([
+        "India",
+        "India",
+      ]);
+      // the last 7 days include today's run
+      expect((await all("answers", "range=7d")).rows).toHaveLength(12);
+    });
+
+    it("mentions and citations: a row each, with whose they are", async () => {
+      const m = await all("mentions", "engine=chatgpt");
+      expect(m.rows).toHaveLength(12); // 6 answers × 2 brands
+      expect(m.rows.slice(0, 2).map((r) => [r[4], r[5], r[6]])).toEqual([
+        ["Zoho", false, 1],
+        ["Ledgerly", true, 2],
+      ]);
+      const c = await all("citations");
+      expect(c.rows).toHaveLength(12);
+      expect(c.rows.slice(0, 2).map((r) => r.slice(4, 10))).toEqual([
+        [1, "https://zoho.com/invoice", "zoho.com", "Zoho Invoice", "Competitor", "Zoho"],
+        [2, "https://ledgerly.app/pricing", "ledgerly.app", "Pricing", "Yours", null],
+      ]);
+    });
+
+    it("metrics: the stored counters, which add up to the dashboard", async () => {
+      const t = await all("metrics", "range=7d", 3);
+      const yours = t.rows.filter((r) => r[t.header.indexOf("Yours")] === true);
+      const sum = (rows: Cell[][], name: string) =>
+        rows.reduce((n, r) => n + Number(r[t.header.indexOf(name)]), 0);
+      expect(sum(yours, "Samples")).toBe(12);
+      expect(sum(yours, "Samples naming the brand")).toBe(6);
+      const [own] = await brandMetrics(db, workspaceId, filterWindow({ range: "7d" }).metrics);
+      expect(sum(yours, "Samples naming the brand") / sum(yours, "Samples")).toBe(own.mentionRate);
+      const gemini = await all("metrics", "engine=gemini");
+      expect(new Set(col(gemini, "Engine"))).toEqual(new Set(["Gemini"]));
+    });
+
+    it("streams a file Excel opens: BOM, CRLF, escaped text", async () => {
+      const f = filterWindow({ range: "7d" });
+      const stream = csvStream(
+        exportRows(db, workspaceId, "answers", {
+          archive: { engine: "gemini", country: "IN" },
+          metrics: f.metrics,
+        }),
+      );
+      const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+      expect([...bytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]); // the BOM Excel looks for
+      const text = new TextDecoder().decode(bytes.slice(3));
+      expect(text.startsWith('"Date (UTC)",')).toBe(true);
+      expect(text.endsWith("\r\n")).toBe(true);
+      expect(text).toContain(`"'=1+1, or ""spreadsheets"", work too.\nReally."`);
+    });
+
+    it("the result pages take engine and country too", async () => {
+      const [brand] = await db.select().from(schema.brands);
+      const t = await promptTable(db, workspaceId, brand.id, { range: "7d", engine: "gemini" });
+      expect(t.engines).toEqual(["gemini"]);
+      expect(t.rows[0].mentionRate).toBe(0);
+      const v = await competitorView(db, workspaceId, { range: "7d", country: "IN" });
+      expect(v.leaderboard[0]).toMatchObject({ key: "you", samples: 4, mentionRate: 0.5 });
+      const since = filterWindow({ range: "7d" }).since;
+      expect((await citationSummary(db, workspaceId, { since, country: "GB" })).answers).toBe(4);
+      expect(await ownedPages(db, workspaceId, { since, country: "IN" })).toEqual([
+        expect.objectContaining({ inPeriod: 2, allTime: 6 }),
+      ]);
+    });
   });
 });

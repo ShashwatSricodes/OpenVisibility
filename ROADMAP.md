@@ -402,11 +402,11 @@ Built on Day 23's page and queries (`core/citation-stats.ts`), filterable by 7, 
 
 ### Day 32: Filters and CSV export
 
-- [ ] Keep the date range, engine and country filters in the URL, so views can be shared and bookmarked.
-- [ ] CSV export for answers, mentions, citations and the metrics rollup. Stream it so large exports don't time out.
-- [ ] PDF report of the Overview, Competitors and Citations pages for clients or a board (Otterly parity).
+- [x] Date range, engine and country live in the URL (`core/filters.ts`) on the Overview, Prompts, Citations and Competitors, with the same Filter and date menus on each. Prompts, Citations and Competitors gained the country filter; the Answers page gained a date range ("Any time" by default, since it's where you look for an old answer). The Overview's sources card now follows the filters too.
+- [x] CSV export of answers, mentions, citations and the daily metrics (`core/exports.ts`, `GET /api/export/<kind>.csv`), filtered like the page it's downloaded from. Rows are read 500 at a time (answers by a timestamp-and-id cursor) and streamed, so a large export never sits in memory. Files have a UTF-8 BOM, CRLF line ends and quoted text; text that starts like a formula gets an apostrophe so a spreadsheet won't run it. Exports read stored answers only, so they cost nothing.
+- [x] Report (`/report`): the Overview's KPIs and trend, the competitor leaderboard and the prompts they win, where you're missing, and the sources cited, on one page with the same filters. It prints light whatever the theme, and the browser's "Save as PDF" makes the file; no server-side PDF engine to install.
 
-**Done when:** every page respects the filters, and exports open cleanly in Excel or Sheets.
+**Done when:** every page respects the filters, and exports open cleanly in Excel or Sheets. ✅ 20 October 2026: each page kept its filters in the URL and picking Gemini from the menu updated the link; all four CSVs downloaded from the dev data (579 answers, 1,785 mentions, 584 citations, 384 metric rows), each with a BOM and the same number of columns on every row; the report printed to a 2-page PDF. Signed-out downloads get a 401.
 
 ### Day 33: Polish and honest framing
 
@@ -647,7 +647,7 @@ Every Otterly feature found on otterly.ai (feature pages, sitemap, pricing; 20 O
 | **Engines:** ChatGPT, AI Overviews, Perplexity, Copilot (core); AI Mode, Gemini, Claude (paid add-ons) | ✅ ChatGPT, Gemini, AI Mode, AI Overviews (no add-on fees). ⏸ Perplexity, Copilot, Claude |
 | 65+ countries and languages | ✅ 20 countries (Day 8); more is a one-line change. Prompts in any language |
 | Daily tracking | 📅 Day 18 |
-| Prompt tracking with tags (branded, non-branded, funnel) and filters | ✅ Day 13; 📅 filters on results, Day 32 |
+| Prompt tracking with tags (branded, non-branded, funnel) and filters | ✅ Days 13, 32 |
 | Prompt research (from keywords, brand or URL) | ✅ Day 13 (from brand, category, competitors) |
 | Prompt calculator (how many prompts you need) | 📅 Day P8 |
 | Query fan-out | 📅 Day 29 (in answers), Day P8 (free tool) |
@@ -668,7 +668,7 @@ Every Otterly feature found on otterly.ai (feature pages, sitemap, pricing; 20 O
 | Agent analytics (AI crawler visits) | 📅 Day P7 |
 | AI referral traffic | 📅 Day P7 |
 | Brand reports, trend annotations | 📅 Days 27, 31 |
-| Exports: CSV, PDF | 📅 Day 32 |
+| Exports: CSV, PDF | ✅ Day 32 (PDF through the browser's print dialog) |
 | Alerts | ⏸ deferred |
 | Looker Studio (Data Studio) connector | ⏸ deferred |
 | Public API | ⏸ deferred |

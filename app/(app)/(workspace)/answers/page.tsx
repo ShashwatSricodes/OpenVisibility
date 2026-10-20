@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, MessageSquareText, Search } from "lucide-react";
-import { archiveOptions, listAnswers, type ArchiveFilter } from "@/core/answer-archive";
+import { archiveFilterFrom, archiveOptions, listAnswers } from "@/core/answer-archive";
 import { requireWorkspace } from "@/core/auth/session";
 import { countryName } from "@/core/countries";
-import { ENGINES, isEngineId } from "@/core/providers/registry";
+import { RANGES, type RangeId } from "@/core/overview";
+import { ENGINES } from "@/core/providers/registry";
 import { getDb } from "@/db/client";
 import { EmptyState, Page, buttonSecondary } from "../../_components/page-frame";
+import { exportItems } from "../../_components/page-filters";
+import { ExportMenu } from "../../_components/view-filters";
 import { cn } from "../../_lib/cn";
 
 export const metadata: Metadata = { title: "Answers" };
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : undefined);
 const when = (d: Date) =>
   d.toLocaleString("en-GB", {
     day: "numeric",
@@ -33,22 +34,17 @@ export default async function AnswersPage({
   const { workspace } = await requireWorkspace();
   const db = getDb();
   const q = await searchParams;
-  const engine = one(q.engine);
-  const filter: ArchiveFilter = {
-    engine: engine && isEngineId(engine) ? engine : undefined,
-    promptId: UUID.test(one(q.prompt) ?? "") ? one(q.prompt) : undefined,
-    country: /^[A-Z]{2}$/.test(one(q.country) ?? "") ? one(q.country) : undefined,
-    runId: UUID.test(one(q.run) ?? "") ? one(q.run) : undefined,
-    named:
-      one(q.named) === "yes" || one(q.named) === "no" ? (one(q.named) as "yes" | "no") : undefined,
-    q: one(q.q),
-    page: Number(one(q.page)) || 1,
-  };
+  const { range, ...filter } = archiveFilterFrom(q);
   const [list, options] = await Promise.all([
     listAnswers(db, workspace.id, filter),
     archiveOptions(db, workspace.id),
   ]);
   const filtered = Object.entries(filter).some(([k, v]) => k !== "page" && v);
+  // exports take the same filters; no range here means any time
+  const shown = new URLSearchParams();
+  for (const [k, v] of Object.entries(q))
+    if (typeof v === "string" && v && k !== "page") shown.set(k, v);
+  if (!range) shown.set("range", "all");
 
   // the same filters, another page
   const pageHref = (page: number) => {
@@ -75,6 +71,9 @@ export default async function AnswersPage({
     <Page
       title="Answers"
       description={`${list.total.toLocaleString("en-US")} ${filtered ? "matching " : ""}${list.total === 1 ? "answer" : "answers"}, newest first`}
+      actions={
+        <ExportMenu items={exportItems(shown, ["answers", "mentions", "citations"], false)} />
+      }
     >
       <form method="get" className="flex flex-wrap items-center gap-2">
         <span className="relative">
@@ -88,6 +87,14 @@ export default async function AnswersPage({
             className={cn(field, "w-60 pl-8")}
           />
         </span>
+        <select name="range" defaultValue={range ?? ""} aria-label="When" className={field}>
+          <option value="">Any time</option>
+          {(Object.keys(RANGES) as RangeId[]).map((r) => (
+            <option key={r} value={r}>
+              {RANGES[r].label}
+            </option>
+          ))}
+        </select>
         <select
           name="named"
           defaultValue={filter.named ?? ""}
