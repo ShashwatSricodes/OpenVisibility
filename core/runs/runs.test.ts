@@ -17,6 +17,7 @@ import { citationSummary, citationsByEngine, ownedPages, pageTrends } from "../c
 import { env } from "../env";
 import { csvCell, csvRow, csvStream, exportRows, type Cell, type ExportKind } from "../exports";
 import { filterHref, filterParams, filterWindow, parseFilter } from "../filters";
+import { contentGaps, outreachTargets, recommendations } from "../gaps";
 import { brandMetrics, metricsBy } from "../metrics-query";
 import { getOverview, periods, validateNote } from "../overview";
 import { promptDetail, promptTable } from "../prompt-results";
@@ -1225,5 +1226,123 @@ describe("filters and exports", () => {
         expect.objectContaining({ inPeriod: 2, allTime: 6 }),
       ]);
     });
+  });
+});
+
+describe("recommendations", () => {
+  beforeEach(async () => {
+    const r = await createRun(db, workspaceId);
+    if (!r.ok) throw new Error(r.message);
+    // ChatGPT names only Zoho, citing g2; Gemini names you first, citing g2 too
+    const provider = new FakeProvider({
+      reply: (_i, engine) =>
+        engine === "chatgpt"
+          ? {
+              text: "Zoho is the one to pick.",
+              citations: [
+                { url: "https://g2.com/best-invoicing", title: "Best invoicing apps" },
+                { url: "https://zoho.com/invoice" },
+              ],
+            }
+          : {
+              text: "1. Ledgerly\n2. Zoho",
+              citations: [
+                { url: "https://g2.com/best-invoicing" },
+                { url: "https://ledgerly.app/pricing" },
+              ],
+            },
+    });
+    await tick({ db, providerFor: async () => provider, analysis: null });
+  });
+
+  it("finds the prompts competitors win, with the sources behind them", async () => {
+    const gaps = await contentGaps(db, workspaceId, { range: "7d" });
+    expect(gaps.map((g) => [g.prompt, g.engine, g.yours, g.rival, g.theirs, g.samples])).toEqual([
+      ["best invoicing app", "chatgpt", 0, "Zoho", 1, 4],
+      ["invoice app with UPI", "chatgpt", 0, "Zoho", 1, 2],
+    ]);
+    expect(gaps[0].sources).toEqual([
+      { domain: "g2.com", answers: 4 },
+      { domain: "zoho.com", answers: 4 },
+    ]);
+    expect(await contentGaps(db, workspaceId, { range: "7d", engine: "gemini" })).toEqual([]);
+  });
+
+  it("lists the pages to get onto: third parties first, competitors' own last", async () => {
+    const targets = await outreachTargets(db, workspaceId, { range: "7d" });
+    expect(targets.map((t) => [t.url, t.kind, t.answers, t.withYou, t.rivals, t.engines])).toEqual([
+      ["https://g2.com/best-invoicing", "third_party", 6, 6, ["Zoho"], ["chatgpt"]],
+      ["https://zoho.com/invoice", "competitor", 6, 0, ["Zoho"], ["chatgpt"]],
+    ]);
+    expect(targets[0].prompts).toEqual(["best invoicing app", "invoice app with UPI"]);
+    expect(targets[0].title).toBe("Best invoicing apps");
+    expect(targets[1].title).toBeNull(); // no title given
+  });
+
+  it("gives at least five specific, data-backed next steps", async () => {
+    const [brand] = await db.select().from(schema.brands);
+    // ChatGPT named you in every answer the week before
+    const before = new Date(Date.now() - 10 * 86_400_000).toISOString().slice(0, 10);
+    await db.insert(schema.metricsDaily).values({
+      workspaceId,
+      brandId: brand.id,
+      day: before,
+      engine: "chatgpt",
+      country: "US",
+      promptId: promptIds[0],
+      samples: 10,
+      asked: 10,
+      mentioned: 10,
+    });
+    // and the site audit found a page that needs JavaScript
+    const [audit] = await db
+      .insert(schema.siteAudits)
+      .values({ workspaceId, domain: "ledgerly.app", status: "done", robotsState: "missing" })
+      .returning();
+    await db.insert(schema.pageAudits).values({
+      auditId: audit.id,
+      url: "https://ledgerly.app/",
+      source: "home",
+      checkedAt: new Date(),
+      result: {
+        url: "https://ledgerly.app/",
+        finalUrl: "https://ledgerly.app/",
+        status: 200,
+        error: null,
+        redirects: 0,
+        ms: 300,
+        facts: {
+          title: "Ledgerly",
+          words: 0,
+          scripts: 12,
+          noindex: false,
+          nosnippet: false,
+          noindexFor: [],
+        },
+        blocked: [],
+        blockedTraining: [],
+      },
+    });
+
+    const { items } = await recommendations(db, workspaceId, { range: "7d" });
+    expect(items.length).toBeGreaterThanOrEqual(5);
+    expect(new Set(items.map((i) => i.kind))).toEqual(
+      new Set(["gap", "target", "page", "slipping"]),
+    );
+    const byId = Object.fromEntries(items.map((i) => [i.id, i]));
+    expect(byId["slipping:chatgpt"]).toMatchObject({
+      title: "ChatGPT names Ledgerly less often",
+      evidence: "100% of answers in the previous period, 0% now.",
+    });
+    expect(byId["target:https://g2.com/best-invoicing"]).toMatchObject({
+      title: "Get onto g2.com/best-invoicing",
+      evidence: "Cited in 6 answers that name Zoho but not Ledgerly, for 2 prompts on ChatGPT.",
+      action: "Ask the site to include Ledgerly in “Best invoicing apps”, or to review it.",
+    });
+    expect(byId[`gap:${promptIds[0]}:chatgpt`]).toMatchObject({
+      evidence: "Zoho is named in 100% of answers, Ledgerly in 0% (4 answers).",
+      action: "Those answers cite g2.com and zoho.com: get Ledgerly onto those pages.",
+    });
+    expect(byId["page:https://ledgerly.app/"].title).toBe("Fix ledgerly.app");
   });
 });

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Bot,
@@ -12,7 +13,8 @@ import {
 import { requireWorkspace } from "@/core/auth/session";
 import { getBrandSetup } from "@/core/brands";
 import { citationSummary } from "@/core/citation-stats";
-import { describeFilter, filterOptions, parseFilter } from "@/core/filters";
+import { describeFilter, filterHref, filterOptions, parseFilter } from "@/core/filters";
+import { recommendations } from "@/core/gaps";
 import { SOURCE_NOTE, VARIANCE_NOTE } from "@/core/framing";
 import { RANGES, getOverview } from "@/core/overview";
 import { ENGINES } from "@/core/providers/registry";
@@ -20,6 +22,7 @@ import { getDb } from "@/db/client";
 import { BarListCard } from "../../_components/bar-list-card";
 import { TrendPanel } from "../../_components/overview-top";
 import { PageFilters } from "../../_components/page-filters";
+import { RecommendationItem } from "../../_components/recommendation-item";
 import { ENGINE_COLOR, change } from "../../_lib/kpi";
 import { EmptyState } from "../../_components/page-frame";
 import { RunNowButton } from "../../_components/run-now-button";
@@ -61,9 +64,10 @@ export default async function OverviewPage({
   const filter = parseFilter(q);
   const { range, engine, country } = filter;
 
-  const [o, options] = await Promise.all([
+  const [o, options, next] = await Promise.all([
     getOverview(db, workspace.id, filter),
     filterOptions(db, workspace.id),
+    recommendations(db, workspace.id, filter, new Date(), { limit: 3 }),
   ]);
   const today = new Date().toISOString().slice(0, 10);
   const periodLabel = RANGES[range].label;
@@ -155,6 +159,25 @@ export default async function OverviewPage({
         periodLabel={periodLabel}
         today={today}
       />
+
+      {next.items.length > 0 && (
+        <section className="rounded-xl border border-line bg-panel">
+          <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+            <h2 className="text-sm font-semibold">Next steps</h2>
+            <Link
+              href={filterHref("/recommendations", filter)}
+              className="text-xs text-fg-subtle hover:text-fg"
+            >
+              All recommendations
+            </Link>
+          </div>
+          <div className="divide-y divide-line">
+            {next.items.map((r) => (
+              <RecommendationItem key={r.id} r={r} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <BarListCard

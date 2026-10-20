@@ -27,5 +27,6 @@ export const config = {
     "/onboarding/:path*",
     "/report/:path*",
     "/audit/:path*",
+    "/recommendations/:path*",
   ],
 };

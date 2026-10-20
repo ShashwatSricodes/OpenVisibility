@@ -444,13 +444,12 @@ Deferred with teams, integrations and access (decision log, 20 October 2026).
 
 ### Day P4: Recommendations and content gaps
 
-- [ ] **Content gap analysis** (Otterly parity): prompts where an engine names competitors but not you, ranked, per engine, with the competitors named and the sources cited for them (often third-party pages to get onto, not pages to write).
-- [ ] **Content briefs**: for a gap, a short brief of what a page needs to be cited (topics the cited pages cover, structure, sources to earn), written by a model when a key is set.
+- [x] **Content gap analysis** (Otterly parity; `core/gaps.ts`): prompts where an engine names a competitor at least 20 points more often than you (and in at least 30% of answers), biggest gap first, per engine, with the competitor and the domains cited in the answers that leave you out.
+- [x] **Pages to get onto** (the outreach agent's targets): pages on other sites cited in answers that name a competitor but not you, ranked by those answers, with the prompts, engines and competitors behind each, and how often the page is also cited when you are named. Competitors' own pages are listed last and never pitched.
+- [x] **Recommendations** from your own data, comparable across kinds: content gaps, pages to get onto, owned pages failing the site audit (a problem, or a content score under 40), and engines whose mention rate fell 10 points or more on the previous period. Each says what to do and the numbers behind it. A Recommendations page (under Improve) with the filters, and a "Next steps" card on the Overview.
+- Content briefs moved to Day O1, which reads cited pages with the model anyway. The weekly email waits for email digests, deferred with alerts.
 
-- [ ] Weekly, from your own data: prompts where competitors appear and you don't, domains cited for competitors but not for you (outreach targets), owned pages failing the audit, engines where you're slipping.
-- [ ] Shown on the Overview and in the weekly email.
-
-**Done when:** the demo workspace gets at least five specific, data-backed recommendations.
+**Done when:** the demo workspace gets at least five specific, data-backed recommendations. ✅ 20 October 2026: a test workspace gets five of four kinds (two gaps, a page to get onto, a page needing JavaScript, an engine slipping from 100% to 0%), each with its numbers; on the dev data, the live run's answers produced pages to get onto (fitsmallbusiness.com, saascompared.io and others, cited with FreshBooks, Zoho Invoice and Wave but not Ledgerly) and a fix for the real ledgerly.app.
 
 ### Day P5: Teams, several brands and workspaces ⏸
 
@@ -485,6 +484,43 @@ Otterly's free tools are also its marketing. Ours, at `/tools`, need no account:
 ### Day P9: Integrations ⏸
 
 Looker Studio connector, public REST API, Slack and webhooks: deferred (decision log, 20 October 2026).
+
+---
+
+## Phase 5c: The outreach agent (Days O1–O4)
+
+An agent that works to get the brand cited: it finds the pages AI already quotes for your prompts that name competitors but not you (Day P4's targets), works out what mention would fit each one, finds who to ask, writes the pitch, and, once you approve it, sends it from your own mailbox and follows up once. It can't guarantee a citation; it raises the odds and shows which outreach worked.
+
+Rules it never breaks: every email is approved by a person before it's sent; one contact per site per quarter; a daily send cap; a do-not-contact list; your name, company address and an opt-out line in every email (CAN-SPAM; legitimate interest for business email under GDPR); everything sent is logged. Directories and review sites that need an account become tasks for you, not automated sign-ups.
+
+### Day O1: Research and contacts
+
+- [ ] For each target page: read it (as the audit does), work out the opening (a list you're missing from, an outdated comparison, a directory listing, a review site profile), and say why the brand fits, from the brand's setup and its own pages. Uses the analysis model (`ANALYSIS_*`); off until a key is set.
+- [ ] Find a contact from the site's own public pages: author byline, contact or "write for us" page, editorial address in the page or its schema.org markup. No paid enrichment, no guessing addresses.
+- [ ] Content briefs (moved from Day P4): for a prompt you're missing from, what a page of yours needs to be cited, from the pages that are.
+
+**Done when:** the dev workspace's top targets each have an opening, a reason and a contact or a "no public contact" note.
+
+### Day O2: Pitches and approval
+
+- [ ] One short, specific email per target (and one follow-up), in the brand's voice, with the sender's name, company address and an opt-out line. Never claims things the brand's setup doesn't support.
+- [ ] An Outreach page: a queue to read, edit, approve or skip each email; nothing is sent without approval.
+
+**Done when:** a pitch can be drafted, edited and approved, and an unapproved one can't be sent.
+
+### Day O3: Sending and follow-ups
+
+- [ ] Send through the user's own mailbox over SMTP (Gmail, Outlook, Zoho and others, with an app password; credentials encrypted like the Bright Data key). A daily cap, a quarterly cap per site, the do-not-contact list, and a log of every send.
+- [ ] One follow-up after about a week if there's no reply (approved with the first email), then stop.
+
+**Done when:** an approved email is sent through a test SMTP server, its follow-up goes out on schedule, and a site on the do-not-contact list is refused.
+
+### Day O4: Replies and results
+
+- [ ] Read replies over IMAP: mark the target replied, stop the follow-up, and flag the reply for the user. Opt-out replies add the site to the do-not-contact list.
+- [ ] A pipeline per target (found → drafted → approved → sent → replied → cited), with "cited" confirmed by a later run in which that page is cited in an answer naming the brand.
+
+**Done when:** a reply stops the follow-up, an opt-out blocks the site, and a target whose page starts citing the brand shows as won.
 
 ---
 
@@ -662,9 +698,9 @@ Every Otterly feature found on otterly.ai (feature pages, sitemap, pricing; 20 O
 | Citation tracking: domains, URLs, link position over time | 📅 Days 23, 30 |
 | Domain ranking | 📅 Day 30 |
 | Competitor benchmarking (top 5, all) | 📅 Day 31 |
-| Content gap analysis | 📅 Day P4 |
-| Recommendations (weekly) | 📅 Day P4 |
-| Content briefs | 📅 Day P4 |
+| Content gap analysis | ✅ Day P4 |
+| Recommendations (weekly) | ✅ Day P4 (on the Overview and their own page; the email waits) |
+| Content briefs | 📅 Day O1 |
 | GEO audit: crawlability checker | ✅ Day P2 |
 | GEO audit: content audit, citation prediction | ✅ Day P3 (a checklist score and a comparison with cited pages; not a prediction) |
 | ChatGPT ads and shopping cards | ⏸ deferred |
@@ -705,6 +741,7 @@ Record decisions here as you make them, with the date and the reason.
 | 2026-10-19 | Queue: no pg-boss. The `run_items` table is the queue, worked by a loop that submits one Bright Data batch per run and engine, checks it, and stores answers; every step is saved, so restarts resume without paying twice. It runs inside the dev server on the embedded database and as `npm run worker` with a real Postgres. Bright Data is batch-shaped (one job per item would be wrong), and pg-boss needs a real Postgres connection. | Decided |
 | 2026-10-20 | Full Otterly parity list (every feature page): adds Brand Visibility Index, Net Sentiment Score, trend annotations, link position over time, PDF export, AI Overviews ads and shopping cards, content gaps and briefs, workspaces per client, agent analytics and AI referral traffic (moved from version 2), free public tools and integrations (Days P7–P9). Industry benchmarks, a marketplace, a Semrush app and SSO are left out. | Decided |
 | 2026-10-20 | Scope: build every Otterly feature except ads (ChatGPT ads and shopping, AI Overviews ads) and teams, integrations and access (alerts, team members and workspaces, public API, Looker Studio, Slack). The MCP server stays and gets its own day (P6). | Decided |
+| 2026-10-20 | Outreach agent (Days O1–O4, after P4): it finds the pages AI cites for competitors but not you, researches each, finds a public contact, and drafts a pitch; every email is approved by a person, then sent from the user's own mailbox over SMTP, with one follow-up and replies read over IMAP. It uses the analysis model (`ANALYSIS_*`). Fully automatic sending, OAuth mail and transactional email services were considered and turned down. | Decided |
 | | Data source for the hosted version: Bright Data Scale ($1.30 per 1,000) or DataForSEO ($1.20 per 1,000, also covers Claude and AI Overviews) | Decide before Day 38 |
 | | Google AI Overviews: version 2 through a SERP API, or skip | Deferred (Bright Data's AI Mode scraper may cover part of it) |
 | | Web hosting: Vercel or VPS | Decide on Day 45 |
