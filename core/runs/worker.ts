@@ -29,6 +29,8 @@ export type WorkerOptions = {
   maxBatch?: number;
   /** a batch still not ready after this long is given up on */
   staleAfterMs?: number;
+  /** how often to ask the provider about one batch; Bright Data jobs take minutes */
+  checkEveryMs?: number;
   now?: () => Date;
 };
 
@@ -43,6 +45,8 @@ type ItemRow = typeof runItems.$inferSelect;
 
 /* a batch that failed to submit waits before trying again, per run and engine */
 const backoff = new Map<string, number>();
+/* when each batch was last checked, so a slow batch isn't asked about every tick */
+const lastChecked = new Map<string, number>();
 
 const describe = (e: ItemError | { message: string }) => e.message.slice(0, 500);
 
@@ -142,7 +146,7 @@ async function submitQueued(opts: WorkerOptions, report: TickReport) {
 /* ── 2. collect ────────────────────────────────────────────── */
 
 async function collectRunning(opts: WorkerOptions, report: TickReport) {
-  const { db, providerFor, maxAttempts = 3, staleAfterMs = 45 * 60_000 } = opts;
+  const { db, providerFor, maxAttempts = 3, staleAfterMs = 45 * 60_000, checkEveryMs = 0 } = opts;
   const now = (opts.now ?? (() => new Date()))();
 
   const jobs = await db
@@ -157,6 +161,9 @@ async function collectRunning(opts: WorkerOptions, report: TickReport) {
     .where(and(eq(runItems.status, "running"), isNotNull(runItems.externalId)));
 
   for (const job of jobs) {
+    const since = now.getTime() - (lastChecked.get(job.externalId!) ?? 0);
+    if (checkEveryMs > 0 && since >= 0 && since < checkEveryMs) continue;
+    lastChecked.set(job.externalId!, now.getTime());
     const items = await db
       .select()
       .from(runItems)
