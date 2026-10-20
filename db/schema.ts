@@ -462,3 +462,51 @@ export const annotations = pgTable(
   },
   (t) => [index("annotations_workspace_day_idx").on(t.workspaceId, t.day)],
 );
+
+/* ── GEO audit: can AI crawlers read the brand's own pages? (core/geo) ── */
+
+export const auditStatus = pgEnum("audit_status", ["queued", "running", "done"]);
+
+/** One owned domain's audit. Running it again replaces the previous one. */
+export const siteAudits = pgTable(
+  "site_audits",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    domain: text("domain").notNull(),
+    status: auditStatus("status").notNull().default("queued"),
+    requestedAt: createdAt(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    /** "found", "missing" (all allowed) or "unreachable" (all blocked) */
+    robotsState: text("robots_state"),
+    robotsText: text("robots_text"),
+    /** HTTP status of /llms.txt; null when it couldn't be fetched */
+    llmsTxtStatus: integer("llms_txt_status"),
+    sitemapUrl: text("sitemap_url"),
+    /** why the audit stopped early, e.g. the domain doesn't resolve */
+    error: text("error"),
+  },
+  (t) => [index("site_audits_workspace_idx").on(t.workspaceId)],
+);
+
+/** One page of an audit, and what checking it found (core/geo/page.ts PageCheck). */
+export const pageAudits = pgTable(
+  "page_audits",
+  {
+    id: id(),
+    auditId: uuid("audit_id")
+      .notNull()
+      .references(() => siteAudits.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    /** why it was picked: the home page, cited in answers, or listed in the sitemap */
+    source: text("source").notNull(),
+    /** the order pages were picked in: home, cited, then the sitemap's */
+    position: integer("position").notNull().default(0),
+    checkedAt: timestamp("checked_at", { withTimezone: true }),
+    result: jsonb("result"),
+  },
+  (t) => [index("page_audits_audit_idx").on(t.auditId)],
+);

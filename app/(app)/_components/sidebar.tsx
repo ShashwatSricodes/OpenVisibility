@@ -15,6 +15,7 @@ import {
   ListChecks,
   Menu,
   Moon,
+  ScanSearch,
   Settings,
   Sun,
   Swords,
@@ -38,6 +39,10 @@ const GROUPS: { label: string; items: Item[] }[] = [
       { href: "/citations", label: "Citations", icon: Link2 },
       { href: "/competitors", label: "Competitors", icon: Swords },
     ],
+  },
+  {
+    label: "Improve",
+    items: [{ href: "/audit", label: "Site audit", icon: ScanSearch }],
   },
   {
     label: "Tracking",
