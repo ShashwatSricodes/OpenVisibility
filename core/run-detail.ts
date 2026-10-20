@@ -24,7 +24,7 @@ export async function getRunDetail(db: AnyDb, workspaceId: string, runId: string
       // skipped by smart sampling: never meant to be asked
       planned: sql<number>`count(*) filter (where ${runItems.skipReason} is distinct from 'sampling')::int`,
       done: sql<number>`count(*) filter (where ${runItems.status} = 'done')::int`,
-      cost: sql<string>`coalesce(sum(${answers.costUsd}), 0)::text`,
+      cost: sql<string>`coalesce(sum(${answers.costUsd} + ${answers.analysisCostUsd}), 0)::text`,
     })
     .from(runItems)
     .leftJoin(answers, eq(answers.runItemId, runItems.id))
@@ -81,13 +81,14 @@ export async function getRunDetail(db: AnyDb, workspaceId: string, runId: string
     .select({ name: brands.name })
     .from(brands)
     .where(eq(brands.id, run.brandId));
-  const named = new Map<string, { name: string; own: boolean }[]>();
+  const named = new Map<string, { name: string; own: boolean; recommended: boolean }[]>();
   for (let i = 0; i < rows.length; i += 1000) {
     const found = await db
       .select({
         answerId: mentions.answerId,
         competitor: competitors.name,
         position: mentions.position,
+        recommended: mentions.recommended,
       })
       .from(mentions)
       .leftJoin(competitors, eq(mentions.competitorId, competitors.id))
@@ -100,7 +101,11 @@ export async function getRunDetail(db: AnyDb, workspaceId: string, runId: string
       .orderBy(asc(mentions.position));
     for (const m of found) {
       if (!named.has(m.answerId)) named.set(m.answerId, []);
-      named.get(m.answerId)!.push({ name: m.competitor ?? brand?.name ?? "", own: !m.competitor });
+      named.get(m.answerId)!.push({
+        name: m.competitor ?? brand?.name ?? "",
+        own: !m.competitor,
+        recommended: m.recommended === true,
+      });
     }
   }
 
@@ -109,7 +114,7 @@ export async function getRunDetail(db: AnyDb, workspaceId: string, runId: string
     prompt: string;
     answers: ((typeof rows)[number] & {
       sources: { url: string; title: string | null; domain: string }[];
-      named: { name: string; own: boolean }[];
+      named: { name: string; own: boolean; recommended: boolean }[];
     })[];
   }[] = [];
   for (const r of rows) {

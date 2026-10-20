@@ -8,7 +8,8 @@
  *                the brand is mentioned.
  *   2. collect:  running batches are checked; finished ones are stored as
  *                answers (with citations), failed answers are re-queued or failed
- *   3. analyze:  mentions are found in new answers (core/analysis.ts)
+ *   3. analyze:  mentions are found in new answers (core/analysis.ts), then,
+ *                if an analysis model is set up, rated (core/sentiment.ts)
  *   4. finish:   runs with nothing left to do are closed with their totals
  *
  * Every step is written to the database before the next, so a restart picks
@@ -23,6 +24,7 @@ import { analyzePending, loadEntities } from "../analysis";
 import { getBudget } from "../budget";
 import { detectMentions } from "../mentions";
 import { SAMPLING_DECIDES_FROM } from "../savings";
+import { ratePending, type AnalysisModel } from "../sentiment";
 import { ProviderError } from "../providers/errors";
 import type { EngineId, ItemError, Provider, QueryResult } from "../providers/types";
 
@@ -39,6 +41,8 @@ export type WorkerOptions = {
   staleAfterMs?: number;
   /** how often to ask the provider about one batch; Bright Data jobs take minutes */
   checkEveryMs?: number;
+  /** the model that rates sentiment; default from the environment, null for none */
+  analysis?: AnalysisModel | null;
   now?: () => Date;
 };
 
@@ -47,6 +51,7 @@ export type TickReport = {
   collected: number;
   requeued: number;
   analyzed: number;
+  rated: number;
   finished: string[];
 };
 
@@ -76,11 +81,14 @@ export async function tick(opts: WorkerOptions): Promise<TickReport> {
     collected: 0,
     requeued: 0,
     analyzed: 0,
+    rated: 0,
     finished: [],
   };
   await submitQueued(opts, report);
   await collectRunning(opts, report);
-  report.analyzed = await analyzePending(opts.db, { now: (opts.now ?? (() => new Date()))() });
+  const now = (opts.now ?? (() => new Date()))();
+  report.analyzed = await analyzePending(opts.db, { now });
+  report.rated = await ratePending(opts.db, opts.analysis, now);
   report.finished = await finishRuns(opts);
   return report;
 }
@@ -500,7 +508,9 @@ async function finishRuns(opts: WorkerOptions): Promise<string[]> {
       .from(runItems)
       .where(and(eq(runItems.runId, id), eq(runItems.skipReason, "sampling")));
     const [cost] = await db
-      .select({ total: sql<string>`coalesce(sum(${answers.costUsd}), 0)::text` })
+      .select({
+        total: sql<string>`coalesce(sum(${answers.costUsd} + ${answers.analysisCostUsd}), 0)::text`,
+      })
       .from(answers)
       .innerJoin(runItems, eq(answers.runItemId, runItems.id))
       .where(eq(runItems.runId, id));

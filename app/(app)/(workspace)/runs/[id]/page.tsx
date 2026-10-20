@@ -172,6 +172,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
                             )}
                           >
                             #{i + 1} {m.name}
+                            {m.recommended && " · recommended"}
                           </span>
                         ))}
                       </p>
