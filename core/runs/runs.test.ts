@@ -8,6 +8,7 @@ import { ProviderError } from "../providers/errors";
 import { FakeProvider } from "../providers/fake";
 import type { QueryInput } from "../providers/types";
 import { createRun, createTestRun } from "./create";
+import { fireDueSchedules, getSchedule, saveSchedule } from "./schedule";
 import { tick } from "./worker";
 
 let db: ReturnType<typeof drizzle<typeof schema>>;
@@ -289,5 +290,54 @@ describe("the monthly answer limit", () => {
     expect(run.note).toMatch(/monthly limit of 4 answers; 2 not asked/);
     const items = await itemsOf(r.runId);
     expect(items.filter((i) => i.status === "skipped")).toHaveLength(2);
+  });
+});
+
+describe("schedules", () => {
+  const schedule = { frequency: "daily", minute: 9 * 60, weekday: 1, timezone: "UTC" } as const;
+  const runsOf = () =>
+    db.select().from(schema.runs).where(eq(schema.runs.workspaceId, workspaceId));
+
+  it("starts a run when due, once, and moves the next time forward", async () => {
+    const next = await saveSchedule(db, workspaceId, schedule, new Date("2026-10-20T08:00:00Z"));
+    expect(next).toEqual(new Date("2026-10-20T09:00:00Z"));
+
+    expect(await fireDueSchedules(db, new Date("2026-10-20T08:59:00Z"))).toEqual([]);
+    const fired = await fireDueSchedules(db, new Date("2026-10-20T09:00:05Z"));
+    expect(fired).toHaveLength(1);
+    expect(fired[0].runId).toBeTruthy();
+    // a second worker in the same minute finds nothing to do
+    expect(await fireDueSchedules(db, new Date("2026-10-20T09:00:06Z"))).toEqual([]);
+
+    const [run] = await runsOf();
+    expect(run).toMatchObject({ trigger: "scheduled", status: "queued", totalItems: 12 });
+    expect((await getSchedule(db, workspaceId)).nextAt).toEqual(new Date("2026-10-21T09:00:00Z"));
+  });
+
+  it("skips a run that would break the monthly limit, and records why", async () => {
+    await db
+      .update(schema.workspaces)
+      .set({ monthlyAnswerCap: 5 })
+      .where(eq(schema.workspaces.id, workspaceId));
+    await saveSchedule(db, workspaceId, schedule, new Date("2026-10-20T08:00:00Z"));
+    const [f] = await fireDueSchedules(db, new Date("2026-10-20T09:00:00Z"));
+    expect(f.skipped).toMatch(/needs 12 answers/);
+    const [run] = await runsOf();
+    expect(run.status).toBe("skipped");
+    expect(run.note).toMatch(/^Scheduled run skipped\. This needs 12 answers/);
+    expect(await itemsOf(run.id)).toHaveLength(0);
+  });
+
+  it("skips while the previous run is still going", async () => {
+    await createRun(db, workspaceId);
+    await saveSchedule(db, workspaceId, schedule, new Date("2026-10-20T08:00:00Z"));
+    const [f] = await fireDueSchedules(db, new Date("2026-10-20T09:00:00Z"));
+    expect(f.skipped).toBe("The previous run was still in progress.");
+  });
+
+  it("does nothing when off", async () => {
+    const next = await saveSchedule(db, workspaceId, { ...schedule, frequency: "off" });
+    expect(next).toBeNull();
+    expect(await fireDueSchedules(db, new Date("2030-01-01T00:00:00Z"))).toEqual([]);
   });
 });

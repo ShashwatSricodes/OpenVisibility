@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { Clock } from "lucide-react";
+import Link from "next/link";
+import { CalendarClock, Clock } from "lucide-react";
 import { requireWorkspace } from "@/core/auth/session";
+import { getSchedule } from "@/core/runs/schedule";
+import { describeSchedule, formatInZone } from "@/core/schedule-rules";
 import { getTrackingConfig } from "@/core/tracking-config";
 import { estimateWorkspaceRun } from "@/core/usage";
 import { listRuns } from "@/core/workspace-data";
@@ -28,6 +31,7 @@ const STATUS: Record<string, { label: string; style: string }> = {
   },
   failed: { label: "Failed", style: "bg-[color-mix(in_srgb,var(--bad)_12%,transparent)] text-bad" },
   canceled: { label: "Canceled", style: "bg-pressed text-fg-subtle" },
+  skipped: { label: "Skipped", style: "bg-pressed text-fg-subtle" },
 };
 
 const when = (d: Date) =>
@@ -48,10 +52,11 @@ function duration(start: Date | null, end: Date | null) {
 export default async function RunsPage() {
   const { workspace } = await requireWorkspace();
   const db = getDb();
-  const [runs, estimate, config] = await Promise.all([
+  const [runs, estimate, config, schedule] = await Promise.all([
     listRuns(db, workspace.id),
     estimateWorkspaceRun(db, workspace.id),
     getTrackingConfig(db, workspace.id),
+    getSchedule(db, workspace.id),
   ]);
   const active = runs.some((r) => r.status === "queued" || r.status === "running");
 
@@ -73,6 +78,28 @@ export default async function RunsPage() {
       }
     >
       <AutoRefresh active={active} />
+      {estimate.prompts > 0 && (
+        <p className="-mt-2 mb-4 flex flex-wrap items-center gap-1.5 text-[13px] text-fg-subtle">
+          <CalendarClock className="size-3.5 shrink-0" />
+          {schedule.nextAt ? (
+            <>
+              Next run{" "}
+              <span className="font-medium text-fg">
+                {formatInZone(schedule.nextAt, schedule.timezone)}
+              </span>
+              <span>· {describeSchedule(schedule)}</span>
+            </>
+          ) : (
+            <span>No schedule: runs start only when you press Run now.</span>
+          )}
+          <Link
+            href="/settings"
+            className="text-fg-default underline decoration-line-strong underline-offset-2 hover:text-fg"
+          >
+            {schedule.nextAt ? "Change" : "Set one up"}
+          </Link>
+        </p>
+      )}
       {runs.length === 0 ? (
         <EmptyState
           icon={<Clock />}

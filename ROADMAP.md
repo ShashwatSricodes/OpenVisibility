@@ -264,11 +264,11 @@ This is the key piece of the architecture: the worker, the analysis and the dash
 
 ### Day 18: Scheduling
 
-- [ ] Per-workspace schedule: daily or weekly, time of day and timezone.
-- [ ] Use pg-boss's cron support to enqueue scheduled runs, and show "Next run" in the UI.
-- [ ] Skip a scheduled run (and record why) if it would break the budget.
+- [x] Per-workspace schedule: off, daily or weekly (pick the day), a time of day and a timezone (`core/schedule-rules.ts`, Settings → Schedule). Local times hold across clock changes; no date library needed.
+- [x] The worker loop starts due runs itself (`core/runs/schedule.ts`) instead of pg-boss cron, which we dropped on Day 16. Each due workspace is claimed by moving its next time forward first, so two workers never start the same run, and missed times after downtime collapse into one run. "Next run" shows in Settings and on the Runs page.
+- [x] A scheduled run that won't start (over the monthly limit, the last run still going, no prompts) is recorded as a "Skipped" run with the reason. Settings warns when a schedule would use more than the monthly limit.
 
-**Done when:** a schedule set to five minutes from now fires on its own.
+**Done when:** a schedule set to five minutes from now fires on its own. ✅ 20 October 2026: a daily schedule saved at 11:01 for 11:06 IST started a scheduled run at 11:06 with no one touching the app.
 
 ### Day 19: Caching and smart sampling
 

@@ -50,6 +50,8 @@ export const engine = pgEnum("engine", [
 
 export const workspaceMode = pgEnum("workspace_mode", ["self_hosted", "hosted"]);
 
+export const scheduleFrequency = pgEnum("schedule_frequency", ["off", "daily", "weekly"]);
+
 export const workspaces = pgTable("workspaces", {
   id: id(),
   name: text("name").notNull(),
@@ -68,6 +70,16 @@ export const workspaces = pgTable("workspaces", {
     .array()
     .notNull()
     .default(sql`'{chatgpt,gemini,ai_mode,ai_overviews}'::engine[]`),
+  /** automatic runs; see core/schedule-rules.ts */
+  scheduleFrequency: scheduleFrequency("schedule_frequency").notNull().default("off"),
+  /** local time of day, in minutes after midnight */
+  scheduleMinute: integer("schedule_minute").notNull().default(540),
+  /** for weekly runs: 0 Sunday … 6 Saturday */
+  scheduleWeekday: integer("schedule_weekday").notNull().default(1),
+  /** IANA name, e.g. Europe/London */
+  scheduleTimezone: text("schedule_timezone").notNull().default("UTC"),
+  /** when the worker starts the next scheduled run; null when off */
+  scheduleNextAt: timestamp("schedule_next_at", { withTimezone: true }),
   createdAt: createdAt(),
 });
 
@@ -211,6 +223,8 @@ export const runStatus = pgEnum("run_status", [
   "partial",
   "failed",
   "canceled",
+  /** a scheduled run that didn't start; the note says why */
+  "skipped",
 ]);
 
 export const itemStatus = pgEnum("item_status", ["queued", "running", "done", "failed", "skipped"]);
