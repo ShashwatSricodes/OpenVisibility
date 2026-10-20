@@ -1,5 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import type { DomainRow } from "@/core/citation-stats";
+import { ENGINES } from "@/core/providers/registry";
 import { cn } from "../_lib/cn";
 
 const LABEL: Record<DomainRow["kind"], { text: string; style: string }> = {
@@ -24,7 +25,16 @@ const pathOf = (url: string) => {
 };
 
 /** Domains cited, most first; each opens to its most-cited pages. */
-export function SourcesTable({ domains, answers }: { domains: DomainRow[]; answers: number }) {
+export function SourcesTable({
+  domains,
+  answers,
+  showEngines = false,
+}: {
+  domains: DomainRow[];
+  answers: number;
+  /** list the engines citing each domain */
+  showEngines?: boolean;
+}) {
   return (
     <div className="divide-y divide-line rounded-xl border border-line bg-panel">
       <div className="flex items-center gap-3 bg-hover px-4 py-2 text-xs text-fg-subtle">
@@ -42,6 +52,14 @@ export function SourcesTable({ domains, answers }: { domains: DomainRow[]; answe
                 <span className={cn("rounded px-1.5 py-px text-[11px] font-medium", label.style)}>
                   {d.competitor ?? label.text}
                 </span>
+                {showEngines && (
+                  <span className="hidden truncate text-xs text-fg-subtle md:inline">
+                    {d.engines
+                      .filter((e) => e in ENGINES)
+                      .map((e) => ENGINES[e].name.replace("Google ", ""))
+                      .join(", ")}
+                  </span>
+                )}
               </span>
               <span className="flex w-40 items-center justify-end gap-2 sm:w-56">
                 <span className="hidden h-1 w-20 overflow-hidden rounded-full bg-pressed sm:block">

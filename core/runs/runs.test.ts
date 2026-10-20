@@ -12,7 +12,7 @@ import { createRun, createTestRun } from "./create";
 import { reanalyzeBrand } from "../analysis";
 import { fanOut, getAnswer, listAnswers } from "../answer-archive";
 import { saveCompetitors } from "../brands";
-import { citationSummary } from "../citation-stats";
+import { citationSummary, citationsByEngine, ownedPages, pageTrends } from "../citation-stats";
 import { env } from "../env";
 import { brandMetrics, metricsBy } from "../metrics-query";
 import { getOverview, periods, validateNote } from "../overview";
@@ -976,5 +976,61 @@ describe("the answer archive", () => {
     expect(fanOut({ web_search_query: "invoicing apps" })).toEqual(["invoicing apps"]);
     expect(fanOut({ web_search_query: null })).toEqual([]);
     expect(fanOut(null)).toEqual([]);
+  });
+});
+
+describe("the citations page", () => {
+  it("splits by engine, ranks pages by place, and finds your pages that dropped out", async () => {
+    const r = await createRun(db, workspaceId);
+    if (!r.ok) throw new Error(r.message);
+    // ChatGPT cites g2 first and your pricing page second; Gemini cites only zoho.com
+    const provider = new FakeProvider({
+      reply: (_i, engine) => ({
+        text: "Ledgerly.",
+        citations:
+          engine === "chatgpt"
+            ? [
+                { url: "https://g2.com/best" },
+                { url: "https://ledgerly.app/pricing", title: "Pricing" },
+              ]
+            : [{ url: "https://zoho.com/invoice" }],
+      }),
+    });
+    await tick({ db, providerFor: async () => provider, analysis: null });
+    const since = new Date(Date.now() - 86_400_000);
+
+    expect(
+      (await citationsByEngine(db, workspaceId, { since })).map((e) => [
+        e.engine,
+        e.answers,
+        e.owned,
+        e.competitor,
+        e.thirdParty,
+      ]),
+    ).toEqual([
+      ["chatgpt", 6, 6, 0, 6],
+      ["gemini", 6, 0, 6, 0],
+    ]);
+
+    const s = await citationSummary(db, workspaceId, { since });
+    expect(Object.fromEntries(s.domains.map((d) => [d.domain, d.engines]))).toEqual({
+      "g2.com": ["chatgpt"],
+      "ledgerly.app": ["chatgpt"],
+      "zoho.com": ["gemini"],
+    });
+    const geminiOnly = await citationSummary(db, workspaceId, { since, engine: "gemini" });
+    expect(geminiOnly.domains.map((d) => d.domain)).toEqual(["zoho.com"]);
+
+    const pages = await pageTrends(db, workspaceId, { since });
+    const pricing = pages.find((p) => p.url === "https://ledgerly.app/pricing")!;
+    expect(pricing).toMatchObject({ kind: "owned", answers: 6, position: 2, title: "Pricing" });
+    expect(pricing.byDay).toEqual([{ day: new Date().toISOString().slice(0, 10), position: 2 }]);
+
+    expect(await ownedPages(db, workspaceId, { since })).toEqual([
+      expect.objectContaining({ url: "https://ledgerly.app/pricing", inPeriod: 6, allTime: 6 }),
+    ]);
+    // a later period without citations: the page shows as dropped out
+    const later = await ownedPages(db, workspaceId, { since: new Date(Date.now() + 86_400_000) });
+    expect(later[0]).toMatchObject({ inPeriod: 0, allTime: 6 });
   });
 });
