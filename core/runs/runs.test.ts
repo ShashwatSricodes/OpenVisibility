@@ -12,6 +12,7 @@ import { createRun, createTestRun } from "./create";
 import { reanalyzeBrand } from "../analysis";
 import { fanOut, getAnswer, listAnswers } from "../answer-archive";
 import { saveCompetitors } from "../brands";
+import { competitorView } from "../competitor-results";
 import { citationSummary, citationsByEngine, ownedPages, pageTrends } from "../citation-stats";
 import { env } from "../env";
 import { brandMetrics, metricsBy } from "../metrics-query";
@@ -1032,5 +1033,48 @@ describe("the citations page", () => {
     // a later period without citations: the page shows as dropped out
     const later = await ownedPages(db, workspaceId, { since: new Date(Date.now() + 86_400_000) });
     expect(later[0]).toMatchObject({ inPeriod: 0, allTime: 6 });
+  });
+});
+
+describe("the competitors page", () => {
+  it("leaderboard, share of voice per day, head-to-head and where they beat you", async () => {
+    const r = await createRun(db, workspaceId);
+    if (!r.ok) throw new Error(r.message);
+    // ChatGPT: Zoho then Ledgerly; Gemini: only Zoho
+    const provider = new FakeProvider({
+      reply: (_i, engine) => ({ text: engine === "chatgpt" ? "1. Zoho\n2. Ledgerly" : "Zoho." }),
+    });
+    await tick({ db, providerFor: async () => provider, analysis: null });
+    const [zoho] = await db.select().from(schema.competitors);
+
+    const v = await competitorView(db, workspaceId, { range: "7d" });
+    expect(v.leaderboard.map((b) => [b.key, b.mentionRate, b.shareOfVoiceBefore])).toEqual([
+      ["you", 0.5, null],
+      [zoho.id, 1, null],
+    ]);
+    const today = v.sovTrend.at(-1)!;
+    expect(Number(today.you)).toBeCloseTo((6 / 18) * 100);
+    expect(Number(today[zoho.id])).toBeCloseTo((12 / 18) * 100);
+    expect(v.headToHead).toEqual([
+      {
+        engine: "chatgpt",
+        brands: {
+          you: { mentionRate: 1, averagePosition: 2 },
+          [zoho.id]: { mentionRate: 1, averagePosition: 1 },
+        },
+      },
+      {
+        engine: "gemini",
+        brands: {
+          you: { mentionRate: 0, averagePosition: null },
+          [zoho.id]: { mentionRate: 1, averagePosition: 1 },
+        },
+      },
+    ]);
+    expect(v.beaten.map((p) => [p.text, p.rival, p.theirs, p.you])).toEqual([
+      ["best invoicing app", "Zoho", 100, 50],
+      ["invoice app with UPI", "Zoho", 100, 50],
+    ]);
+    expect(v.rated).toBe(false);
   });
 });
