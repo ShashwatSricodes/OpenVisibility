@@ -10,6 +10,7 @@ import {
   CircleHelp,
   CreditCard,
   Clock,
+  Lightbulb,
   Link2,
   MessageSquareText,
   ListChecks,
@@ -42,7 +43,10 @@ const GROUPS: { label: string; items: Item[] }[] = [
   },
   {
     label: "Improve",
-    items: [{ href: "/audit", label: "Site audit", icon: ScanSearch }],
+    items: [
+      { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
+      { href: "/audit", label: "Site audit", icon: ScanSearch },
+    ],
   },
   {
     label: "Tracking",
