@@ -380,11 +380,14 @@ Catch up on anything that slipped. If you're on track, write tests for the run p
 
 ### Day 30: Citations page
 
-- [ ] (Otterly parity) Track each cited URL's position over time, so you see a page rising or falling in the sources list.
+Built on Day 23's page and queries (`core/citation-stats.ts`), filterable by 7, 30 or 90 days and by engine.
 
-- [ ] Top domains with their kind, citation count and the engines that cite them.
-- [ ] Owned vs third-party split, per engine.
-- [ ] Top cited URLs, and owned pages that never get cited.
+- [x] (Otterly parity) Each cited page's place in the answer's list of sources over time (1 = cited first), as a sparkline next to its average place, for the most-cited pages.
+- [x] Top domains with their kind (yours, the competitor by name, third party), how many answers cite them and the engines that cite them.
+- [x] Whose sites each engine cites: the share of each engine's answers citing yours, a competitor's or a third party's site.
+- [x] Top cited pages, and your pages: every page of yours an engine has cited, flagged when it hasn't been cited in the selected period. Pages never cited at all need your sitemap, which comes with the GEO audit (Days P2–P3).
+
+**Done when:** (not set in the plan) ✅ 20 October 2026: checked in the browser with the engine and range filters; tested against hand-built citations (split per engine, engines per domain, a page's place per day, a page of yours dropping out).
 
 ### Day 31: Competitors page
 
