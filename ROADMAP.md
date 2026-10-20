@@ -255,11 +255,12 @@ This is the key piece of the architecture: the worker, the analysis and the dash
 
 ### Day 17: Cost estimate and budget caps
 
-- [ ] `estimateRun(config)` in `core/runs/estimate.ts`: calls × cost per call (from the registry) + parsing cost. Use the same function in the UI and on the server.
-- [ ] Add a confirm dialog before manual runs showing calls, estimated cost and the remaining budget.
-- [ ] Add a monthly budget cap per workspace. Refuse to start a run that would exceed it, and abort a running one if real costs pass the cap.
+- [x] `estimateRun` (`core/estimate.ts`, Day 9) is shared by Settings, the setup review, the Runs page and the server; with Bright Data there's no parsing cost to add yet (that comes with model-assisted analysis, Day 22).
+- [x] The confirm before Run now (Day 15) shows the answers and the cost past the free tier.
+- [x] A monthly answer limit per workspace (`workspaces.monthly_answer_cap`, `core/budget.ts`), in answers because that's how Bright Data bills; default 5,000 (the free tier), editable or removable in Settings with the cost past the free tier shown. It counts answers billed this month plus answers sent and not back yet.
+- [x] A run that won't fit is refused with a clear message (Run now, Test run, and scheduled runs, since all go through `createRun`). A run in progress sends only what fits before each batch, marks the rest skipped, and finishes partly done with a note.
 
-**Done when:** a run that would break the cap is blocked with a clear message.
+**Done when:** a run that would break the cap is blocked with a clear message. ✅ 20 October 2026: with a limit of 50 and 3 answers already used, Run now on a 96-answer setup said "This needs 96 answers, but only 47 are left under your monthly limit of 50…" and started nothing.
 
 ### Day 18: Scheduling
 

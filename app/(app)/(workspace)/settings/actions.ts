@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireWorkspace } from "@/core/auth/session";
+import { saveCap, validateCap } from "@/core/budget";
 import {
   deleteCredential,
   markVerified,
@@ -90,4 +91,22 @@ export async function saveTrackingAction(input: {
   await saveTrackingConfig(getDb(), workspace.id, checked.config);
   revalidatePath("/settings");
   return { ok: true, message: "Saved. The next run uses these engines and countries." };
+}
+
+/** Set or clear the monthly answer limit. */
+export async function saveCapAction(cap: number | null): Promise<KeyFormState> {
+  const { workspace, role } = await requireWorkspace();
+  if (role !== "owner")
+    return { ok: false, message: "Only the workspace owner can change the limit." };
+  const problem = validateCap(cap);
+  if (problem) return { ok: false, message: problem };
+  await saveCap(getDb(), workspace.id, cap);
+  revalidatePath("/settings");
+  return {
+    ok: true,
+    message:
+      cap === null
+        ? "Limit removed."
+        : `Limit set to ${cap.toLocaleString("en-US")} answers a month.`,
+  };
 }

@@ -66,7 +66,13 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      <UsageSection usage={usage} estimate={estimate} config={tracking} />
+      <UsageSection
+        usage={usage}
+        estimate={estimate}
+        config={tracking}
+        cap={workspace.monthlyAnswerCap}
+        canEdit={role === "owner"}
+      />
 
       <section className="rounded-xl border border-line bg-panel">
         <div className="border-b border-line px-5 py-4">

@@ -8,6 +8,7 @@ import {
 import type { TrackingConfig } from "@/core/tracking-rules";
 import type { FreeTierUsage } from "@/core/usage";
 import { cn } from "../../_lib/cn";
+import { CapForm } from "./cap-form";
 
 const n = (v: number) => v.toLocaleString("en-US");
 const plural = (v: number, one: string, many = `${one}s`) => `${n(v)} ${v === 1 ? one : many}`;
@@ -32,10 +33,14 @@ export function UsageSection({
   usage,
   estimate,
   config,
+  cap,
+  canEdit,
 }: {
   usage: FreeTierUsage;
   estimate: RunEstimate;
   config: TrackingConfig;
+  cap: number | null;
+  canEdit: boolean;
 }) {
   const used = usage.used;
   const pct = used === null ? 0 : Math.min(100, Math.round((used / usage.limit) * 100));
@@ -97,6 +102,11 @@ export function UsageSection({
             </p>
           </div>
         )}
+
+        <div className="rounded-lg border border-line px-3.5 py-3">
+          <h3 className="mb-2 text-[13px] font-medium">Monthly limit</h3>
+          <CapForm cap={cap} used={usage.workspaceUsed} canEdit={canEdit} />
+        </div>
 
         <div className="rounded-lg border border-line px-3.5 py-3">
           <h3 className="text-[13px] font-medium">What a run uses</h3>

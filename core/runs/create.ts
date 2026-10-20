@@ -10,6 +10,7 @@ import type { AnyDb } from "@/db/client";
 import { brands, prompts, runItems, runs } from "@/db/schema";
 import { BRIGHT_DATA_PRICING, ENGINES } from "../providers/registry";
 import type { EngineId } from "../providers/types";
+import { capProblem, getBudget } from "../budget";
 import { getTrackingConfig } from "../tracking-config";
 
 export type CreateRunResult =
@@ -125,6 +126,9 @@ export async function createRun(
       ),
     ),
   );
+
+  const over = capProblem(await getBudget(db, workspaceId), items.length);
+  if (over) return { ok: false, message: over };
 
   const runId = await db.transaction(async (tx) => {
     const [run] = await tx

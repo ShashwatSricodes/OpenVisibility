@@ -233,3 +233,61 @@ describe("test runs and polling", () => {
     expect(checks).toBeLessThanOrEqual(3);
   });
 });
+
+describe("the monthly answer limit", () => {
+  const setCap = (cap: number | null) =>
+    db
+      .update(schema.workspaces)
+      .set({ monthlyAnswerCap: cap })
+      .where(eq(schema.workspaces.id, workspaceId));
+
+  it("refuses a run that won't fit", async () => {
+    await setCap(10);
+    expect(await createRun(db, workspaceId)).toMatchObject({
+      ok: false,
+      message: /needs 12 answers, but only 10 are left under your monthly limit of 10/,
+    });
+    await setCap(null);
+    expect((await createRun(db, workspaceId)).ok).toBe(true);
+  });
+
+  it("counts answers already billed this month", async () => {
+    await setCap(14);
+    const first = await createRun(db, workspaceId, {
+      engines: ["gemini"],
+      promptIds: [promptIds[0]],
+    });
+    if (!first.ok) throw new Error(first.message);
+    // bill 4 answers to this workspace, as a finished run would
+    const items = await itemsOf(first.runId);
+    await db
+      .insert(schema.answers)
+      .values(items.map((i) => ({ runItemId: i.id, text: "x", costUsd: "0.0015" })));
+    await db
+      .update(schema.runItems)
+      .set({ status: "done" })
+      .where(eq(schema.runItems.runId, first.runId));
+    await db
+      .update(schema.runs)
+      .set({ status: "completed" })
+      .where(eq(schema.runs.id, first.runId));
+    expect(await createRun(db, workspaceId)).toMatchObject({
+      ok: false,
+      message: /only 10 are left/,
+    });
+  });
+
+  it("stops a run in progress at the limit, and says so", async () => {
+    const r = await createRun(db, workspaceId, { engines: ["chatgpt"] });
+    if (!r.ok) throw new Error(r.message);
+    await setCap(4); // lowered after the run started
+    const provider = new FakeProvider();
+    await tick({ db, providerFor: async () => provider });
+    expect(provider.submitted[0].inputs).toHaveLength(4);
+    const run = await runOf(r.runId);
+    expect(run.status).toBe("partial");
+    expect(run.note).toMatch(/monthly limit of 4 answers; 2 not asked/);
+    const items = await itemsOf(r.runId);
+    expect(items.filter((i) => i.status === "skipped")).toHaveLength(2);
+  });
+});

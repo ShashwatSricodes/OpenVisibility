@@ -58,6 +58,11 @@ export const workspaces = pgTable("workspaces", {
   defaultCountries: textList("default_countries"),
   /** times each prompt is asked per engine and country in a run; answers vary, so one ask isn't enough */
   samples: integer("samples").notNull().default(3),
+  /**
+   * Most Bright Data answers this workspace may use in a calendar month; null means no limit.
+   * Defaults to the free tier, so nobody pays by accident.
+   */
+  monthlyAnswerCap: integer("monthly_answer_cap").default(5000),
   /** the engines this workspace tracks (Settings); see core/tracking-config.ts */
   engines: engine("engines")
     .array()
