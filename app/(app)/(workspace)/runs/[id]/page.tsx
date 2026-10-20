@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ExternalLink } from "lucide-react";
 import { requireWorkspace } from "@/core/auth/session";
 import { countryName } from "@/core/countries";
 import { BRIGHT_DATA_PRICING, ENGINES } from "@/core/providers/registry";
@@ -186,6 +186,13 @@ export default async function RunPage({
                             Reused
                           </span>
                         )}
+                        <Link
+                          href={`/answers/${a.id}`}
+                          className="ml-auto inline-flex items-center gap-0.5 hover:text-fg"
+                        >
+                          Open
+                          <ArrowUpRight className="size-3" />
+                        </Link>
                       </p>
                       <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
                         {a.named.some((m) => m.own) ? null : (

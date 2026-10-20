@@ -156,7 +156,22 @@ export function snippetAt(text: string, start: number, end: number, max = 220): 
   return `${a > from ? "…" : ""}${clean(text.slice(a, z))}${z < until ? "…" : ""}`;
 }
 
-export function detectMentions(text: string, entities: Entity[]): Mention[] {
+/**
+ * Every place a tracked brand is named, in order, without overlaps: what
+ * detectMentions ranks, and what the answer page highlights.
+ */
+export function findMatches(
+  text: string,
+  entities: Entity[],
+): { competitorId: string | null; start: number; end: number }[] {
+  return matchHits(text, entities).map((h) => ({
+    competitorId: entities[h.entity].competitorId,
+    start: h.start,
+    end: h.end,
+  }));
+}
+
+function matchHits(text: string, entities: Entity[]): Hit[] {
   // 1. URLs: their hosts can be mentions; the rest of the URL is blanked out
   const urlHits: Hit[] = [];
   const masked = text.replace(URL_RE, (url, offset: number) => {
@@ -170,7 +185,7 @@ export function detectMentions(text: string, entities: Entity[]): Mention[] {
   });
 
   // 2. names, aliases and domains in the remaining text
-  let hits: Hit[] = [...urlHits];
+  const hits: Hit[] = [...urlHits];
   entities.forEach((e, i) => {
     for (const term of new Set([e.name, ...e.aliases, ...e.domains]))
       hits.push(...termHits(masked, term, i));
@@ -180,7 +195,11 @@ export function detectMentions(text: string, entities: Entity[]): Mention[] {
   hits.sort((a, b) => a.start - b.start || b.end - b.start - (a.end - a.start));
   const kept: Hit[] = [];
   for (const h of hits) if (!kept.some((k) => h.start < k.end && k.start < h.end)) kept.push(h);
-  hits = kept;
+  return kept;
+}
+
+export function detectMentions(text: string, entities: Entity[]): Mention[] {
+  const hits = matchHits(text, entities);
   if (!hits.length) return [];
 
   // 4. list items: the first item each brand opens, if any

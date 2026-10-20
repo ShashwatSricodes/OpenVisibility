@@ -370,12 +370,13 @@ Catch up on anything that slipped. If you're on track, write tests for the run p
 
 ### Day 29: Answer archive
 
-- [ ] List of answers filterable by engine, prompt, country, run, and mentioned or not.
-- [ ] Detail view: full answer text with brand and competitor mentions highlighted, citations tagged owned or third-party, and metadata (model, preset, sample number, country, cost).
-- [ ] **Query fan-out** (Otterly parity): show the web searches the engine ran for the answer. Bright Data returns ChatGPT's as `web_search_query`.
+- [x] `/answers`: every stored answer, newest first, filterable by engine, prompt, country, run and whether it names you, with a text search over answers and prompts; paginated. The filters are a plain form, so any filtered view has its own link (`core/answer-archive.ts`).
+- [x] `/answers/[id]`: the full text with every place a tracked brand is named highlighted (yours green, competitors amber; `findMatches` in `core/mentions.ts`), the brands named in rank order with the sentence around each (and sentiment and "recommended" once rated), sources tagged yours, competitor (by name) or third party, and details: engine, source (the real app via Bright Data, or an official API), model, country, sample, whether it searched, cost, time taken. Linked from the run page, the prompt page and the list.
+- [x] **Query fan-out** (Otterly parity): ChatGPT's searches from Bright Data's `web_search_query`. When Bright Data says "no search" but the answer cites sources, the page says the searches weren't reported rather than claiming none.
+- [x] Fixed: citations without a provider position were listed in random order; they now keep the order they were cited in.
 - ⏸ ChatGPT ads and shopping cards, Google AI Overviews ads: deferred (decision log, 20 October 2026). The raw answers keep Bright Data's `ads` and `shopping` fields, so this can be added later without re-asking.
 
-**Done when:** you can find and read any answer from any run.
+**Done when:** you can find and read any answer from any run. ✅ 20 October 2026: all 579 stored answers are listed; filters, search and opening a real ChatGPT answer checked in the browser.
 
 ### Day 30: Citations page
 

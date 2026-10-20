@@ -59,7 +59,7 @@ describe("citationRows", () => {
         url: "https://g2.com/compare",
         domain: "g2.com",
         title: "G2",
-        position: null,
+        position: 1,
         kind: "third_party",
         competitorId: null,
       },
