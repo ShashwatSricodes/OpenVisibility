@@ -353,12 +353,13 @@ Catch up on anything that slipped. If you're on track, write tests for the run p
 
 ### Day 27: Overview page
 
-- [ ] KPI tiles: mention rate, average position, share of voice, owned citation share and sentiment, each with the change from the previous period.
-- [ ] Trend chart: mention rate over time, one line per engine.
-- [ ] A "where you're missing" list: prompts with the lowest mention rate.
-- [ ] Annotations on the trend chart (Otterly parity): mark a date with what you changed ("published comparison page"), so moves in the line have a reason next to them.
+- [x] KPI tabs: mention rate, average position, share of voice, owned citation share and sentiment (shown once an analysis model rates answers), each with the change from the previous period of the same length, green when it's good news (lower is better for position).
+- [x] Trend chart: the selected KPI over time, one line per engine. A young workspace's chart starts at its first results (at least a week shown).
+- [x] "Where you're missing": prompts by lowest mention rate, with a "Winning" tab; plus competitors' share of voice and mention rate, engines by mention rate and position, and cited sources (domains, pages, yours).
+- [x] Annotations (Otterly parity): add a note to a day ("published comparison page"); it shows as a marker on the chart, in the tooltip, and in a list under it (`annotations` table).
+- [x] Filters for date range (7, 30, 90 days), engine and country, kept in the URL so a view can be shared; the page reads only the daily metrics (`core/overview.ts`). The made-up sample data is gone: a workspace without results sees an empty state pointing to Runs.
 
-**Done when:** the overview tells you in five seconds whether things are improving.
+**Done when:** the overview tells you in five seconds whether things are improving. ✅ 20 October 2026: a line at the top says it in words ("Improving: Ledgerly is named in 50% of answers, up 8 pts on the 30 days before"), coloured green or red, with the visibility index.
 
 ### Day 28: Prompts page with results
 

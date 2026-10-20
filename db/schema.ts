@@ -445,3 +445,20 @@ export const metricsDaily = pgTable(
   },
   (t) => [index("metrics_daily_workspace_day_idx").on(t.workspaceId, t.day)],
 );
+
+/** A note on a day of the trend chart: what changed, so moves in the line have a reason. */
+export const annotations = pgTable(
+  "annotations",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    day: date("day", { mode: "string" }).notNull(),
+    text: text("text").notNull(),
+    /** the user who added it */
+    createdBy: text("created_by"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("annotations_workspace_day_idx").on(t.workspaceId, t.day)],
+);

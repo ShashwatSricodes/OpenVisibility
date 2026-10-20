@@ -14,6 +14,7 @@ import { saveCompetitors } from "../brands";
 import { citationSummary } from "../citation-stats";
 import { env } from "../env";
 import { brandMetrics, metricsBy } from "../metrics-query";
+import { getOverview, periods, validateNote } from "../overview";
 import { getRunDetail } from "../run-detail";
 import { analysisModel } from "../sentiment";
 import { fireDueSchedules, getSchedule, saveSchedule } from "./schedule";
@@ -797,5 +798,72 @@ describe("metrics", () => {
     expect(report.rolledUp).toBe(1);
     const [ours] = await brandMetrics(db, workspaceId, { from: today, to: today });
     expect(ours).toMatchObject({ name: "Invoicely", mentionRate: 0 });
+  });
+});
+
+describe("the overview", () => {
+  const now = new Date();
+  const day = (offset: number) => new Date(now.getTime() - offset * 86_400_000);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+  it("periods: this one and the one before, the same length", () => {
+    const p = periods("7d", new Date("2026-10-20T15:00:00Z"));
+    expect(p.current).toEqual({ from: "2026-10-14", to: "2026-10-20" });
+    expect(p.previous).toEqual({ from: "2026-10-07", to: "2026-10-13" });
+    expect(p.days).toHaveLength(7);
+  });
+
+  it("compares with the previous period, per engine and per prompt", async () => {
+    // eight days ago nobody named Ledgerly; today ChatGPT does
+    const before = await createRun(db, workspaceId);
+    if (!before.ok) throw new Error(before.message);
+    await db
+      .update(schema.runs)
+      .set({ createdAt: day(8) })
+      .where(eq(schema.runs.id, before.runId));
+    const nobody = new FakeProvider({ reply: () => ({ text: "Try Zoho." }) });
+    await tick({ db, providerFor: async () => nobody, analysis: null });
+    const r = await createRun(db, workspaceId);
+    if (!r.ok) throw new Error(r.message);
+    const chatgptOnly = new FakeProvider({
+      reply: (_i, engine) => ({ text: engine === "chatgpt" ? "Ledgerly is best." : "Zoho." }),
+    });
+    await tick({ db, providerFor: async () => chatgptOnly, analysis: null });
+
+    const o = await getOverview(db, workspaceId, { range: "7d" }, now);
+    expect(o.hasData).toBe(true);
+    expect(o.samples).toBe(12);
+    expect(o.kpis.find((k) => k.id === "mention")).toEqual({
+      id: "mention",
+      value: 50,
+      previous: 0,
+    });
+    expect(o.engines).toEqual(["chatgpt", "gemini"]);
+    const todayPoint = o.trend.mention.find((p) => p.date === iso(now))!;
+    expect(todayPoint).toMatchObject({ chatgpt: 100, gemini: 0 });
+    expect(o.trend.mention).toHaveLength(7);
+    // 30 days, but results only from 8 days ago: the chart starts there
+    const month = await getOverview(db, workspaceId, { range: "30d" }, now);
+    expect(month.trend.mention[0].date).toBe(iso(day(8)));
+    expect(o.byEngine.map((e) => [e.engine, e.rate])).toEqual([
+      ["chatgpt", 100],
+      ["gemini", 0],
+    ]);
+    expect(o.prompts.map((p) => [p.text, p.rate])).toEqual([
+      ["best invoicing app", 50],
+      ["invoice app with UPI", 50],
+    ]);
+
+    // filtered to Gemini: no change, nothing named
+    const gemini = await getOverview(db, workspaceId, { range: "7d", engine: "gemini" }, now);
+    expect(gemini.kpis.find((k) => k.id === "mention")).toMatchObject({ value: 0, previous: 0 });
+    expect(gemini.engines).toEqual(["gemini"]);
+  });
+
+  it("validates chart notes", () => {
+    expect(validateNote("2026-10-20", "Published a comparison page")).toBeNull();
+    expect(validateNote("20/10/2026", "x")).toMatch(/date/);
+    expect(validateNote("2026-10-20", "  ")).toMatch(/what changed/);
+    expect(validateNote("2026-10-20", "x".repeat(201))).toMatch(/200/);
   });
 });
