@@ -15,6 +15,7 @@
 import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type { AnyDb } from "@/db/client";
 import { answers, brands, citations, competitors, runItems, runs } from "@/db/schema";
+import { getBudget } from "../budget";
 import { ProviderError } from "../providers/errors";
 import type { EngineId, ItemError, Provider, QueryResult } from "../providers/types";
 
@@ -93,7 +94,33 @@ async function submitQueued(opts: WorkerOptions, report: TickReport) {
     if ((backoff.get(key) ?? 0) > now.getTime()) continue;
     const engine = items[0].engine;
     for (let i = 0; i < items.length; i += maxBatch) {
-      const batch = items.slice(i, i + maxBatch);
+      let batch = items.slice(i, i + maxBatch);
+      // the monthly limit: send only what still fits, and skip the rest of this run
+      const { cap, left } = await getBudget(db, workspaceId, now);
+      if (left < batch.length) {
+        const skipped = items.slice(i + left);
+        await db
+          .update(runItems)
+          .set({
+            status: "skipped",
+            error: "Monthly answer limit reached",
+            finishedAt: now,
+          })
+          .where(
+            inArray(
+              runItems.id,
+              skipped.map((it) => it.id),
+            ),
+          );
+        await noteRun(
+          db,
+          batch[0].runId,
+          `Stopped at the monthly limit of ${cap!.toLocaleString("en-US")} answers; ${skipped.length} not asked. Raise it in Settings.`,
+        );
+        if (left === 0) break;
+        batch = batch.slice(0, left);
+        i = items.length; // nothing after this batch
+      }
       try {
         const provider = await providerFor(workspaceId, engine);
         const jobId = await provider.submit(
@@ -383,7 +410,7 @@ async function finishRuns(opts: WorkerOptions): Promise<string[]> {
       await db.update(runs).set(progress).where(eq(runs.id, id));
       continue;
     }
-    const status = done === 0 ? "failed" : n("failed") > 0 ? "partial" : "completed";
+    const status = done === 0 ? "failed" : n("failed") + n("skipped") > 0 ? "partial" : "completed";
     await db
       .update(runs)
       .set({ ...progress, status, finishedAt: now })

@@ -1,0 +1,1 @@
+ALTER TABLE "workspaces" ADD COLUMN "monthly_answer_cap" integer DEFAULT 5000;
