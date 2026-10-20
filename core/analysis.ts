@@ -19,6 +19,7 @@ import {
 } from "@/db/schema";
 import { classify, normalizeUrl, ownersOf } from "./citations";
 import { detectMentions, type Entity } from "./mentions";
+import { markRunsDue } from "./rollup";
 
 /** The brand and its competitors, as detectMentions wants them, per brand id. */
 export async function loadEntities(db: AnyDb, brandIds: string[]): Promise<Map<string, Entity[]>> {
@@ -85,6 +86,7 @@ export async function analyzePending(db: AnyDb, { limit = 200, now = new Date() 
     for (let i = 0; i < rows.length; i += 500)
       await tx.insert(mentions).values(rows.slice(i, i + 500));
     await relabelCitations(tx, pending, entities);
+    await markRunsDue(tx, ids);
     // fresh mentions have no ratings yet: rate them again (core/sentiment.ts)
     await tx
       .update(answers)

@@ -18,6 +18,7 @@ import { z } from "zod";
 import type { AnyDb } from "@/db/client";
 import { answers, brands, competitors, mentions, runItems, runs } from "@/db/schema";
 import { env } from "./env";
+import { markRunsDue } from "./rollup";
 
 export const MAX_RATING_ATTEMPTS = 3;
 
@@ -210,6 +211,10 @@ export async function ratePending(
         .set({ ratedAt: now, analysisCostUsd: sql`${answers.analysisCostUsd} + ${share}` })
         .where(eq(answers.id, p.id));
     }
+    await markRunsDue(
+      tx,
+      batch.map((p) => p.id),
+    );
   });
   if (rated.costUsd > 0)
     await refreshRunCosts(

@@ -67,10 +67,19 @@ export function startWorker({ intervalMs = 5_000 }: { intervalMs?: number } = {}
         // fake answers are instant; Bright Data batches take minutes, so don't ask every tick
         checkEveryMs: process.env.OV_FAKE_ANSWERS === "1" ? 0 : 15_000,
       });
-      if (r.submitted || r.collected || r.requeued || r.analyzed || r.rated || r.finished.length)
+      if (
+        r.submitted ||
+        r.collected ||
+        r.requeued ||
+        r.analyzed ||
+        r.rated ||
+        r.finished.length ||
+        r.rolledUp
+      )
         console.log(
           `Worker: submitted ${r.submitted}, answered ${r.collected}, retrying ${r.requeued}, analyzed ${r.analyzed}, rated ${r.rated}` +
-            (r.finished.length ? `, finished ${r.finished.length} run(s)` : ""),
+            (r.finished.length ? `, finished ${r.finished.length} run(s)` : "") +
+            (r.rolledUp ? `, metrics updated for ${r.rolledUp} day(s)` : ""),
         );
     } catch (err) {
       console.error("Worker tick failed:", err);

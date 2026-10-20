@@ -9,9 +9,11 @@ import { ProviderError } from "../providers/errors";
 import { FakeProvider } from "../providers/fake";
 import type { QueryInput } from "../providers/types";
 import { createRun, createTestRun } from "./create";
+import { reanalyzeBrand } from "../analysis";
 import { saveCompetitors } from "../brands";
 import { citationSummary } from "../citation-stats";
 import { env } from "../env";
+import { brandMetrics, metricsBy } from "../metrics-query";
 import { getRunDetail } from "../run-detail";
 import { analysisModel } from "../sentiment";
 import { fireDueSchedules, getSchedule, saveSchedule } from "./schedule";
@@ -720,5 +722,80 @@ describe("citations", () => {
       "ledgerly.app": "owned",
       "zoho.com": "third_party",
     });
+  });
+});
+
+describe("metrics", () => {
+  const today = new Date().toISOString().slice(0, 10);
+  // ChatGPT ranks Zoho then Ledgerly and cites zoho.com and g2.com; Gemini names only Zoho
+  const byEngine = new FakeProvider({
+    reply: (_input, engine) =>
+      engine === "chatgpt"
+        ? {
+            text: "1. **Zoho**: free\n2. **Ledgerly**: simple",
+            citations: [{ url: "https://zoho.com/invoice" }, { url: "https://g2.com/x" }],
+          }
+        : { text: "Zoho is a good choice.", citations: [{ url: "https://g2.com/x" }] },
+  });
+
+  it("match a hand calculation, from the daily rollup", async () => {
+    const r = await createRun(db, workspaceId);
+    if (!r.ok) throw new Error(r.message);
+    const report = await tick({ db, providerFor: async () => byEngine, analysis: null });
+    expect(report.rolledUp).toBe(1);
+
+    // 12 samples: 6 on ChatGPT (both brands), 6 on Gemini (Zoho only)
+    const [ours, zoho] = await brandMetrics(db, workspaceId, { from: today, to: today });
+    expect(ours).toMatchObject({
+      competitorId: null,
+      name: "Ledgerly",
+      samples: 12,
+      mentionRate: 0.5,
+      averagePosition: 2,
+      citationShare: 0,
+      coverage: 1,
+      sentiment: null,
+    });
+    expect(ours.shareOfVoice).toBeCloseTo(6 / 18);
+    expect(ours.visibilityIndex).toBeCloseTo(100 * (0.25 + 0.125 + 0.25 / 3), 6);
+    expect(zoho).toMatchObject({ name: "Zoho", mentionRate: 1, averagePosition: 1, coverage: 1 });
+    expect(zoho.shareOfVoice).toBeCloseTo(12 / 18);
+    expect(zoho.citationShare).toBeCloseTo(6 / 18);
+
+    const engines = await metricsBy(db, workspaceId, { from: today, to: today }, "engine", null);
+    expect(engines.map((e) => [e.key, e.mentionRate])).toEqual([
+      ["chatgpt", 1],
+      ["gemini", 0],
+    ]);
+    const filtered = await brandMetrics(db, workspaceId, {
+      from: today,
+      to: today,
+      countries: ["IN"],
+    });
+    expect(filtered[0].samples).toBe(4);
+  });
+
+  it("are rebuilt when answers are analyzed again, and ignore runs still going", async () => {
+    const r = await createRun(db, workspaceId);
+    if (!r.ok) throw new Error(r.message);
+    const slow = new FakeProvider({ pendingChecks: 1, reply: () => ({ text: "Ledgerly." }) });
+    await tick({ db, providerFor: async () => slow, analysis: null });
+    expect(await brandMetrics(db, workspaceId, { from: today, to: today })).toEqual([]);
+    await tick({ db, providerFor: async () => slow, analysis: null });
+    expect((await brandMetrics(db, workspaceId, { from: today, to: today }))[0].mentionRate).toBe(
+      1,
+    );
+
+    // the brand is renamed: no answer names it any more
+    const [brand] = await db.select().from(schema.brands);
+    await db
+      .update(schema.brands)
+      .set({ name: "Invoicely", domains: [] })
+      .where(eq(schema.brands.id, brand.id));
+    await reanalyzeBrand(db, brand.id);
+    const report = await tick({ db, providerFor: async () => slow, analysis: null });
+    expect(report.rolledUp).toBe(1);
+    const [ours] = await brandMetrics(db, workspaceId, { from: today, to: today });
+    expect(ours).toMatchObject({ name: "Invoicely", mentionRate: 0 });
   });
 });
