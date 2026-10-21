@@ -9,7 +9,14 @@ import type { Net } from "../geo/fetch";
 import { briefFromPages, briefPending, getBrief, onTopic, requestBrief } from "./brief";
 import { authorOf, contactPages, emailsIn, pickContact } from "./contacts";
 import { kindOf, researchByModel, researchByRules, type Brand } from "./research";
-import { listTargets, researchPending, researchTarget, setSkipped, syncTargets } from "./targets";
+import {
+  coverage,
+  listTargets,
+  researchPending,
+  researchTarget,
+  setSkipped,
+  syncTargets,
+} from "./targets";
 
 const brand: Brand = {
   name: "Ledgerly",
@@ -342,6 +349,56 @@ describe("the target list", () => {
     expect((await listTargets(db, workspaceId)).find((t) => t.id === list[0].id)?.status).toBe(
       "found",
     );
+  });
+
+  it("adds Google's top pages, never yours or competitors', and counts coverage", async () => {
+    const at = (position: number, url: string) => ({
+      workspaceId,
+      promptId,
+      country: "US",
+      position,
+      url,
+      domain: new URL(url).hostname,
+      title: null,
+    });
+    await db.insert(schema.searchResults).values([
+      at(1, "https://bestapps.blog/invoicing"), // also cited by AI
+      at(2, "https://ledgerly.app/pricing"), // yours
+      at(3, "https://zoho.com/invoice"), // a competitor's
+      at(4, "https://guide.example/invoices"), // ranks, not cited yet
+    ]);
+    expect(await syncTargets(db, workspaceId)).toEqual({ added: 3, total: 3 });
+    const list = await listTargets(db, workspaceId);
+    // cited and ranked first; ranked only after cited only (three answers outweigh rank 4)
+    expect(list.map((t) => [t.domain, t.score])).toEqual([
+      ["bestapps.blog", 3 * 8 + 5 * 3 + 4],
+      ["g2.com", 3 * 8 + 4],
+      ["guide.example", 2 * 3 + 4],
+    ]);
+    expect(list[0].evidence.ranks).toEqual([
+      { prompt: "best invoicing app", country: "US", position: 1 },
+    ]);
+
+    const net = web({
+      "https://bestapps.blog/invoicing": listicle,
+      "https://g2.com/categories/invoicing": "<h1>Invoicing</h1>",
+      // the ranking guide already names you, and Zoho
+      "https://guide.example/invoices": "<h1>Invoicing</h1><p>Ledgerly and Zoho both work.</p>",
+    });
+    await researchPending(db, net, null, { limit: 5 });
+    const guide = (await listTargets(db, workspaceId)).find((t) => t.domain === "guide.example")!;
+    expect(guide.status).toBe("skipped");
+    expect(guide.research?.rivalsOnPage).toEqual(["Zoho"]);
+
+    // of the three top pages that aren't a competitor's: one is yours, one names you, one doesn't
+    expect(await coverage(db, workspaceId)).toEqual({
+      basis: "search",
+      total: 3,
+      yours: 1,
+      covered: 1,
+      missing: 1,
+      pending: 0,
+    });
   });
 
   it("writes a content brief from the pages AI cites for a prompt", async () => {

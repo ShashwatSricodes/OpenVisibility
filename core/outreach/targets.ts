@@ -11,30 +11,91 @@
 
 import { and, asc, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import type { AnyDb } from "@/db/client";
-import { brandAliases, brands, outreachTargets } from "@/db/schema";
+import { brands, outreachTargets } from "@/db/schema";
+import { loadEntities } from "../analysis";
+import { classify, ownersOf } from "../citations";
 import { outreachTargets as findTargets } from "../gaps";
 import { readContent } from "../geo/content";
 import { safeGet, type Net } from "../geo/fetch";
 import { visibleText } from "../geo/page";
+import { TOP, topResults } from "../search/serp";
 import type { AnalysisModel } from "../sentiment";
 import { authorOf, contactPages, emailsIn, pickContact, type Contact } from "./contacts";
 import { researchByModel, researchByRules, type Brand, type Research } from "./research";
 
-export const MAX_TARGETS = 25;
+export const MAX_TARGETS = 40;
 const MAX_ATTEMPTS = 3;
 
 export type Evidence = {
+  /** answers that cite it and name a competitor but not you (last 30 days) */
   answers: number;
   prompts: string[];
   engines: string[];
   rivals: string[];
   withYou: number;
+  /** where it ranks on Google for your prompts (top 5, latest weekly search) */
+  ranks?: { prompt: string; country: string; position: number }[];
 };
 
-/** Add new targets from the last 30 days' answers and refresh the numbers on known ones. */
+/**
+ * How much a page matters: answers that cite it without you, how high it
+ * ranks on Google for how many prompts, and how many prompts it touches.
+ */
+export function scoreOf(e: Evidence) {
+  const ranks = e.ranks ?? [];
+  const prompts = new Set([...e.prompts, ...ranks.map((r) => r.prompt)]);
+  return (
+    e.answers * 8 +
+    ranks.reduce((n, r) => n + (TOP + 1 - Math.min(r.position, TOP)) * 3, 0) +
+    prompts.size * 4
+  );
+}
+
+/**
+ * Add new targets and refresh the numbers on known ones, from two sources:
+ * pages AI cited in the last 30 days in answers that left you out, and
+ * Google's top results for your prompts. Your own pages and competitors'
+ * are never targets.
+ */
 export async function syncTargets(db: AnyDb, workspaceId: string, today = new Date()) {
-  const found = (await findTargets(db, workspaceId, { range: "30d" }, today, { limit: 100 }))
-    .filter((t) => t.kind === "third_party")
+  const [cited, ranked, brand] = await Promise.all([
+    findTargets(db, workspaceId, { range: "30d" }, today, { limit: 100 }),
+    topResults(db, workspaceId),
+    brandOf(db, workspaceId),
+  ]);
+  const merged = new Map<
+    string,
+    { url: string; domain: string; title: string | null; e: Evidence }
+  >();
+  for (const t of cited.filter((t) => t.kind === "third_party"))
+    merged.set(t.url, {
+      url: t.url,
+      domain: t.domain,
+      title: t.title,
+      e: {
+        answers: t.answers,
+        prompts: t.prompts,
+        engines: t.engines,
+        rivals: t.rivals,
+        withYou: t.withYou,
+        ranks: [],
+      },
+    });
+  for (const r of ranked) {
+    const kind = brand ? classify(r.domain, brand.owners).kind : "third_party";
+    if (kind !== "third_party") continue;
+    const m = merged.get(r.url) ?? {
+      url: r.url,
+      domain: r.domain,
+      title: r.title,
+      e: { answers: 0, prompts: [], engines: [], rivals: [], withYou: 0, ranks: [] },
+    };
+    m.e.ranks!.push({ prompt: r.prompt, country: r.country, position: r.position });
+    m.title ??= r.title;
+    merged.set(r.url, m);
+  }
+  const found = [...merged.values()]
+    .sort((a, b) => scoreOf(b.e) - scoreOf(a.e) || a.url.localeCompare(b.url))
     .slice(0, MAX_TARGETS);
   if (!found.length) return { added: 0, total: 0 };
   const before = await db
@@ -43,32 +104,23 @@ export async function syncTargets(db: AnyDb, workspaceId: string, today = new Da
     .where(eq(outreachTargets.workspaceId, workspaceId));
   const known = new Set(before.map((b) => b.url));
   for (const t of found) {
-    const evidence: Evidence = {
-      answers: t.answers,
-      prompts: t.prompts,
-      engines: t.engines,
-      rivals: t.rivals,
-      withYou: t.withYou,
-    };
+    t.e.ranks!.sort((a, b) => a.position - b.position);
     await db
       .insert(outreachTargets)
-      .values({ workspaceId, url: t.url, domain: t.domain, title: t.title, evidence })
+      .values({ workspaceId, url: t.url, domain: t.domain, title: t.title, evidence: t.e })
       .onConflictDoUpdate({
         target: [outreachTargets.workspaceId, outreachTargets.url],
-        set: { evidence, updatedAt: new Date() },
+        set: { evidence: t.e, updatedAt: new Date() },
       });
   }
   return { added: found.filter((t) => !known.has(t.url)).length, total: found.length };
 }
 
 export async function brandOf(db: AnyDb, workspaceId: string) {
-  const rows = await db
-    .select({ brand: brands, alias: brandAliases.alias })
-    .from(brands)
-    .leftJoin(brandAliases, eq(brandAliases.brandId, brands.id))
-    .where(eq(brands.workspaceId, workspaceId));
-  if (!rows.length) return null;
-  const b = rows[0].brand;
+  const [b] = await db.select().from(brands).where(eq(brands.workspaceId, workspaceId)).limit(1);
+  if (!b) return null;
+  const entities = (await loadEntities(db, [b.id])).get(b.id) ?? [];
+  const own = entities.find((e) => e.competitorId === null);
   return {
     brand: {
       name: b.name,
@@ -77,7 +129,12 @@ export async function brandOf(db: AnyDb, workspaceId: string) {
       audience: b.audience,
       domains: b.domains,
     } satisfies Brand,
-    names: [b.name, ...rows.flatMap((r) => (r.alias ? [r.alias] : []))],
+    names: [b.name, ...(own?.aliases ?? [])],
+    /** each competitor's names, to see who a page mentions */
+    rivals: entities
+      .filter((e) => e.competitorId !== null)
+      .map((e) => ({ name: e.name, names: [e.name, ...e.aliases] })),
+    owners: ownersOf(entities),
   };
 }
 
@@ -89,7 +146,7 @@ const headingsOf = (html: string) =>
 /** Read one target and decide what it is, who to write to, and what happens next. */
 export async function researchTarget(
   page: { url: string; domain: string; title: string | null; evidence: Evidence },
-  brand: { brand: Brand; names: string[] },
+  brand: { brand: Brand; names: string[]; rivals?: { name: string; names: string[] }[] },
   net: Net,
   model: AnalysisModel | null,
 ): Promise<{
@@ -112,19 +169,27 @@ export async function researchTarget(
   const html = got.body;
   const facts = readContent(html, brand.names);
   const title = facts.title ?? page.title;
-  let research = researchByRules(
-    { url: page.url, domain: page.domain, title, namesBrand: facts.brandMentions > 0 },
-    brand.brand,
-    page.evidence.rivals,
-  );
+  // the competitors the page itself names (a page found on Google has no answer to say)
+  const onPage = (brand.rivals ?? [])
+    .filter((r) => readContent(html, r.names).brandMentions > 0)
+    .map((r) => r.name);
+  const rivals = page.evidence.rivals.length ? page.evidence.rivals : onPage;
+  let research: Research = {
+    ...researchByRules(
+      { url: page.url, domain: page.domain, title, namesBrand: facts.brandMentions > 0 },
+      brand.brand,
+      rivals,
+    ),
+    rivalsOnPage: onPage,
+  };
   let costUsd = 0;
   if (model && research.kind !== "directory" && research.kind !== "community") {
     const byModel = await researchByModel(
       model,
       { url: page.url, title, headings: headingsOf(html), text: visibleText(html) },
       brand.brand,
-      page.evidence.rivals,
-      page.evidence.prompts,
+      rivals,
+      [...page.evidence.prompts, ...(page.evidence.ranks ?? []).map((r) => r.prompt)],
     );
     if (byModel) {
       costUsd = byModel.costUsd;
@@ -132,6 +197,7 @@ export async function researchTarget(
       research = {
         ...byModel.research,
         namesBrand: research.namesBrand || byModel.research.namesBrand,
+        rivalsOnPage: onPage,
       };
     }
   }
@@ -267,8 +333,9 @@ export async function listTargets(db: AnyDb, workspaceId: string) {
       evidence: r.evidence as Evidence,
       research: r.research as Research | null,
       contact: r.contact as Contact | null,
+      score: scoreOf(r.evidence as Evidence),
     }))
-    .sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
+    .sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status) || b.score - a.score);
 }
 
 /** Set a target aside, or bring it back to be researched again. */
@@ -282,4 +349,49 @@ export async function setSkipped(db: AnyDb, workspaceId: string, ids: string[], 
         : { status: "found", note: null, researchAttempts: 0, updatedAt: new Date() },
     )
     .where(and(eq(outreachTargets.workspaceId, workspaceId), inArray(outreachTargets.id, ids)));
+}
+
+/**
+ * Coverage: of the pages that rank in Google's top results for your
+ * prompts (other than competitors' own), how many name you. Your own pages
+ * count as covered. Without search results, the pages AI cites stand in.
+ */
+export async function coverage(db: AnyDb, workspaceId: string) {
+  const [ranked, brand, targets] = await Promise.all([
+    topResults(db, workspaceId),
+    brandOf(db, workspaceId),
+    listTargets(db, workspaceId),
+  ]);
+  const byUrl = new Map(targets.map((t) => [t.url, t]));
+  const state = (url: string) => {
+    const t = byUrl.get(url);
+    if (!t || t.status === "found") return "pending" as const;
+    return t.research?.namesBrand ? ("covered" as const) : ("missing" as const);
+  };
+  if (ranked.length) {
+    const pages = new Map<string, "yours" | "covered" | "missing" | "pending">();
+    for (const r of ranked) {
+      const kind = brand ? classify(r.domain, brand.owners).kind : "third_party";
+      if (kind === "competitor") continue;
+      pages.set(r.url, kind === "owned" ? "yours" : state(r.url));
+    }
+    const count = (s: string) => [...pages.values()].filter((v) => v === s).length;
+    return {
+      basis: "search" as const,
+      total: pages.size,
+      yours: count("yours"),
+      covered: count("covered"),
+      missing: count("missing"),
+      pending: count("pending"),
+    };
+  }
+  const cited = targets.filter((t) => t.evidence.answers > 0);
+  return {
+    basis: "citations" as const,
+    total: cited.length,
+    yours: 0,
+    covered: cited.filter((t) => t.research?.namesBrand).length,
+    missing: cited.filter((t) => t.status !== "found" && !t.research?.namesBrand).length,
+    pending: cited.filter((t) => t.status === "found").length,
+  };
 }

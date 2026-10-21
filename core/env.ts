@@ -41,6 +41,11 @@ const schema = z.object({
 
   /** Consumer-app answers (ChatGPT, Gemini, AI Mode, AI Overviews, Perplexity) */
   BRIGHT_DATA_API_KEY: optionalString,
+  /**
+   * The name of a Bright Data SERP API zone: with it, the outreach agent also
+   * gets Google's top results for each prompt, weekly. Same API key.
+   */
+  BRIGHT_DATA_SERP_ZONE: optionalString,
   /** Official model APIs (Claude, and fallbacks for the other engines); also writes prompt suggestions */
   AI_GATEWAY_API_KEY: optionalString,
   /** The model that writes prompt suggestions when AI_GATEWAY_API_KEY is set */

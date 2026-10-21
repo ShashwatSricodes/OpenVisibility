@@ -41,6 +41,8 @@ export type Research = {
   fit: boolean;
   /** the page already names the brand (answers left it out anyway) */
   namesBrand: boolean;
+  /** competitors the page itself names */
+  rivalsOnPage?: string[];
   source: "model" | "rules";
 };
 
@@ -114,14 +116,17 @@ export function researchByRules(
 ): Research {
   const kind = kindOf(page.domain, page.url, page.title);
   const them = list(rivals.slice(0, 3)) || "your competitors";
-  const opening = {
-    list: `The list names ${them} but not ${brand.name}.`,
-    comparison: `The comparison covers ${them} but not ${brand.name}.`,
-    review: `It reviews ${them}; ${brand.name} isn't covered.`,
-    article: `The article mentions ${them} but not ${brand.name}.`,
-    directory: `${page.domain} lists ${them}. A listing for ${brand.name} there is up to you to create or claim.`,
-    community: `People on ${page.domain} recommend ${them}. This is a conversation to join honestly, not a site to pitch.`,
-  }[kind];
+  const opening =
+    !rivals.length && kind !== "directory" && kind !== "community"
+      ? `It ranks for your prompts but names neither ${brand.name} nor its competitors.`
+      : {
+          list: `The list names ${them} but not ${brand.name}.`,
+          comparison: `The comparison covers ${them} but not ${brand.name}.`,
+          review: `It reviews ${them}; ${brand.name} isn't covered.`,
+          article: `The article mentions ${them} but not ${brand.name}.`,
+          directory: `${page.domain} lists ${them}. A listing for ${brand.name} there is up to you to create or claim.`,
+          community: `People on ${page.domain} recommend ${them}. This is a conversation to join honestly, not a site to pitch.`,
+        }[kind];
   // only what the brand's setup says: what it is, and who it's for
   const what = brand.description ?? brand.category;
   const facts = [what, brand.audience && `for ${brand.audience}`].filter(Boolean).join(", ");

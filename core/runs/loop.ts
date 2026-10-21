@@ -14,7 +14,8 @@ import { env } from "../env";
 import { auditPending } from "../geo/audit";
 import { defaultNet } from "../geo/fetch";
 import { briefPending } from "../outreach/brief";
-import { researchPending } from "../outreach/targets";
+import { researchPending, syncTargets } from "../outreach/targets";
+import { brightDataSearch, citedAsSearch, searchPending, type Search } from "../search/serp";
 import { FakeProvider } from "../providers/fake";
 import { getProvider } from "../providers/index";
 import type { Provider } from "../providers/types";
@@ -39,6 +40,17 @@ export const defaultProviderFor: ProviderFor = async (workspaceId, engine): Prom
   const { keys } = await resolveProviderKeys(getDb(), workspaceId);
   return getProvider(engine, keys);
 };
+
+/** How the worker searches Google: Bright Data's SERP API when a zone is set; off otherwise. */
+function searchFor(): Search | null {
+  if (process.env.OV_FAKE_ANSWERS === "1") return citedAsSearch(getDb());
+  const zone = env().BRIGHT_DATA_SERP_ZONE;
+  if (!zone) return null;
+  return brightDataSearch(async (workspaceId) => {
+    const { keys } = await resolveProviderKeys(getDb(), workspaceId);
+    return keys.brightData ?? null;
+  }, zone);
+}
 
 /** Where the worker should run in this process, if anywhere. */
 export function workerMode(): "inline" | "off" {
@@ -91,6 +103,10 @@ export function startWorker({ intervalMs = 5_000 }: { intervalMs?: number } = {}
       if (audited) console.log(`Audit: checked ${audited} page(s)`);
       // the outreach agent reads target pages and cited pages the same way
       const model = analysisModel();
+      // Google's top results for each prompt, weekly, then the target list follows
+      const search = searchFor();
+      if (search)
+        for (const ws of await searchPending(getDb(), search)) await syncTargets(getDb(), ws);
       const researched = await researchPending(getDb(), defaultNet(), model);
       const briefed = await briefPending(getDb(), defaultNet(), model);
       if (researched || briefed)

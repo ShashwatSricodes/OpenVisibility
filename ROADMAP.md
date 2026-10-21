@@ -487,7 +487,7 @@ Looker Studio connector, public REST API, Slack and webhooks: deferred (decision
 
 ---
 
-## Phase 5c: The outreach agent (Days O1–O4)
+## Phase 5c: The outreach agent (Days O1–O4, with O1b)
 
 An agent that works to get the brand cited: it finds the pages AI already quotes for your prompts that name competitors but not you (Day P4's targets), works out what mention would fit each one, finds who to ask, writes the pitch, and, once you approve it, sends it from your own mailbox and follows up once. It can't guarantee a citation; it raises the odds and shows which outreach worked.
 
@@ -502,6 +502,15 @@ Rules it never breaks: every email is approved by a person before it's sent; one
 - An Outreach page under Improve: ready to pitch (with the contact and where it was found), for you to do, researching, no public contact, set aside.
 
 **Done when:** the dev workspace's top targets each have an opening, a reason and a contact or a "no public contact" note. ✅ 21 October 2026: on the six real pages from the live run, the agent found editorial@guides.reviews on that site's editorial-standards page and general inboxes for rankite.com and tallycrow.com, and said fitsmallbusiness.com, saascompared.io and unfilteredchoice.com publish no address. A brief for "What is the best invoicing software for freelancers?" was built from three real cited pages; their home-page headings for other articles ("ClickUp vs Asana…") are filtered out. With rules only until a model key is set.
+
+### Day O1b: Google's top pages for each prompt
+
+- [x] Weekly, for each active prompt and tracked country, Google's top results through Bright Data's SERP API (`core/search/serp.ts`; `POST api.brightdata.com/request` with a SERP API zone, same key): the prompt as asked and as a short keyword search (once when they're the same), the top 5 across both kept. A few prompts per worker tick; failed searches are retried after an hour and logged, not every tick. Off unless `BRIGHT_DATA_SERP_ZONE` is set. Bright Data bills each successful search (failed ones aren't billed); about 50 a month for 12 prompts in one country.
+- [x] The target list merges Google's top pages with the pages AI cites, never your own or competitors' pages, and ranks them by a score: answers that cite the page without you, how high it ranks for how many prompts, and how many prompts it touches. Research now reads which competitors a page itself names, for pages no answer has cited yet.
+- [x] Coverage on the Outreach page: of the top Google pages for your prompts (not competitors' own), how many are yours or already mention you, the number the agent works to raise. Each page says why it's there: "Ranks #2 on Google for … and 3 more of your prompts", "Cited in 2 AI answers that name …".
+- Development (`OV_FAKE_ANSWERS=1`): a stand-in returns the workspace's most-cited pages as "Google" results, labelled as such on the page.
+
+**Done when:** a prompt's top results are stored and refreshed weekly, they appear as targets ranked with the AI-cited ones, and coverage counts your own and covered pages. ✅ 21 October 2026: tests cover both response shapes Bright Data documents, the request sent, merging, weekly refresh and failures, and coverage (one top page yours, one naming you, one not); in development the worker searched every prompt, synced and researched the targets, and the page showed "0 of 5 top pages" with each page's rank. Not yet run against a real SERP zone.
 
 ### Day O2: Pitches and approval
 
@@ -744,6 +753,7 @@ Record decisions here as you make them, with the date and the reason.
 | 2026-10-20 | Full Otterly parity list (every feature page): adds Brand Visibility Index, Net Sentiment Score, trend annotations, link position over time, PDF export, AI Overviews ads and shopping cards, content gaps and briefs, workspaces per client, agent analytics and AI referral traffic (moved from version 2), free public tools and integrations (Days P7–P9). Industry benchmarks, a marketplace, a Semrush app and SSO are left out. | Decided |
 | 2026-10-20 | Scope: build every Otterly feature except ads (ChatGPT ads and shopping, AI Overviews ads) and teams, integrations and access (alerts, team members and workspaces, public API, Looker Studio, Slack). The MCP server stays and gets its own day (P6). | Decided |
 | 2026-10-20 | Outreach agent (Days O1–O4, after P4): it finds the pages AI cites for competitors but not you, researches each, finds a public contact, and drafts a pitch; every email is approved by a person, then sent from the user's own mailbox over SMTP, with one follow-up and replies read over IMAP. It uses the analysis model (`ANALYSIS_*`). Fully automatic sending, OAuth mail and transactional email services were considered and turned down. | Decided |
+| 2026-10-21 | Outreach targets include Google's top 5 results for each prompt (Bright Data SERP API, weekly), not only the pages AI cites: AI Overviews mostly quote pages that already rank, so those are worth being on before an answer cites them. Coverage of the top pages is the agent's headline number. Scraping Google directly was ruled out (terms of service, blocking); SerpApi stays a possible fallback. | Decided |
 | | Data source for the hosted version: Bright Data Scale ($1.30 per 1,000) or DataForSEO ($1.20 per 1,000, also covers Claude and AI Overviews) | Decide before Day 38 |
 | | Google AI Overviews: version 2 through a SERP API, or skip | Deferred (Bright Data's AI Mode scraper may cover part of it) |
 | | Web hosting: Vercel or VPS | Decide on Day 45 |
