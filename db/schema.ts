@@ -580,3 +580,49 @@ export const contentBriefs = pgTable(
   },
   (t) => [uniqueIndex("content_briefs_workspace_prompt_uq").on(t.workspaceId, t.promptId)],
 );
+
+/**
+ * Google's top results for each prompt (core/search/serp.ts), through Bright
+ * Data's SERP API: the pages that rank, to get onto alongside the pages AI
+ * cites. The latest snapshot per prompt and country; refreshed weekly.
+ */
+export const searchResults = pgTable(
+  "search_results",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    promptId: uuid("prompt_id")
+      .notNull()
+      .references(() => prompts.id, { onDelete: "cascade" }),
+    country: text("country").notNull().default(""),
+    /** 1 = the first organic result, across the searches for this prompt */
+    position: integer("position").notNull(),
+    url: text("url").notNull(),
+    domain: text("domain").notNull(),
+    title: text("title"),
+    fetchedAt: createdAt(),
+  },
+  (t) => [index("search_results_workspace_idx").on(t.workspaceId, t.promptId)],
+);
+
+/** When each prompt was last searched, per country, so the worker knows what's due. */
+export const searchChecks = pgTable(
+  "search_checks",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    promptId: uuid("prompt_id")
+      .notNull()
+      .references(() => prompts.id, { onDelete: "cascade" }),
+    country: text("country").notNull().default(""),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull(),
+    /** searches that failed in a row; after a few, wait for the next week */
+    failures: integer("failures").notNull().default(0),
+    error: text("error"),
+  },
+  (t) => [uniqueIndex("search_checks_prompt_country_uq").on(t.promptId, t.country)],
+);

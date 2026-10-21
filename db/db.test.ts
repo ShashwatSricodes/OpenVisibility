@@ -44,6 +44,8 @@ describe("migrations", () => {
       "provider_credentials",
       "run_items",
       "runs",
+      "search_checks",
+      "search_results",
       "session",
       "site_audits",
       "user",
