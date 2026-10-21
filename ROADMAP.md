@@ -495,11 +495,13 @@ Rules it never breaks: every email is approved by a person before it's sent; one
 
 ### Day O1: Research and contacts
 
-- [ ] For each target page: read it (as the audit does), work out the opening (a list you're missing from, an outdated comparison, a directory listing, a review site profile), and say why the brand fits, from the brand's setup and its own pages. Uses the analysis model (`ANALYSIS_*`); off until a key is set.
-- [ ] Find a contact from the site's own public pages: author byline, contact or "write for us" page, editorial address in the page or its schema.org markup. No paid enrichment, no guessing addresses.
-- [ ] Content briefs (moved from Day P4): for a prompt you're missing from, what a page of yours needs to be cited, from the pages that are.
+- [x] Targets (`core/outreach/targets.ts`, table `outreach_targets`): the top 25 pages to get onto from Day P4, synced on demand ("Look for new pages"), keeping each one's status; skipping sticks, and "Bring back" researches it again.
+- [x] Research (`core/outreach/research.ts`), two targets per worker tick: the page is read as the audit reads it, then sorted. Review platforms and directories (G2, Capterra and others) and forums (Reddit, Quora…) become tasks for you, not pitches; pages that already name the brand are set aside; the rest get an opening (what's missing) and a reason (why the brand fits). Rules always run; with the analysis model (`ANALYSIS_*`) set, the model reads the page and writes both, told to use only the brand's setup and never invent features, prices or customers.
+- [x] Contacts (`core/outreach/contacts.ts`): only addresses the site publishes, on the page or its own contact, "write for us", editorial and about pages (up to three). Ranked author, then editorial desk, then general inbox; support, billing, legal, no-reply and tools' addresses are never used, and another company's address on the page is never taken. No paid enrichment, no guessed addresses.
+- [x] Content briefs (`core/outreach/brief.ts`, table `content_briefs`, a "Content brief" link on each content gap): from the pages cited for the prompt (other sites, last 90 days, up to five): length, the on-topic questions their headings answer, the formats most use, and the sites to earn a mention on; with the model set, also a title, an angle and an outline.
+- An Outreach page under Improve: ready to pitch (with the contact and where it was found), for you to do, researching, no public contact, set aside.
 
-**Done when:** the dev workspace's top targets each have an opening, a reason and a contact or a "no public contact" note.
+**Done when:** the dev workspace's top targets each have an opening, a reason and a contact or a "no public contact" note. ✅ 21 October 2026: on the six real pages from the live run, the agent found editorial@guides.reviews on that site's editorial-standards page and general inboxes for rankite.com and tallycrow.com, and said fitsmallbusiness.com, saascompared.io and unfilteredchoice.com publish no address. A brief for "What is the best invoicing software for freelancers?" was built from three real cited pages; their home-page headings for other articles ("ClickUp vs Asana…") are filtered out. With rules only until a model key is set.
 
 ### Day O2: Pitches and approval
 

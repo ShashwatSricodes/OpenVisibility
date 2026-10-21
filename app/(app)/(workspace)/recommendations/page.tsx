@@ -95,6 +95,12 @@ export default async function RecommendationsPage({
                           <Link href={`/prompts/${g.promptId}`} className="hover:underline">
                             {g.prompt}
                           </Link>
+                          <Link
+                            href={`/recommendations/brief/${g.promptId}`}
+                            className="mt-0.5 block text-xs text-fg-subtle underline-offset-2 hover:underline"
+                          >
+                            Content brief
+                          </Link>
                         </td>
                         <td className="px-3 py-2.5 text-fg-subtle">{ENGINES[g.engine].name}</td>
                         <td className="tabular px-3 py-2.5 text-right">{pct(g.yours)}</td>

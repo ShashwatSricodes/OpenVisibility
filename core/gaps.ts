@@ -347,7 +347,7 @@ export async function recommendations(
       kind: "target",
       priority: t.answers * 8 + t.prompts.length * 4,
       title: `Get onto ${host(t.url)}`,
-      evidence: `Cited in ${t.answers} ${t.answers === 1 ? "answer" : "answers"} that name ${list(t.rivals.slice(0, 3))} but not ${you}, for ${t.prompts.length} ${t.prompts.length === 1 ? "prompt" : "prompts"} on ${list(t.engines.map((e) => ENGINES[e].name))}.`,
+      evidence: `Cited in ${t.answers} ${t.answers === 1 ? "answer that names" : "answers that name"} ${list(t.rivals.slice(0, 3))} but not ${you}, for ${t.prompts.length} ${t.prompts.length === 1 ? "prompt" : "prompts"} on ${list(t.engines.map((e) => ENGINES[e].name))}.`,
       action: `Ask the site to include ${you}${t.title ? ` in “${t.title}”` : ""}, or to review it.`,
       href: t.url,
       external: true,
