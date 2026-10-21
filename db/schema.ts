@@ -510,3 +510,73 @@ export const pageAudits = pgTable(
   },
   (t) => [index("page_audits_audit_idx").on(t.auditId)],
 );
+
+/* ── The outreach agent (core/outreach): getting the brand onto pages AI cites ── */
+
+export const outreachStatus = pgEnum("outreach_status", [
+  /** listed from the citations, not yet researched */
+  "found",
+  /** researched, with a contact: ready for a pitch */
+  "ready",
+  /** researched, but the site lists no contact */
+  "no_contact",
+  /** needs the user, not an email: a directory listing, a review profile, a forum */
+  "task",
+  /** set aside: by the user, or the page already names the brand */
+  "skipped",
+  "drafted",
+  "approved",
+  "sent",
+  "replied",
+  /** the page is now cited in an answer that names the brand */
+  "won",
+]);
+
+/** A page on another site the brand should be on, and what the agent knows about it. */
+export const outreachTargets = pgTable(
+  "outreach_targets",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    domain: text("domain").notNull(),
+    title: text("title"),
+    status: outreachStatus("status").notNull().default("found"),
+    /** why it's a target: answers without the brand, prompts, engines, competitors named */
+    evidence: jsonb("evidence"),
+    /** what the page is and what mention would fit (core/outreach/research.ts) */
+    research: jsonb("research"),
+    /** who to write to, and where that address was found; null when there's none */
+    contact: jsonb("contact"),
+    /** why it was skipped or set as a task, in words */
+    note: text("note"),
+    researchedAt: timestamp("researched_at", { withTimezone: true }),
+    researchAttempts: integer("research_attempts").notNull().default(0),
+    /** what the analysis model cost for this target */
+    costUsd: usd("cost_usd").notNull().default("0"),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("outreach_targets_workspace_url_uq").on(t.workspaceId, t.url)],
+);
+
+/** What a page needs to be cited for a prompt, from the pages that are (core/outreach/brief.ts). */
+export const contentBriefs = pgTable(
+  "content_briefs",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    promptId: uuid("prompt_id")
+      .notNull()
+      .references(() => prompts.id, { onDelete: "cascade" }),
+    status: auditStatus("status").notNull().default("queued"),
+    brief: jsonb("brief"),
+    costUsd: usd("cost_usd").notNull().default("0"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("content_briefs_workspace_prompt_uq").on(t.workspaceId, t.promptId)],
+);

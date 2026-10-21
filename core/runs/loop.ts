@@ -13,9 +13,12 @@ import { resolveProviderKeys } from "../credentials";
 import { env } from "../env";
 import { auditPending } from "../geo/audit";
 import { defaultNet } from "../geo/fetch";
+import { briefPending } from "../outreach/brief";
+import { researchPending } from "../outreach/targets";
 import { FakeProvider } from "../providers/fake";
 import { getProvider } from "../providers/index";
 import type { Provider } from "../providers/types";
+import { analysisModel } from "../sentiment";
 import { fireDueSchedules } from "./schedule";
 import { tick, type ProviderFor } from "./worker";
 
@@ -86,6 +89,12 @@ export function startWorker({ intervalMs = 5_000 }: { intervalMs?: number } = {}
       // site audits fetch other people's sites: a few pages a tick, never holding up runs
       const audited = await auditPending(getDb(), defaultNet());
       if (audited) console.log(`Audit: checked ${audited} page(s)`);
+      // the outreach agent reads target pages and cited pages the same way
+      const model = analysisModel();
+      const researched = await researchPending(getDb(), defaultNet(), model);
+      const briefed = await briefPending(getDb(), defaultNet(), model);
+      if (researched || briefed)
+        console.log(`Outreach: researched ${researched} target(s), wrote ${briefed} brief(s)`);
     } catch (err) {
       console.error("Worker tick failed:", err);
     } finally {

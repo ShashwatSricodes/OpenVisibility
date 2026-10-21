@@ -28,5 +28,6 @@ export const config = {
     "/report/:path*",
     "/audit/:path*",
     "/recommendations/:path*",
+    "/outreach/:path*",
   ],
 };

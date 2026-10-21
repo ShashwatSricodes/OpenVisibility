@@ -17,6 +17,7 @@ import {
   Menu,
   Moon,
   ScanSearch,
+  Send,
   Settings,
   Sun,
   Swords,
@@ -46,6 +47,7 @@ const GROUPS: { label: string; items: Item[] }[] = [
     items: [
       { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
       { href: "/audit", label: "Site audit", icon: ScanSearch },
+      { href: "/outreach", label: "Outreach", icon: Send },
     ],
   },
   {
