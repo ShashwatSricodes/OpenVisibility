@@ -15,6 +15,7 @@ import { auditPending } from "../geo/audit";
 import { defaultNet } from "../geo/fetch";
 import { briefPending } from "../outreach/brief";
 import { draftPending } from "../outreach/pitch";
+import { checkReplies, checkWins, imapInbox, imapOf } from "../outreach/replies";
 import { sendDue, smtpMailer, smtpOf } from "../outreach/send";
 import { researchPending, syncTargets } from "../outreach/targets";
 import { brightDataSearch, citedAsSearch, searchPending, type Search } from "../search/serp";
@@ -117,6 +118,13 @@ export function startWorker({ intervalMs = 5_000 }: { intervalMs?: number } = {}
         const smtp = await smtpOf(getDb(), ws);
         return smtp ? smtpMailer(smtp) : null;
       });
+      // replies from each mailbox, and pages that now cite the brand
+      const replies = await checkReplies(getDb(), async (ws) => {
+        const imap = await imapOf(getDb(), ws);
+        return imap ? imapInbox(imap) : null;
+      });
+      const won = await checkWins(getDb());
+      if (replies || won) console.log(`Outreach: ${replies} new reply(ies), ${won} win(s)`);
       if (mail.sent || mail.failed || mail.stopped)
         console.log(
           `Outreach: sent ${mail.sent} email(s), ${mail.failed} failed, ${mail.stopped} stopped`,

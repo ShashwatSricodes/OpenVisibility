@@ -532,10 +532,11 @@ Rules it never breaks: every email is approved by a person before it's sent; one
 
 ### Day O4: Replies and results
 
-- [ ] Read replies over IMAP: mark the target replied, stop the follow-up, and flag the reply for the user. Opt-out replies add the site to the do-not-contact list.
-- [ ] A pipeline per target (found → drafted → approved → sent → replied → cited), with "cited" confirmed by a later run in which that page is cited in an answer naming the brand.
+- [x] Read replies over IMAP (`core/outreach/replies.ts`, imapflow and mailparser): the same mailbox and login as sending, read-only, every ten minutes while emails are out. A message is matched to its target by the thread headers, then the original Message-ID quoted in a bounce, then the sender's address or domain (never by a Gmail-style address alone). Replies stop the follow-up and wait on the Outreach page for the user to answer from their inbox; the agent never replies itself. "Unsubscribe", "remove me" and the like add the address to the do-not-contact list; bounces mark the address bad; out-of-office replies are ignored, so the follow-up still goes. The IMAP host is worked out from the SMTP one (smtp.gmail.com → imap.gmail.com) and can be set by hand.
+- [x] A pipeline on the Outreach page (pages found → to review → approved → sent → replied → now cited), with "cited" confirmed by a run after the pitch in which that page is cited in an answer that names the brand (`checkWins`). A changed or removed mailbox clears old send errors.
+- mailparser 3.10.0 is nine days old, inside the two-week rule: the release before it bundles nodemailer 10.1.0, which has the address-parsing advisories.
 
-**Done when:** a reply stops the follow-up, an opt-out blocks the site, and a target whose page starts citing the brand shows as won.
+**Done when:** a reply stops the follow-up, an opt-out blocks the site, and a target whose page starts citing the brand shows as won. ✅ 28 October 2026: tests parse real-format emails (a reply with a quoted original, an out-of-office, a Gmail bounce), stop the follow-up on a reply, store it once, add an opt-out to the list, mark a bounce, read each mailbox at most every ten minutes and record its errors, and mark a target won only for an answer after the pitch that cites that page and names the brand. Not yet run against a real mailbox: the IMAP adapter is tested through its parsing, not against a live server.
 
 ---
 
