@@ -8,9 +8,11 @@ import { cn } from "../../_lib/cn";
 import {
   approveAction,
   blockAction,
+  markHandledAction,
   removeSmtpAction,
   retryAction,
   saveMessageAction,
+  saveImapAction,
   saveSenderAction,
   saveSmtpAction,
   skipPitchAction,
@@ -450,5 +452,70 @@ export function RetryButton({ targetId }: { targetId: string }) {
       </button>
       {message && <span className="text-xs text-fg-subtle">{message}</span>}
     </span>
+  );
+}
+
+/* ── replies (Day O4) ─────────────────────────────────────── */
+
+export function HandledButton({ id }: { id: string }) {
+  const { pending, run } = useRun();
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      onClick={() => run(() => markHandledAction(id))}
+      className="text-xs text-fg-subtle hover:text-fg"
+    >
+      Done
+    </button>
+  );
+}
+
+export function ImapSettings({
+  initial,
+  guessed,
+  canEdit,
+}: {
+  initial: { host: string; port: number };
+  guessed: string;
+  canEdit: boolean;
+}) {
+  const [f, setF] = useState(initial);
+  const { pending, message, run } = useRun();
+  return (
+    <form
+      className="flex flex-wrap items-end gap-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        run(() => saveImapAction(f));
+      }}
+    >
+      <label className="flex flex-col gap-1 text-[13px]">
+        <span className="font-medium">IMAP server</span>
+        <input
+          value={f.host}
+          placeholder={guessed || "imap.gmail.com"}
+          onChange={(e) => setF({ ...f, host: e.target.value })}
+          disabled={!canEdit}
+          className={cn(field, "w-64")}
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-[13px]">
+        <span className="font-medium">Port</span>
+        <input
+          type="number"
+          value={f.port}
+          onChange={(e) => setF({ ...f, port: Number(e.target.value) })}
+          disabled={!canEdit}
+          className={cn(field, "w-24")}
+        />
+      </label>
+      {canEdit && (
+        <button type="submit" disabled={pending} className={buttonSecondary}>
+          {pending ? "Saving…" : "Save"}
+        </button>
+      )}
+      {message && <span className="text-xs text-fg-subtle">{message}</span>}
+    </form>
   );
 }

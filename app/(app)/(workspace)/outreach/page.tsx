@@ -4,6 +4,7 @@ import { ArrowUpRight, Mail, Send, Settings2 } from "lucide-react";
 import { requireWorkspace } from "@/core/auth/session";
 import { env } from "@/core/env";
 import { getSender, senderProblems } from "@/core/outreach/pitch";
+import { openReplies, pipeline } from "@/core/outreach/replies";
 import { mailboxInfo, sentLog } from "@/core/outreach/send";
 import { coverage, listTargets } from "@/core/outreach/targets";
 import { searchStatus, TOP } from "@/core/search/serp";
@@ -13,7 +14,7 @@ import { getDb } from "@/db/client";
 import { EmptyState, Page, buttonSecondary } from "../../_components/page-frame";
 import { AutoRefresh } from "../runs/auto-refresh";
 import { FindTargetsButton, SkipButton } from "./buttons";
-import { RetryButton } from "./review";
+import { HandledButton, RetryButton } from "./review";
 
 export const metadata: Metadata = { title: "Outreach" };
 
@@ -132,6 +133,10 @@ export default async function OutreachPage() {
     getSender(db, workspace.id),
     sentLog(db, workspace.id),
   ]);
+  const [replies, funnel] = await Promise.all([
+    openReplies(db, workspace.id),
+    pipeline(db, workspace.id),
+  ]);
   const failed = log.filter((m) => m.status === "failed");
   const sent = log.filter((m) => m.status === "sent");
   const mailboxReady = (await mailboxInfo(db, workspace.id)).ready;
@@ -198,6 +203,92 @@ export default async function OutreachPage() {
           </p>
         </div>
       )}
+      {funnel.found > 0 && (
+        <ol className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-line bg-line text-center sm:grid-cols-6">
+          {(
+            [
+              ["Pages found", funnel.found],
+              ["To review", funnel.toReview],
+              ["Approved", funnel.approved],
+              ["Sent", funnel.sent],
+              ["Replied", funnel.replied],
+              ["Now cited", funnel.won],
+            ] as const
+          ).map(([label, n]) => (
+            <li key={label} className="flex flex-col bg-panel px-2 py-2">
+              <span className="tabular text-base font-semibold">{n}</span>
+              <span className="text-xs text-fg-subtle">{label}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {replies.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <div>
+            <h2 className="text-sm font-semibold">
+              Replies <span className="tabular font-normal text-fg-subtle">{replies.length}</span>
+            </h2>
+            <p className="text-xs text-fg-subtle">
+              Answer them from your inbox; the agent never replies for you. Their follow-ups
+              won&rsquo;t go.
+            </p>
+          </div>
+          <ul className="divide-y divide-line rounded-xl border border-line bg-panel">
+            {replies.map((r) => (
+              <li key={r.id} className="flex flex-col gap-1 px-4 py-3 text-[13px]">
+                <span className="flex items-start justify-between gap-3">
+                  <span>
+                    <span className="font-medium">{r.fromName ?? r.fromAddress}</span>{" "}
+                    <span className="text-xs text-fg-subtle">
+                      · {r.domain} ·{" "}
+                      {r.receivedAt.toLocaleString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "UTC",
+                      })}{" "}
+                      UTC
+                    </span>
+                  </span>
+                  {owner && <HandledButton id={r.id} />}
+                </span>
+                {r.kind !== "reply" && (
+                  <span
+                    className={r.kind === "bounce" ? "text-xs text-bad" : "text-xs text-fg-subtle"}
+                  >
+                    {r.kind === "bounce"
+                      ? "The email bounced: the address doesn't work."
+                      : "Asked not to be emailed again. Added to your do-not-contact list."}
+                  </span>
+                )}
+                {r.snippet && r.kind !== "bounce" && (
+                  <span className="whitespace-pre-line text-fg-default">{r.snippet}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <Section
+        title="Now cited"
+        note="Pages you pitched that a later run shows cited in an answer naming you."
+        items={by("won")}
+        owner={owner}
+        render={(t) => (
+          <span className="text-xs text-good">
+            Cited with you since{" "}
+            {t.wonAt?.toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+              timeZone: "UTC",
+            })}
+          </span>
+        )}
+      />
+
       {!analysisModel() && (
         <p className="rounded-lg border border-line bg-hover px-3 py-2 text-xs text-fg-default">
           Research uses plain rules for now. With an analysis model set up (ANALYSIS_* in your
@@ -268,7 +359,7 @@ export default async function OutreachPage() {
           );
           return (
             <>
-              {waiting?.error && (
+              {waiting?.error && mailboxReady && (
                 <span className="text-xs text-bad">
                   Last try failed: {waiting.error}. It&rsquo;ll be tried again in a few minutes.
                 </span>

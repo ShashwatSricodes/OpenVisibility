@@ -13,6 +13,7 @@ import {
   unapprove,
   unblock,
 } from "@/core/outreach/pitch";
+import { markHandled, saveImap } from "@/core/outreach/replies";
 import { removeSmtp, retry, saveSmtp, smtpMailer, smtpOf, testMailbox } from "@/core/outreach/send";
 import { setSkipped, syncTargets } from "@/core/outreach/targets";
 import { getDb } from "@/db/client";
@@ -176,4 +177,22 @@ export async function removeSmtpAction(): Promise<Result> {
   await removeSmtp(getDb(), o.ws);
   revalidatePath("/outreach", "layout");
   return { ok: true, message: "Mailbox removed. Approved emails wait until you add one." };
+}
+
+/* ── replies (Day O4) ─────────────────────────────────────── */
+
+export async function markHandledAction(id: string): Promise<Result> {
+  const o = await ownerAndUser();
+  if (!o) return { ok: false, message: "Only the workspace owner can do this." };
+  await markHandled(getDb(), o.ws, id);
+  revalidatePath("/outreach");
+  return { ok: true };
+}
+
+export async function saveImapAction(form: { host: string; port: number }): Promise<Result> {
+  const o = await ownerAndUser();
+  if (!o) return { ok: false, message: "Only the workspace owner can do this." };
+  const r = await saveImap(getDb(), o.ws, form);
+  revalidatePath("/outreach", "layout");
+  return r.ok ? { ok: true, message: "Saved." } : r;
 }

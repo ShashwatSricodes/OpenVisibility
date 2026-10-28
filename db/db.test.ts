@@ -40,6 +40,7 @@ describe("migrations", () => {
       "mentions",
       "metrics_daily",
       "outreach_messages",
+      "outreach_replies",
       "outreach_settings",
       "outreach_targets",
       "page_audits",

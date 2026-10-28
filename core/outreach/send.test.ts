@@ -303,8 +303,15 @@ describe("sending", () => {
 
   it("waits for an SMTP login before sending anything", async () => {
     await approved("https://bestapps.blog/invoicing", "editor@bestapps.blog");
+    await db.update(schema.outreachMessages).set({ error: "getaddrinfo ENOTFOUND old.host" });
     await removeSmtp(db, workspaceId);
     expect(await smtpOf(db, workspaceId)).toBeNull();
+    // an old send error means nothing once the mailbox changes
+    const [m] = await db
+      .select()
+      .from(schema.outreachMessages)
+      .where(eq(schema.outreachMessages.kind, "pitch"));
+    expect(m.error).toBeNull();
     expect(await sendDue(db, mailerFor, t0)).toMatchObject({ sent: 0, waiting: 1 });
     expect(inbox).toHaveLength(0);
   });

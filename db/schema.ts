@@ -554,6 +554,8 @@ export const outreachTargets = pgTable(
     note: text("note"),
     researchedAt: timestamp("researched_at", { withTimezone: true }),
     researchAttempts: integer("research_attempts").notNull().default(0),
+    /** when a run first showed this page cited in an answer that names the brand */
+    wonAt: timestamp("won_at", { withTimezone: true }),
     /** what the analysis model cost for this target */
     costUsd: usd("cost_usd").notNull().default("0"),
     createdAt: createdAt(),
@@ -648,6 +650,11 @@ export const outreachSettings = pgTable("outreach_settings", {
   smtpUser: text("smtp_user"),
   /** encrypted like the Bright Data key (core/crypto.ts), never shown again */
   smtpPassword: text("smtp_password"),
+  /** the same mailbox over IMAP, to read replies (core/outreach/replies.ts); same login */
+  imapHost: text("imap_host"),
+  imapPort: integer("imap_port"),
+  imapCheckedAt: timestamp("imap_checked_at", { withTimezone: true }),
+  imapError: text("imap_error"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -715,4 +722,33 @@ export const doNotContact = pgTable(
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("do_not_contact_workspace_value_uq").on(t.workspaceId, t.value)],
+);
+
+export const replyKind = pgEnum("reply_kind", ["reply", "opt_out", "bounce"]);
+
+/** A reply to an outreach email, read from the user's mailbox over IMAP. */
+export const outreachReplies = pgTable(
+  "outreach_replies",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    targetId: uuid("target_id")
+      .notNull()
+      .references(() => outreachTargets.id, { onDelete: "cascade" }),
+    /** the reply's own Message-ID, so it's read once */
+    messageId: text("message_id").notNull(),
+    kind: replyKind("kind").notNull(),
+    fromAddress: text("from_address").notNull(),
+    fromName: text("from_name"),
+    subject: text("subject"),
+    /** the start of what they wrote, without the quoted email */
+    snippet: text("snippet"),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
+    /** the user has dealt with it */
+    handled: boolean("handled").notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("outreach_replies_workspace_message_uq").on(t.workspaceId, t.messageId)],
 );

@@ -133,7 +133,18 @@ export async function saveSmtp(
     .insert(outreachSettings)
     .values({ workspaceId, ...values })
     .onConflictDoUpdate({ target: outreachSettings.workspaceId, set: values });
+  await clearSendErrors(db, workspaceId);
   return { ok: true as const };
+}
+
+/** A new or removed mailbox makes old "last try failed" errors meaningless; try afresh. */
+async function clearSendErrors(db: AnyDb, workspaceId: string) {
+  await db
+    .update(outreachMessages)
+    .set({ error: null, updatedAt: new Date(0) })
+    .where(
+      and(eq(outreachMessages.workspaceId, workspaceId), eq(outreachMessages.status, "approved")),
+    );
 }
 
 /* ── composing ────────────────────────────────────────────── */
@@ -433,4 +444,5 @@ export async function removeSmtp(db: AnyDb, workspaceId: string) {
       updatedAt: new Date(),
     })
     .where(eq(outreachSettings.workspaceId, workspaceId));
+  await clearSendErrors(db, workspaceId);
 }
