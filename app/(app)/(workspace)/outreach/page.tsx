@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
-import { ArrowUpRight, Mail, Send } from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight, Mail, Send, Settings2 } from "lucide-react";
 import { requireWorkspace } from "@/core/auth/session";
 import { env } from "@/core/env";
+import { getSender, senderProblems } from "@/core/outreach/pitch";
 import { coverage, listTargets } from "@/core/outreach/targets";
 import { searchStatus, TOP } from "@/core/search/serp";
 import { ENGINES, isEngineId } from "@/core/providers/registry";
 import { analysisModel } from "@/core/sentiment";
 import { getDb } from "@/db/client";
-import { EmptyState, Page } from "../../_components/page-frame";
+import { EmptyState, Page, buttonSecondary } from "../../_components/page-frame";
 import { AutoRefresh } from "../runs/auto-refresh";
 import { FindTargetsButton, SkipButton } from "./buttons";
 
@@ -121,15 +123,18 @@ function Section({
 export default async function OutreachPage() {
   const { workspace, role } = await requireWorkspace();
   const db = getDb();
-  const [targets, cover, searched] = await Promise.all([
+  const [targets, cover, searched, sender] = await Promise.all([
     listTargets(db, workspace.id),
     coverage(db, workspace.id),
     searchStatus(db, workspace.id),
+    getSender(db, workspace.id),
   ]);
+  const senderMissing = senderProblems(sender);
   const searchOn = !!env().BRIGHT_DATA_SERP_ZONE || process.env.OV_FAKE_ANSWERS === "1";
   const owner = role === "owner";
   const by = (s: Target["status"]) => targets.filter((t) => t.status === s);
   const researching = by("found");
+  const writing = by("ready");
 
   if (!targets.length)
     return (
@@ -148,9 +153,17 @@ export default async function OutreachPage() {
     <Page
       title="Outreach"
       description="The top pages for your prompts that leave you out, and who to ask"
-      actions={owner ? <FindTargetsButton /> : undefined}
+      actions={
+        <>
+          <Link href="/outreach/settings" className={buttonSecondary}>
+            <Settings2 className="size-3.5" />
+            Settings
+          </Link>
+          {owner && <FindTargetsButton />}
+        </>
+      }
     >
-      <AutoRefresh active={researching.length > 0} everyMs={5_000} />
+      <AutoRefresh active={researching.length + writing.length > 0} everyMs={5_000} />
       {cover.total > 0 && (
         <div className="flex flex-col gap-2 rounded-xl border border-line bg-panel px-4 py-3">
           <p className="text-[13px]">
@@ -187,10 +200,52 @@ export default async function OutreachPage() {
         </p>
       )}
 
+      {owner && senderMissing.length > 0 && by("drafted").length > 0 && (
+        <p className="rounded-lg border border-line bg-hover px-3 py-2 text-[13px]">
+          Emails are waiting for you. Before you can approve them: {senderMissing.join(" ")}{" "}
+          <Link href="/outreach/settings" className="underline underline-offset-2">
+            Outreach settings
+          </Link>
+        </p>
+      )}
+
       <Section
-        title="Ready to pitch"
-        note="Researched, with a published address to write to. Nothing is sent without your approval."
-        items={by("ready")}
+        title="To review"
+        note="The agent wrote an email and a follow-up for each. Read, edit and approve them; nothing is sent until you do."
+        items={by("drafted")}
+        owner={owner}
+        render={(t) => (
+          <>
+            {t.research && <span>{t.research.opening}</span>}
+            <Link
+              href={`/outreach/${t.id}`}
+              className="mt-1 self-start text-[13px] font-medium underline underline-offset-2"
+            >
+              Review the email to {t.contact?.email}
+            </Link>
+          </>
+        )}
+      />
+
+      <Section
+        title="Approved"
+        note="Approved by you; they go out from your mailbox once sending is set up, within your daily limit."
+        items={by("approved")}
+        owner={owner}
+        render={(t) => (
+          <Link
+            href={`/outreach/${t.id}`}
+            className="self-start text-xs underline underline-offset-2"
+          >
+            To {t.contact?.email}: view or take back
+          </Link>
+        )}
+      />
+
+      <Section
+        title="Writing the email"
+        note="Researched, with a published address to write to; the email draft is on its way."
+        items={writing}
         owner={owner}
         render={(t) => (
           <>

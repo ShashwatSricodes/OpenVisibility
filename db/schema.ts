@@ -626,3 +626,85 @@ export const searchChecks = pgTable(
   },
   (t) => [uniqueIndex("search_checks_prompt_country_uq").on(t.promptId, t.country)],
 );
+
+/** Who outreach emails come from, and the limits on sending (one row per workspace). */
+export const outreachSettings = pgTable("outreach_settings", {
+  workspaceId: uuid("workspace_id")
+    .primaryKey()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  senderName: text("sender_name"),
+  senderEmail: text("sender_email"),
+  company: text("company"),
+  /** a postal address: anti-spam law (CAN-SPAM) requires one in every commercial email */
+  address: text("address"),
+  website: text("website"),
+  /** emails a day, at most */
+  dailyCap: integer("daily_cap").notNull().default(10),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const messageKind = pgEnum("message_kind", ["pitch", "follow_up"]);
+export const messageStatus = pgEnum("message_status", [
+  /** written by the agent, waiting for a person */
+  "draft",
+  /** approved by a person: the only status that can be sent */
+  "approved",
+  "sent",
+  "failed",
+  /** not sent: skipped, or stopped by a reply or an opt-out */
+  "cancelled",
+]);
+
+/** An email the agent drafted for a target: the pitch, or its one follow-up. */
+export const outreachMessages = pgTable(
+  "outreach_messages",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    targetId: uuid("target_id")
+      .notNull()
+      .references(() => outreachTargets.id, { onDelete: "cascade" }),
+    kind: messageKind("kind").notNull(),
+    status: messageStatus("status").notNull().default("draft"),
+    to: text("to").notNull(),
+    toName: text("to_name"),
+    subject: text("subject").notNull(),
+    /** the part a person can edit; the sender block, address and opt-out line are added when sent */
+    body: text("body").notNull(),
+    /** "model" or "template" */
+    source: text("source").notNull(),
+    costUsd: usd("cost_usd").notNull().default("0"),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    approvedBy: text("approved_by"),
+    /** a follow-up waits this long after the pitch is sent */
+    sendAfter: timestamp("send_after", { withTimezone: true }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    /** the Message-ID header, to match replies */
+    messageId: text("message_id"),
+    error: text("error"),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("outreach_messages_workspace_idx").on(t.workspaceId, t.status),
+    uniqueIndex("outreach_messages_target_kind_uq").on(t.targetId, t.kind),
+  ],
+);
+
+/** Addresses and domains never to email: added by hand, or when someone opts out. */
+export const doNotContact = pgTable(
+  "do_not_contact",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** an email address, or a domain (everyone at it) */
+    value: text("value").notNull(),
+    reason: text("reason"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("do_not_contact_workspace_value_uq").on(t.workspaceId, t.value)],
+);

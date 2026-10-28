@@ -14,6 +14,7 @@ import { env } from "../env";
 import { auditPending } from "../geo/audit";
 import { defaultNet } from "../geo/fetch";
 import { briefPending } from "../outreach/brief";
+import { draftPending } from "../outreach/pitch";
 import { researchPending, syncTargets } from "../outreach/targets";
 import { brightDataSearch, citedAsSearch, searchPending, type Search } from "../search/serp";
 import { FakeProvider } from "../providers/fake";
@@ -109,8 +110,11 @@ export function startWorker({ intervalMs = 5_000 }: { intervalMs?: number } = {}
         for (const ws of await searchPending(getDb(), search)) await syncTargets(getDb(), ws);
       const researched = await researchPending(getDb(), defaultNet(), model);
       const briefed = await briefPending(getDb(), defaultNet(), model);
-      if (researched || briefed)
-        console.log(`Outreach: researched ${researched} target(s), wrote ${briefed} brief(s)`);
+      const drafted = await draftPending(getDb(), model);
+      if (researched || briefed || drafted)
+        console.log(
+          `Outreach: researched ${researched} target(s), drafted ${drafted} pitch(es), wrote ${briefed} brief(s)`,
+        );
     } catch (err) {
       console.error("Worker tick failed:", err);
     } finally {
