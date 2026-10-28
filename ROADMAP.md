@@ -539,6 +539,8 @@ Rules it never breaks: every email is approved by a person before it's sent; one
 
 ## Phase 6: Self-hosting and the open-source release (Days 34–37)
 
+Known, 28 October 2026: `next build` compiles and type-checks, then stops at prerendering because pages read the database and the embedded one refuses production mode. The Docker and self-hosting days need `DATABASE_URL` at build time, or these pages marked dynamic.
+
 ### Day 34: Docker
 
 - [ ] A multi-stage `Dockerfile` with a standalone Next.js build, and the worker in the same image with a different command.
@@ -756,6 +758,7 @@ Record decisions here as you make them, with the date and the reason.
 | 2026-10-20 | Scope: build every Otterly feature except ads (ChatGPT ads and shopping, AI Overviews ads) and teams, integrations and access (alerts, team members and workspaces, public API, Looker Studio, Slack). The MCP server stays and gets its own day (P6). | Decided |
 | 2026-10-20 | Outreach agent (Days O1–O4, after P4): it finds the pages AI cites for competitors but not you, researches each, finds a public contact, and drafts a pitch; every email is approved by a person, then sent from the user's own mailbox over SMTP, with one follow-up and replies read over IMAP. It uses the analysis model (`ANALYSIS_*`). Fully automatic sending, OAuth mail and transactional email services were considered and turned down. | Decided |
 | 2026-10-21 | Outreach targets include Google's top 5 results for each prompt (Bright Data SERP API, weekly), not only the pages AI cites: AI Overviews mostly quote pages that already rank, so those are worth being on before an answer cites them. Coverage of the top pages is the agent's headline number. Scraping Google directly was ruled out (terms of service, blocking); SerpApi stays a possible fallback. | Decided |
+| 2026-10-28 | Security: Next.js 15.5.4 → 15.5.28, which fixes the advisories on 15.5.4 (among them unauthenticated remote code execution and middleware bypasses); undici and sharp patched by `npm audit fix`. Left: postcss inside Next (build-time only; the fix needs Next 16, a major upgrade) and esbuild in drizzle-kit (development tooling). New dependencies are pinned to releases at least two weeks old unless a security fix is newer. | Done |
 | | Data source for the hosted version: Bright Data Scale ($1.30 per 1,000) or DataForSEO ($1.20 per 1,000, also covers Claude and AI Overviews) | Decide before Day 38 |
 | | Google AI Overviews: version 2 through a SERP API, or skip | Deferred (Bright Data's AI Mode scraper may cover part of it) |
 | | Web hosting: Vercel or VPS | Decide on Day 45 |
