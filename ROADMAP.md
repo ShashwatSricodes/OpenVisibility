@@ -523,10 +523,12 @@ Rules it never breaks: every email is approved by a person before it's sent; one
 
 ### Day O3: Sending and follow-ups
 
-- [ ] Send through the user's own mailbox over SMTP (Gmail, Outlook, Zoho and others, with an app password; credentials encrypted like the Bright Data key). A daily cap, a quarterly cap per site, the do-not-contact list, and a log of every send.
-- [ ] One follow-up after about a week if there's no reply (approved with the first email), then stop.
+- [x] Send through the user's own mailbox over SMTP (`core/outreach/send.ts`, nodemailer): host, port, TLS from the start (465) or STARTTLS (587, never falling back to plain text), username and app password, encrypted like the Bright Data key and never shown again. "Send me a test email" checks the login and sends one to the sender; "Remove mailbox" forgets it.
+- [x] Every send is checked at the moment of sending: only messages a person approved (`dueMessages`); not to anyone on the do-not-contact list; one pitch per site per quarter (whichever page it was about); the daily cap (the rest wait for tomorrow); no follow-up once the site replied. A stopped pitch takes its follow-up with it and the target says why. Each email carries the sender block, postal address, opt-out line and a List-Unsubscribe header; follow-ups reply in the same thread (In-Reply-To).
+- [x] One follow-up a week after the pitch, approved with it, then stop. Temporary SMTP errors leave the email approved and try again after 15 minutes (shown as "Last try failed: …"); permanent ones (5xx, refused login) mark it failed with the server's reason, with "Try again". A Sent list on the Outreach page shows what went out and when the follow-up is due.
+- nodemailer 10.1.7 is ten days old, inside the two-week rule: it's the release that fixes the address-parsing advisories in 10.1.0–10.1.3, which matter when sending to addresses found on websites.
 
-**Done when:** an approved email is sent through a test SMTP server, its follow-up goes out on schedule, and a site on the do-not-contact list is refused.
+**Done when:** an approved email is sent through a test SMTP server, its follow-up goes out on schedule, and a site on the do-not-contact list is refused. ✅ 28 October 2026: tests send through a real local SMTP server (`smtp-server`) with login: the pitch with its footer and List-Unsubscribe header, nothing the next day, the follow-up eight days later in the same thread; a domain added to the list after approval is refused at send time; a second page on the same site is held for the quarter; the daily cap holds; a 550 is marked failed and can be retried; a timeout waits. In the browser, a mailbox on an unresolvable host showed the error from the test button and on the approved email, and was removed. No email has been sent to a real address.
 
 ### Day O4: Replies and results
 

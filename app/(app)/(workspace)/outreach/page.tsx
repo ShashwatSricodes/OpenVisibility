@@ -4,6 +4,7 @@ import { ArrowUpRight, Mail, Send, Settings2 } from "lucide-react";
 import { requireWorkspace } from "@/core/auth/session";
 import { env } from "@/core/env";
 import { getSender, senderProblems } from "@/core/outreach/pitch";
+import { mailboxInfo, sentLog } from "@/core/outreach/send";
 import { coverage, listTargets } from "@/core/outreach/targets";
 import { searchStatus, TOP } from "@/core/search/serp";
 import { ENGINES, isEngineId } from "@/core/providers/registry";
@@ -12,6 +13,7 @@ import { getDb } from "@/db/client";
 import { EmptyState, Page, buttonSecondary } from "../../_components/page-frame";
 import { AutoRefresh } from "../runs/auto-refresh";
 import { FindTargetsButton, SkipButton } from "./buttons";
+import { RetryButton } from "./review";
 
 export const metadata: Metadata = { title: "Outreach" };
 
@@ -123,12 +125,16 @@ function Section({
 export default async function OutreachPage() {
   const { workspace, role } = await requireWorkspace();
   const db = getDb();
-  const [targets, cover, searched, sender] = await Promise.all([
+  const [targets, cover, searched, sender, log] = await Promise.all([
     listTargets(db, workspace.id),
     coverage(db, workspace.id),
     searchStatus(db, workspace.id),
     getSender(db, workspace.id),
+    sentLog(db, workspace.id),
   ]);
+  const failed = log.filter((m) => m.status === "failed");
+  const sent = log.filter((m) => m.status === "sent");
+  const mailboxReady = (await mailboxInfo(db, workspace.id)).ready;
   const senderMissing = senderProblems(sender);
   const searchOn = !!env().BRIGHT_DATA_SERP_ZONE || process.env.OV_FAKE_ANSWERS === "1";
   const owner = role === "owner";
@@ -227,20 +233,106 @@ export default async function OutreachPage() {
         )}
       />
 
+      {failed.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold">
+            Couldn&rsquo;t send{" "}
+            <span className="tabular font-normal text-fg-subtle">{failed.length}</span>
+          </h2>
+          <ul className="divide-y divide-line rounded-xl border border-line bg-panel">
+            {failed.map((m) => (
+              <li key={m.id} className="flex flex-col gap-1 px-4 py-3 text-[13px]">
+                <span className="font-medium">
+                  {m.kind === "pitch" ? "Email" : "Follow-up"} to {m.to}
+                </span>
+                <span className="text-xs text-bad">{m.error}</span>
+                {owner && <RetryButton targetId={m.targetId} />}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <Section
         title="Approved"
-        note="Approved by you; they go out from your mailbox once sending is set up, within your daily limit."
+        note={
+          mailboxReady
+            ? `Approved by you; they go out from your mailbox, up to ${sender?.dailyCap ?? 10} a day.`
+            : "Approved by you; they wait until your mailbox is set up in outreach settings."
+        }
         items={by("approved")}
         owner={owner}
-        render={(t) => (
-          <Link
-            href={`/outreach/${t.id}`}
-            className="self-start text-xs underline underline-offset-2"
-          >
-            To {t.contact?.email}: view or take back
-          </Link>
-        )}
+        render={(t) => {
+          const waiting = log.find(
+            (m) => m.targetId === t.id && m.kind === "pitch" && m.status === "approved",
+          );
+          return (
+            <>
+              {waiting?.error && (
+                <span className="text-xs text-bad">
+                  Last try failed: {waiting.error}. It&rsquo;ll be tried again in a few minutes.
+                </span>
+              )}
+              <Link
+                href={`/outreach/${t.id}`}
+                className="self-start text-xs underline underline-offset-2"
+              >
+                To {t.contact?.email}: view or take back
+              </Link>
+            </>
+          );
+        }}
       />
+
+      {sent.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <div>
+            <h2 className="text-sm font-semibold">
+              Sent <span className="tabular font-normal text-fg-subtle">{sent.length}</span>
+            </h2>
+            <p className="text-xs text-fg-subtle">
+              From your mailbox; replies land in your inbox. A follow-up goes a week later if
+              there&rsquo;s no reply.
+            </p>
+          </div>
+          <ul className="divide-y divide-line rounded-xl border border-line bg-panel">
+            {sent.map((m) => {
+              const follow = log.find((x) => x.targetId === m.targetId && x.kind === "follow_up");
+              return (
+                <li key={m.id} className="flex flex-col gap-0.5 px-4 py-2.5 text-[13px]">
+                  <span>
+                    <span className="font-medium">
+                      {m.kind === "pitch" ? "Email" : "Follow-up"} to {m.to}
+                    </span>{" "}
+                    <span className="text-xs text-fg-subtle">
+                      · {m.domain} ·{" "}
+                      {m.sentAt?.toLocaleString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "UTC",
+                      })}{" "}
+                      UTC
+                    </span>
+                  </span>
+                  {m.kind === "pitch" && follow?.status === "approved" && follow.sendAfter && (
+                    <span className="text-xs text-fg-subtle">
+                      Follow-up on{" "}
+                      {follow.sendAfter.toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        timeZone: "UTC",
+                      })}{" "}
+                      if there&rsquo;s no reply.
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <Section
         title="Writing the email"

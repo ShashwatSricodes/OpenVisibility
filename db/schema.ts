@@ -640,6 +640,14 @@ export const outreachSettings = pgTable("outreach_settings", {
   website: text("website"),
   /** emails a day, at most */
   dailyCap: integer("daily_cap").notNull().default(10),
+  /** the user's own mailbox, over SMTP (core/outreach/send.ts) */
+  smtpHost: text("smtp_host"),
+  smtpPort: integer("smtp_port"),
+  /** true: TLS from the start (usually port 465); false: STARTTLS (usually 587) */
+  smtpSecure: boolean("smtp_secure").notNull().default(true),
+  smtpUser: text("smtp_user"),
+  /** encrypted like the Bright Data key (core/crypto.ts), never shown again */
+  smtpPassword: text("smtp_password"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
