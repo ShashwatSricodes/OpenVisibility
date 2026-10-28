@@ -514,10 +514,12 @@ Rules it never breaks: every email is approved by a person before it's sent; one
 
 ### Day O2: Pitches and approval
 
-- [ ] One short, specific email per target (and one follow-up), in the brand's voice, with the sender's name, company address and an opt-out line. Never claims things the brand's setup doesn't support.
-- [ ] An Outreach page: a queue to read, edit, approve or skip each email; nothing is sent without approval.
+- [x] One short, specific email per target and one follow-up (`core/outreach/pitch.ts`, table `outreach_messages`), drafted by the worker for every target with a contact: from a template (the page, the competitors it names, what the brand is, one clear ask), or by the analysis model when set, told to stay under 120 words, ask once, add no links and never invent features, prices, customers or numbers. The sender block, postal address and opt-out line ("Reply unsubscribe…") are added when sent, outside the editable text, so they can't be edited away.
+- [x] Outreach settings: sender name and address to send from, company, website, postal address (required), a daily cap; and a do-not-contact list of addresses and whole domains. Adding one cancels anything waiting for it; targets whose contact is on it are never drafted.
+- [x] Review page per target: edit the recipient, subject and both emails, then "Approve both emails", "Take back approval" or "Skip this site". Approval checks the sender details and each email (valid address, not blocked, no placeholder such as "[your name]" left, length) and lists what to fix. Editing an approved email takes the approval back. Drafts written before the sender's name was known are signed with "[your name]", which blocks approval until the name is saved, then filled in.
+- [x] The only way into sending is `dueMessages`: approved pitches, and approved follow-ups once their wait is over. Drafts never come back from it.
 
-**Done when:** a pitch can be drafted, edited and approved, and an unapproved one can't be sent.
+**Done when:** a pitch can be drafted, edited and approved, and an unapproved one can't be sent. ✅ 28 October 2026: tests draft, refuse approval without sender details or with a placeholder, approve, unapprove on edit, cancel on blocking and skipping, and check `dueMessages` returns nothing unapproved; in the browser, the dev workspace's three targets with a contact got drafts on their own, the sender details were saved, and one was approved.
 
 ### Day O3: Sending and follow-ups
 
