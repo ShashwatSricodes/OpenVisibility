@@ -8,9 +8,13 @@ import { cn } from "../../_lib/cn";
 import {
   approveAction,
   blockAction,
+  removeSmtpAction,
+  retryAction,
   saveMessageAction,
   saveSenderAction,
+  saveSmtpAction,
   skipPitchAction,
+  testMailboxAction,
   unapproveAction,
   unblockAction,
 } from "./actions";
@@ -311,5 +315,140 @@ export function ApproveBar({ targetId, status }: { targetId: string; status: str
         </ul>
       )}
     </div>
+  );
+}
+
+/* ── the mailbox (Day O3) ─────────────────────────────────── */
+
+export function MailboxSettings({
+  initial,
+  hasPassword,
+  canEdit,
+}: {
+  initial: { host: string; port: number; secure: boolean; user: string };
+  hasPassword: boolean;
+  canEdit: boolean;
+}) {
+  const [f, setF] = useState({ ...initial, password: "" });
+  const save = useRun();
+  const test = useRun();
+  return (
+    <form
+      className="flex flex-col gap-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save.run(() => saveSmtpAction(f));
+      }}
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_7rem]">
+        <label className="flex flex-col gap-1 text-[13px]">
+          <span className="font-medium">SMTP server</span>
+          <input
+            value={f.host}
+            placeholder="smtp.gmail.com"
+            onChange={(e) => setF({ ...f, host: e.target.value })}
+            disabled={!canEdit}
+            className={field}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-[13px]">
+          <span className="font-medium">Port</span>
+          <input
+            type="number"
+            value={f.port}
+            onChange={(e) => {
+              const port = Number(e.target.value);
+              setF({ ...f, port, secure: port === 465 ? true : port === 587 ? false : f.secure });
+            }}
+            disabled={!canEdit}
+            className={field}
+          />
+        </label>
+      </div>
+      <label className="flex items-center gap-2 text-[13px]">
+        <input
+          type="checkbox"
+          checked={f.secure}
+          onChange={(e) => setF({ ...f, secure: e.target.checked })}
+          disabled={!canEdit}
+          className="size-4 accent-[var(--fg)]"
+        />
+        Encrypted from the start (port 465). Off: STARTTLS (port 587); either way nothing is sent
+        unencrypted.
+      </label>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-[13px]">
+          <span className="font-medium">Username</span>
+          <input
+            value={f.user}
+            autoComplete="off"
+            onChange={(e) => setF({ ...f, user: e.target.value })}
+            disabled={!canEdit}
+            className={field}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-[13px]">
+          <span className="font-medium">App password</span>
+          <input
+            type="password"
+            value={f.password}
+            autoComplete="new-password"
+            placeholder={hasPassword ? "Saved; type to replace" : ""}
+            onChange={(e) => setF({ ...f, password: e.target.value })}
+            disabled={!canEdit}
+            className={field}
+          />
+        </label>
+      </div>
+      <p className="text-xs text-fg-subtle">
+        Use an app password, not your login password: Gmail, Outlook, Zoho, Fastmail and most others
+        offer them under account security. It&rsquo;s stored encrypted and never shown again.
+      </p>
+      {canEdit && (
+        <span className="flex flex-wrap items-center gap-3">
+          <button type="submit" disabled={save.pending} className={buttonPrimary}>
+            {save.pending ? "Saving…" : "Save"}
+          </button>
+          <button
+            type="button"
+            disabled={test.pending}
+            onClick={() => test.run(testMailboxAction)}
+            className={buttonSecondary}
+          >
+            {test.pending ? "Sending…" : "Send me a test email"}
+          </button>
+          {hasPassword && (
+            <button
+              type="button"
+              disabled={save.pending}
+              onClick={() => save.run(removeSmtpAction)}
+              className="text-xs text-fg-subtle hover:text-fg"
+            >
+              Remove mailbox
+            </button>
+          )}
+          {(save.message || test.message) && (
+            <span className="text-xs text-fg-subtle">{test.message ?? save.message}</span>
+          )}
+        </span>
+      )}
+    </form>
+  );
+}
+
+export function RetryButton({ targetId }: { targetId: string }) {
+  const { pending, message, run } = useRun();
+  return (
+    <span className="flex items-center gap-2">
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => run(() => retryAction(targetId))}
+        className="text-xs font-medium underline underline-offset-2"
+      >
+        Try again
+      </button>
+      {message && <span className="text-xs text-fg-subtle">{message}</span>}
+    </span>
   );
 }

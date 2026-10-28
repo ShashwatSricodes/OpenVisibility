@@ -6,12 +6,14 @@ import { requestBrief } from "@/core/outreach/brief";
 import {
   approve,
   block,
+  getSender,
   saveMessage,
   saveSender,
   skipPitch,
   unapprove,
   unblock,
 } from "@/core/outreach/pitch";
+import { removeSmtp, retry, saveSmtp, smtpMailer, smtpOf, testMailbox } from "@/core/outreach/send";
 import { setSkipped, syncTargets } from "@/core/outreach/targets";
 import { getDb } from "@/db/client";
 
@@ -129,4 +131,49 @@ export async function skipPitchAction(targetId: string): Promise<Result> {
   await skipPitch(getDb(), o.ws, targetId);
   revalidatePath("/outreach", "layout");
   return { ok: true };
+}
+
+/* ── sending (Day O3) ─────────────────────────────────────── */
+
+export async function saveSmtpAction(form: {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  password: string;
+}): Promise<Result> {
+  const o = await ownerAndUser();
+  if (!o) return { ok: false, message: "Only the workspace owner can do this." };
+  const r = await saveSmtp(getDb(), o.ws, { ...form, password: form.password || undefined });
+  revalidatePath("/outreach", "layout");
+  return r.ok ? { ok: true, message: "Saved." } : r;
+}
+
+export async function testMailboxAction(): Promise<Result> {
+  const o = await ownerAndUser();
+  if (!o) return { ok: false, message: "Only the workspace owner can do this." };
+  const db = getDb();
+  const [smtp, sender] = await Promise.all([smtpOf(db, o.ws), getSender(db, o.ws)]);
+  if (!smtp) return { ok: false, message: "Save the mailbox settings first." };
+  if (!sender?.senderEmail) return { ok: false, message: "Add the address to send from first." };
+  const r = await testMailbox(smtpMailer(smtp), sender);
+  return r.ok
+    ? { ok: true, message: `Sent a test email to ${sender.senderEmail}.` }
+    : { ok: false, message: `Couldn't send: ${r.message}` };
+}
+
+export async function retryAction(targetId: string): Promise<Result> {
+  const o = await ownerAndUser();
+  if (!o) return { ok: false, message: "Only the workspace owner can do this." };
+  await retry(getDb(), o.ws, targetId);
+  revalidatePath("/outreach", "layout");
+  return { ok: true, message: "It'll be tried again shortly." };
+}
+
+export async function removeSmtpAction(): Promise<Result> {
+  const o = await ownerAndUser();
+  if (!o) return { ok: false, message: "Only the workspace owner can do this." };
+  await removeSmtp(getDb(), o.ws);
+  revalidatePath("/outreach", "layout");
+  return { ok: true, message: "Mailbox removed. Approved emails wait until you add one." };
 }

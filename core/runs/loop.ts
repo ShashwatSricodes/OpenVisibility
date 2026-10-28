@@ -15,6 +15,7 @@ import { auditPending } from "../geo/audit";
 import { defaultNet } from "../geo/fetch";
 import { briefPending } from "../outreach/brief";
 import { draftPending } from "../outreach/pitch";
+import { sendDue, smtpMailer, smtpOf } from "../outreach/send";
 import { researchPending, syncTargets } from "../outreach/targets";
 import { brightDataSearch, citedAsSearch, searchPending, type Search } from "../search/serp";
 import { FakeProvider } from "../providers/fake";
@@ -111,6 +112,15 @@ export function startWorker({ intervalMs = 5_000 }: { intervalMs?: number } = {}
       const researched = await researchPending(getDb(), defaultNet(), model);
       const briefed = await briefPending(getDb(), defaultNet(), model);
       const drafted = await draftPending(getDb(), model);
+      // approved emails go out from each workspace's own mailbox, within its limits
+      const mail = await sendDue(getDb(), async (ws) => {
+        const smtp = await smtpOf(getDb(), ws);
+        return smtp ? smtpMailer(smtp) : null;
+      });
+      if (mail.sent || mail.failed || mail.stopped)
+        console.log(
+          `Outreach: sent ${mail.sent} email(s), ${mail.failed} failed, ${mail.stopped} stopped`,
+        );
       if (researched || briefed || drafted)
         console.log(
           `Outreach: researched ${researched} target(s), drafted ${drafted} pitch(es), wrote ${briefed} brief(s)`,
