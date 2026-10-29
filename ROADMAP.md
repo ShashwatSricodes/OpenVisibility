@@ -476,10 +476,20 @@ An MCP server, so Claude, ChatGPT, Cursor or any MCP client can read a workspace
 
 ### Day P7: Agent analytics and AI referral traffic
 
-- [ ] **Agent analytics** (Otterly parity): which AI crawlers and agents (GPTBot, OAI-SearchBot, ChatGPT-User, PerplexityBot, ClaudeBot, Google-Extended, Bingbot for Copilot) fetch which pages, how often, and which pages they never fetch. Collected by a small endpoint fed from Cloudflare/Vercel log drains or an uploaded server log; nothing to install on the page itself.
-- [ ] **AI referral traffic**: human visits arriving from chatgpt.com, perplexity.ai, gemini.google.com, copilot.microsoft.com and others, from the same logs or a GA4 connection.
+- [x] **Agent analytics** (Otterly parity; `core/traffic`, table `ai_visits`): 21 AI crawlers and agents recognised by user agent (OpenAI, Anthropic, Perplexity, Google, Microsoft, Apple, Meta, Amazon, ByteDance, Mistral, Common Crawl and others), each marked as finding pages for answers, opening pages mid-answer, or training. Every visit is checked against the IP ranges its company publishes (OpenAI, Anthropic, Perplexity, Google, Bing and Apple, one JSON format; fetched daily): genuine, fake (claims the name from elsewhere, counted apart) or can't tell.
+- [x] Two ways in: a site key with copy-paste snippets for a Cloudflare Worker, Next.js middleware and Express (`POST /api/ingest/visits`; only AI requests leave the site; Googlebot, Bingbot and Applebot left out of live reporting because they crawl constantly), and log uploads (Nginx/Apache combined format or JSON lines from Cloudflare Logpush, Vercel and most hosts; gzipped; up to 200 MB; read a line at a time). Each visit is fingerprinted, so a log uploaded twice counts once. Site keys can only report visits: they're refused by the MCP server and can't read anything.
+- [x] **AI referral traffic** from the same sources: people arriving from ChatGPT, Perplexity, Gemini, Copilot, Claude and others, by referrer or the utm_source assistants add. No visitor's IP address is stored, and query strings are dropped from their pages. GA4 numbers come with Day P7b.
+- [x] An AI traffic page under Insights: totals, visits per day, each crawler (visits, pages, errors served to it, last visit, genuine or fake), the pages crawlers read most, your cited pages with when a crawler that feeds answers last fetched them, and referrals per assistant with landing pages. Visits are kept six months. MCP tool `get_ai_traffic`.
 
-**Done when:** an uploaded access log shows bot visits per page and AI-referred visits per day.
+**Done when:** an uploaded access log shows bot visits per page and AI-referred visits per day. ✅ 29 October 2026: the generated Cloudflare Worker snippet, run as written, reported four AI requests and nothing for an ordinary visitor; a gzipped Nginx log added four AI visits and ignored the rest, and uploading it again added none. Against the companies' live IP lists, Googlebot, ClaudeBot, PerplexityBot and OAI-SearchBot from published addresses were marked genuine and a GPTBot from elsewhere as fake; a 503 served to PerplexityBot showed as an error; both referrals were counted, without visitor addresses.
+
+### Day P7b: Google Analytics and Search Console
+
+- [ ] Connect Google (OAuth, read-only scopes) or a service account (for teams that prefer it); tokens encrypted. Self-hosters create their own Google OAuth client (documented); the hosted version needs Google's app review before more than 100 users.
+- [ ] GA4: sessions, engaged sessions and conversions from AI assistants (by session source), per day and landing page, next to the referrals seen in logs.
+- [ ] Search Console: queries and pages with clicks, impressions and position; queries that read like questions become prompt suggestions; pages AI cites next to how they rank.
+
+**Done when:** a connected GA4 property shows AI-referred sessions per assistant, and a Search Console site suggests prompts from its queries.
 
 ### Day P8: Free public tools
 
@@ -731,8 +741,8 @@ Every Otterly feature found on otterly.ai (feature pages, sitemap, pricing; 20 O
 | GEO audit: content audit, citation prediction | ✅ Day P3 (a checklist score and a comparison with cited pages; not a prediction) |
 | ChatGPT ads and shopping cards | ⏸ deferred |
 | Google AI Overviews ads | ⏸ deferred |
-| Agent analytics (AI crawler visits) | 📅 Day P7 |
-| AI referral traffic | 📅 Day P7 |
+| Agent analytics (AI crawler visits) | ✅ Day P7 |
+| AI referral traffic | ✅ Day P7 (logs and site snippet); 📅 GA4, Day P7b |
 | Brand reports, trend annotations | 📅 Days 27, 31 |
 | Exports: CSV, PDF | ✅ Day 32 (PDF through the browser's print dialog) |
 | Alerts | ⏸ deferred |

@@ -25,6 +25,9 @@ async function handle(request: Request) {
   const db = getDb();
   const ctx = await verifyKey(db, key);
   if (!ctx) return unauthorized("That API key isn't valid, or it was revoked.");
+  // a site key only reports visits; it can't read anything
+  if (ctx.access === "ingest")
+    return unauthorized("That's a site key: it can only report visits. Use an API key for MCP.");
   if (!allow(ctx.keyId))
     return Response.json(
       {
@@ -38,7 +41,7 @@ async function handle(request: Request) {
   const server = buildServer({
     db,
     workspaceId: ctx.workspaceId,
-    access: ctx.access,
+    access: ctx.access === "write" ? "write" : "read",
     appUrl: process.env.BETTER_AUTH_URL ?? new URL(request.url).origin,
   });
   const transport = new WebStandardStreamableHTTPServerTransport({

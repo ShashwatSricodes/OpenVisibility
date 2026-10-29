@@ -17,6 +17,7 @@ import { briefPending } from "../outreach/brief";
 import { draftPending } from "../outreach/pitch";
 import { checkReplies, checkWins, imapInbox, imapOf } from "../outreach/replies";
 import { sendDue, smtpMailer, smtpOf } from "../outreach/send";
+import { pruneVisits } from "../traffic/stats";
 import { researchPending, syncTargets } from "../outreach/targets";
 import { brightDataSearch, citedAsSearch, searchPending, type Search } from "../search/serp";
 import { FakeProvider } from "../providers/fake";
@@ -25,6 +26,8 @@ import type { Provider } from "../providers/types";
 import { analysisModel } from "../sentiment";
 import { fireDueSchedules } from "./schedule";
 import { tick, type ProviderFor } from "./worker";
+
+let lastPrune = 0;
 
 /* one fake provider for the process: its jobs live in memory between ticks */
 let fake: FakeProvider | undefined;
@@ -124,6 +127,11 @@ export function startWorker({ intervalMs = 5_000 }: { intervalMs?: number } = {}
         return imap ? imapInbox(imap) : null;
       });
       const won = await checkWins(getDb());
+      // AI traffic is kept for six months; trimming it once an hour is plenty
+      if (Date.now() - lastPrune > 3_600_000) {
+        lastPrune = Date.now();
+        await pruneVisits(getDb());
+      }
       if (replies || won) console.log(`Outreach: ${replies} new reply(ies), ${won} win(s)`);
       if (mail.sent || mail.failed || mail.stopped)
         console.log(

@@ -11,7 +11,8 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import type { AnyDb } from "@/db/client";
 import { apiKeys } from "@/db/schema";
 
-export type Access = "read" | "write";
+/** read and write: the MCP server; ingest: a site key that can only report visits */
+export type Access = "read" | "write" | "ingest";
 export type KeyContext = { workspaceId: string; keyId: string; access: Access; name: string };
 
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
@@ -96,12 +97,12 @@ export const bearer = (header: string | null) => header?.match(/^Bearer\s+(\S+)$
 const windows = new Map<string, { start: number; n: number }>();
 export const RATE_LIMIT = 120;
 
-export function allow(keyId: string, now = Date.now()) {
+export function allow(keyId: string, now = Date.now(), limit = RATE_LIMIT) {
   const w = windows.get(keyId);
   if (!w || now - w.start > 60_000) {
     windows.set(keyId, { start: now, n: 1 });
     return true;
   }
   w.n++;
-  return w.n <= RATE_LIMIT;
+  return w.n <= limit;
 }

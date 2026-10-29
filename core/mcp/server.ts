@@ -37,13 +37,13 @@ import { createRun } from "../runs/create";
 import { getSchedule } from "../runs/schedule";
 import { describeSchedule } from "../schedule-rules";
 import { estimateWorkspaceRun, getFreeTierUsage } from "../usage";
+import { citedPagesCrawled, crawlerSummary, referrals } from "../traffic/stats";
 import { listRuns } from "../workspace-data";
-import type { Access } from "./keys";
 
 export type McpContext = {
   db: AnyDb;
   workspaceId: string;
-  access: Access;
+  access: "read" | "write";
   /** the app's address, for links back to pages */
   appUrl: string;
 };
@@ -821,6 +821,65 @@ export function buildServer(ctx: McpContext) {
         ),
       ].join("\n");
       return ok(text, { usage, estimate, schedule, runs: runs_ });
+    },
+  );
+
+  server.registerTool(
+    "get_ai_traffic",
+    {
+      title: "AI crawlers and AI referral traffic",
+      description:
+        "Which AI crawlers visit the site (verified against each company's published IP ranges, fakes counted apart), what they read, errors the site served them, when the pages AI cites were last fetched, and how many people arrive from each AI assistant. Needs the site connected (AI traffic page).",
+      inputSchema: { range: filterShape.range },
+      annotations: READ,
+    },
+    async (a) => {
+      const since = new Date(Date.now() - { "7d": 7, "30d": 30, "90d": 90 }[a.range] * 86_400_000);
+      const [crawlers, refs, cited] = await Promise.all([
+        crawlerSummary(db, workspaceId, since),
+        referrals(db, workspaceId, since),
+        citedPagesCrawled(db, workspaceId),
+      ]);
+      if (!crawlers.length && !refs.byAssistant.length)
+        return ok(
+          `No AI traffic recorded in the last ${a.range}. Connect the site on the AI traffic page (a snippet or a log upload): ${link("/traffic")}`,
+        );
+      const text = [
+        `# AI traffic · last ${a.range}`,
+        table(
+          ["Crawler", "Owner", "Purpose", "Visits", "Pages", "Errors", "Fakes", "Last visit"],
+          crawlers.map((c) => [
+            c.agent,
+            c.owner,
+            c.purpose,
+            c.visits,
+            c.pages,
+            c.errors,
+            c.fake,
+            c.lastSeen?.toISOString().slice(0, 10) ?? "–",
+          ]),
+        ),
+        "",
+        "## Pages AI cites: last fetched by a crawler that feeds answers",
+        table(
+          ["Page", "Last crawled", "By"],
+          cited.map((p) => [
+            p.url,
+            p.lastCrawled?.toISOString().slice(0, 10) ?? "never seen",
+            p.by.join(", ") || "–",
+          ]),
+        ),
+        "",
+        "## People arriving from AI assistants",
+        table(
+          ["Assistant", "Visits"],
+          refs.byAssistant.map((r) => [r.assistant, r.visits]),
+        ),
+        "",
+        "Top landing pages: " +
+          (refs.landing.map((p) => `${p.path} (${p.visits})`).join(", ") || "–"),
+      ].join("\n");
+      return ok(text, { crawlers, referrals: refs, citedPages: cited });
     },
   );
 

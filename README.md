@@ -87,7 +87,7 @@ OpenVisibility is an MCP server: ask your assistant "How visible are we on Gemin
 - **Cursor and other clients that take a URL:** point them at `<your app URL>/api/mcp` with the header `Authorization: Bearer ov_…`.
 - **Claude Desktop:** add a server with `command: "npx"`, `args: ["tsx", "/path/to/OpenVisibility/mcp/stdio.ts"]` and `env: { "OV_MCP_KEY": "ov_…", "OV_MCP_URL": "<your app URL>/api/mcp" }`. Settings shows these snippets with your key filled in.
 
-There are 23 tools: visibility and trends, competitors, prompts, answers, citations, content gaps, recommendations, the site audit, outreach, content briefs, runs and usage; with a write key, also adding and pausing prompts, starting runs (with the free-tier check), auditing the site and finding outreach pages. Outreach emails can't be approved or sent over MCP: a person approves each one in the app. Resources give the prompt list, a 30-day report and any answer in full; prompts include a weekly review and "how to beat a competitor".
+There are 24 tools: visibility and trends, competitors, prompts, answers, citations, content gaps, recommendations, the site audit, AI crawler and referral traffic, outreach, content briefs, runs and usage; with a write key, also adding and pausing prompts, starting runs (with the free-tier check), auditing the site and finding outreach pages. Outreach emails can't be approved or sent over MCP: a person approves each one in the app. Resources give the prompt list, a 30-day report and any answer in full; prompts include a weekly review and "how to beat a competitor".
 
 ## Project layout
 

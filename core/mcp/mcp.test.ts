@@ -128,6 +128,7 @@ describe("the MCP server", () => {
         "compare_competitors",
         "delete_prompts",
         "find_outreach_targets",
+        "get_ai_traffic",
         "get_answer",
         "get_citations",
         "get_content_brief",

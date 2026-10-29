@@ -28,6 +28,7 @@ describe("migrations", () => {
     );
     expect(result.rows.map((r) => r.table_name)).toEqual([
       "account",
+      "ai_visits",
       "annotations",
       "answers",
       "api_keys",

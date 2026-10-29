@@ -29,5 +29,6 @@ export const config = {
     "/audit/:path*",
     "/recommendations/:path*",
     "/outreach/:path*",
+    "/traffic/:path*",
   ],
 };
