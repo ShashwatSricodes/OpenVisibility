@@ -30,6 +30,7 @@ describe("migrations", () => {
       "account",
       "annotations",
       "answers",
+      "api_keys",
       "brand_aliases",
       "brands",
       "citations",

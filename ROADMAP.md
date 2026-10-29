@@ -459,12 +459,20 @@ Deferred (decision log, 20 October 2026).
 
 An MCP server, so Claude, ChatGPT, Cursor or any MCP client can read a workspace's results and act on them, Otterly-style.
 
-- [ ] `npm run mcp` (stdio) and an HTTP endpoint (`/api/mcp`, streamable HTTP) authenticated with a per-workspace MCP key, created and revoked in Settings and stored hashed.
-- [ ] Read tools: brand and setup, prompts, latest metrics (Brand Visibility Index, mention rate, share of voice, sentiment, position) by engine and country, competitor comparison, citations and top domains, content gaps, recommendations, answers for a prompt, runs and usage.
-- [ ] Action tools, owners only: add, pause or delete prompts; start a run (with the free-tier check); run a GEO audit on a URL.
-- [ ] Resources: the workspace's prompt list and the latest brand report as markdown.
+- [x] An HTTP endpoint (`/api/mcp`, streamable HTTP, stateless: a fresh server per request, bound to the key's workspace) and `npm run mcp` over stdio, which relays to the endpoint so it works next to a running app and against a hosted one. MCP SDK 1.32.1.
+- [x] API keys (`core/mcp/keys.ts`, table `api_keys`): created and revoked in Settings → API keys and MCP, read only or read and change, stored as a SHA-256 hash and shown once with copy-ready setup for Claude Code, Cursor and Claude Desktop; last used shown; 120 requests a minute per key.
+- [x] 15 read tools (`core/mcp/server.ts`): workspace setup, visibility with changes and per engine, trend per day, competitors with head-to-head and where they win, prompts and one prompt in detail, answer search and full answers, citations, content gaps, recommendations, site audit, outreach, content briefs, runs and usage. Each returns readable markdown plus structured data, with read-only and destructive hints.
+- [x] 8 write tools (write keys): add, edit, pause or delete prompts; start a run (the free-tier check, needing explicit confirmation to go over); audit the site; find outreach pages; request a content brief; add a chart note. Approving or sending outreach email is deliberately not a tool.
+- [x] Resources: the prompt list, a 30-day report in markdown, and any answer by id. Prompts: a weekly review, how to beat a competitor, and suggest prompts to track. Server instructions tell assistants what the metrics mean and that answers are a logged-out visitor's.
 
-**Done when:** Claude Desktop, connected to the server, answers "How visible is Ledgerly on Gemini this week, and who beats us?" from real data, and can add a prompt.
+**Done when:** Claude Desktop, connected to the server, answers "How visible is Ledgerly on Gemini this week, and who beats us?" from real data, and can add a prompt. ✅ 29 October 2026: a write key made in Settings; `mcp/stdio.ts` started as a subprocess and driven over stdio the way Claude Desktop does: 23 tools listed, get_visibility and compare_competitors for Gemini answered from the dev workspace's runs (30 days; its last runs were 9 days ago), add_prompts added a prompt and update_prompt paused it. Tests cover keys, every read tool on a real run, write tools refused with a read key, workspace isolation, resources, prompts and the HTTP route. The end-to-end check found and fixed a start-up bug in the stdio relay (top-level await under CommonJS). Not yet tried in the Claude Desktop app itself.
+
+### Day P6b: Sign in with OAuth (claude.ai and ChatGPT connectors)
+
+- [ ] OAuth 2.1 for the MCP endpoint (better-auth's OAuth provider): authorization server metadata, dynamic client registration and PKCE, so claude.ai, ChatGPT and Claude Desktop can add OpenVisibility as a connector by signing in, with no key to paste. Keys keep working for scripts and CLIs.
+- [ ] A consent screen that names the workspace and the access asked for; connected apps listed in Settings with Revoke.
+
+**Done when:** claude.ai adds OpenVisibility as a custom connector, signs in, and answers from the workspace's data.
 
 ### Day P7: Agent analytics and AI referral traffic
 
@@ -730,7 +738,7 @@ Every Otterly feature found on otterly.ai (feature pages, sitemap, pricing; 20 O
 | Alerts | ⏸ deferred |
 | Looker Studio (Data Studio) connector | ⏸ deferred |
 | Public API | ⏸ deferred |
-| MCP server | 📅 Day P6 |
+| MCP server | ✅ Day P6 (keys); 📅 OAuth connectors, Day P6b |
 | Unlimited team members, brands, competitors | ✅ competitors; ⏸ members and brands |
 | Workspaces per client, pitch workspaces | ⏸ deferred |
 | Free tools: crawlability, content check, query fan-out, crawler simulation, brand authority | 📅 Day P8 |

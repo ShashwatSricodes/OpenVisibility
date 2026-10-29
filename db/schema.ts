@@ -752,3 +752,33 @@ export const outreachReplies = pgTable(
   },
   (t) => [uniqueIndex("outreach_replies_workspace_message_uq").on(t.workspaceId, t.messageId)],
 );
+
+export const keyAccess = pgEnum("key_access", ["read", "write"]);
+
+/**
+ * API keys for the MCP server (core/mcp). Only a SHA-256 hash is stored; the
+ * key is shown once when created. "write" keys can change prompts and start
+ * runs; nothing over the API can approve or send outreach emails.
+ */
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** the first characters, to tell keys apart: "ov_k3J9f…" */
+    prefix: text("prefix").notNull(),
+    hash: text("hash").notNull(),
+    access: keyAccess("access").notNull().default("read"),
+    createdBy: text("created_by"),
+    createdAt: createdAt(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("api_keys_hash_uq").on(t.hash),
+    index("api_keys_workspace_idx").on(t.workspaceId),
+  ],
+);

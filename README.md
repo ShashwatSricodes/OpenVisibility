@@ -75,8 +75,19 @@ A Docker image with one-command setup is planned for the first release.
 | `npm run spot-check` | Print random stored answers next to the mentions found in them, for a manual accuracy check; `--fixtures` uses the saved real answers |
 | `npm run reanalyze` | Find mentions and label citations again in stored answers (after detector fixes), then rebuild the metrics |
 | `npm run models` | List search-capable models and prices on the Vercel AI Gateway |
+| `npm run mcp` | The MCP server over stdio, for Claude Desktop and other local clients; relays to the running app (`OV_MCP_KEY`, `OV_MCP_URL`) |
 
 With the embedded database, only one process can open it at a time: stop `npm run dev` before `db:seed`, `spot-check` or `reanalyze`. They refuse to start while it's running.
+
+## Use it from Claude, ChatGPT or Cursor (MCP)
+
+OpenVisibility is an MCP server: ask your assistant "How visible are we on Gemini this week, and who beats us?" and it answers from your own runs. Create a key in **Settings → API keys and MCP** (read only, or read and change), then:
+
+- **Claude Code:** `claude mcp add --transport http openvisibility <your app URL>/api/mcp --header "Authorization: Bearer ov_…"`
+- **Cursor and other clients that take a URL:** point them at `<your app URL>/api/mcp` with the header `Authorization: Bearer ov_…`.
+- **Claude Desktop:** add a server with `command: "npx"`, `args: ["tsx", "/path/to/OpenVisibility/mcp/stdio.ts"]` and `env: { "OV_MCP_KEY": "ov_…", "OV_MCP_URL": "<your app URL>/api/mcp" }`. Settings shows these snippets with your key filled in.
+
+There are 23 tools: visibility and trends, competitors, prompts, answers, citations, content gaps, recommendations, the site audit, outreach, content briefs, runs and usage; with a write key, also adding and pausing prompts, starting runs (with the free-tier check), auditing the site and finding outreach pages. Outreach emails can't be approved or sent over MCP: a person approves each one in the app. Resources give the prompt list, a 30-day report and any answer in full; prompts include a weekly review and "how to beat a competitor".
 
 ## Project layout
 
