@@ -17,6 +17,7 @@ import {
 import { ProviderError } from "@/core/providers";
 import { saveTrackingConfig } from "@/core/tracking-config";
 import { validateTrackingConfig } from "@/core/tracking-rules";
+import { createKey, revokeKey } from "@/core/mcp/keys";
 import { getDb } from "@/db/client";
 
 export type KeyFormState = { ok: boolean; message: string } | null;
@@ -141,4 +142,27 @@ export async function saveSavingsAction(input: SavingsSettings): Promise<KeyForm
   await saveSavings(getDb(), workspace.id, input);
   revalidatePath("/settings");
   return { ok: true, message: "Saved. The next run uses these settings." };
+}
+
+/* ── API keys for the MCP server (core/mcp/keys.ts) ───────── */
+
+export async function createApiKeyAction(form: {
+  name: string;
+  access: "read" | "write";
+}): Promise<{ ok: true; key: string } | { ok: false; message: string }> {
+  const { workspace, role, user } = await requireWorkspace();
+  if (role !== "owner")
+    return { ok: false, message: "Only the workspace owner can create API keys." };
+  const r = await createKey(getDb(), workspace.id, { ...form, createdBy: user.email });
+  revalidatePath("/settings");
+  return r.ok ? { ok: true, key: r.key } : r;
+}
+
+export async function revokeApiKeyAction(id: string): Promise<{ ok: boolean; message?: string }> {
+  const { workspace, role } = await requireWorkspace();
+  if (role !== "owner")
+    return { ok: false, message: "Only the workspace owner can revoke API keys." };
+  await revokeKey(getDb(), workspace.id, id);
+  revalidatePath("/settings");
+  return { ok: true };
 }

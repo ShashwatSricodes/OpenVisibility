@@ -15,6 +15,8 @@ import { SavingsForm } from "./savings-form";
 import { ScheduleForm } from "./schedule-form";
 import { TrackingForm } from "./tracking-form";
 import { UsageSection } from "./usage-section";
+import { ApiKeys } from "./api-keys";
+import { listKeys } from "@/core/mcp/keys";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -27,6 +29,7 @@ const listFormat = new Intl.ListFormat("en", { type: "conjunction" });
 export default async function SettingsPage() {
   const { workspace, role } = await requireWorkspace();
   const db = getDb();
+  const apiKeys = await listKeys(getDb(), workspace.id);
   const [info, tracking, usage, estimate, schedule, savings] = await Promise.all([
     getCredentialInfo(db, workspace.id),
     getTrackingConfig(db, workspace.id),
@@ -118,6 +121,21 @@ export default async function SettingsPage() {
           engines={tracking.engines}
           countries={tracking.countries}
           samples={tracking.samples}
+          canEdit={role === "owner"}
+        />
+      </section>
+
+      <section className="rounded-xl border border-line bg-panel">
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="text-sm font-semibold">API keys and MCP</h2>
+          <p className="mt-1 text-[13px] text-fg-subtle">
+            Connect Claude, ChatGPT, Cursor or any MCP client to this workspace: ask how visible you
+            are, who beats you and what to do, from the assistant you already use.
+          </p>
+        </div>
+        <ApiKeys
+          keys={apiKeys}
+          endpoint={`${env().BETTER_AUTH_URL.replace(/\/$/, "")}/api/mcp`}
           canEdit={role === "owner"}
         />
       </section>
