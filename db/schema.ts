@@ -753,7 +753,8 @@ export const outreachReplies = pgTable(
   (t) => [uniqueIndex("outreach_replies_workspace_message_uq").on(t.workspaceId, t.messageId)],
 );
 
-export const keyAccess = pgEnum("key_access", ["read", "write"]);
+/** read and write: the MCP server; ingest: a site key that can only report visits (core/traffic) */
+export const keyAccess = pgEnum("key_access", ["read", "write", "ingest"]);
 
 /**
  * API keys for the MCP server (core/mcp). Only a SHA-256 hash is stored; the
@@ -780,5 +781,41 @@ export const apiKeys = pgTable(
   (t) => [
     uniqueIndex("api_keys_hash_uq").on(t.hash),
     index("api_keys_workspace_idx").on(t.workspaceId),
+  ],
+);
+
+export const visitKind = pgEnum("visit_kind", ["crawler", "referral"]);
+
+/**
+ * AI traffic to the brand's own site (core/traffic): requests from AI
+ * crawlers and agents, and people arriving from AI assistants. Reported
+ * live by a site snippet or read from uploaded server logs. Ordinary visits
+ * are never stored; people's IP addresses never are either.
+ */
+export const aiVisits = pgTable(
+  "ai_visits",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    kind: visitKind("kind").notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull(),
+    /** the crawler's name (GPTBot…) or, for referrals, the assistant (ChatGPT…) */
+    agent: text("agent").notNull(),
+    host: text("host"),
+    path: text("path").notNull(),
+    status: integer("status"),
+    /** crawlers only: the address, to check it against the company's published ranges */
+    ip: text("ip"),
+    /** true: from the company's published ranges; false: claims to be it but isn't; null: can't tell */
+    verified: boolean("verified"),
+    source: text("source").notNull(),
+    /** so the same log uploaded twice counts once */
+    fingerprint: text("fingerprint").notNull(),
+  },
+  (t) => [
+    index("ai_visits_workspace_at_idx").on(t.workspaceId, t.at),
+    uniqueIndex("ai_visits_fingerprint_uq").on(t.workspaceId, t.fingerprint),
   ],
 );

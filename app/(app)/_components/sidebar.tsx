@@ -7,6 +7,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   LogOut,
   BarChart3,
+  Bot,
   CircleHelp,
   CreditCard,
   Clock,
@@ -40,6 +41,7 @@ const GROUPS: { label: string; items: Item[] }[] = [
       { href: "/answers", label: "Answers", icon: MessageSquareText },
       { href: "/citations", label: "Citations", icon: Link2 },
       { href: "/competitors", label: "Competitors", icon: Swords },
+      { href: "/traffic", label: "AI traffic", icon: Bot },
     ],
   },
   {

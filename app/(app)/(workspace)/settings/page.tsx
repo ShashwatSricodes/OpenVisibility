@@ -29,7 +29,10 @@ const listFormat = new Intl.ListFormat("en", { type: "conjunction" });
 export default async function SettingsPage() {
   const { workspace, role } = await requireWorkspace();
   const db = getDb();
-  const apiKeys = await listKeys(getDb(), workspace.id);
+  // site keys (they only report visits) are managed on the AI traffic page
+  const apiKeys = (await listKeys(getDb(), workspace.id)).flatMap((k) =>
+    k.access === "ingest" ? [] : [{ ...k, access: k.access }],
+  );
   const [info, tracking, usage, estimate, schedule, savings] = await Promise.all([
     getCredentialInfo(db, workspace.id),
     getTrackingConfig(db, workspace.id),
