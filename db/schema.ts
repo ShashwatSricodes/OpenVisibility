@@ -819,3 +819,25 @@ export const aiVisits = pgTable(
     uniqueIndex("ai_visits_fingerprint_uq").on(t.workspaceId, t.fingerprint),
   ],
 );
+
+/**
+ * Free public tools that take a while (core/tools/fan-out.ts): one Bright
+ * Data answer per run, started and then checked on. Also how runs are
+ * counted per visitor; the address is kept only as a salted hash.
+ */
+export const toolRuns = pgTable(
+  "tool_runs",
+  {
+    id: id(),
+    tool: text("tool").notNull(),
+    input: jsonb("input").notNull(),
+    /** queued, running, done or failed */
+    status: text("status").notNull().default("running"),
+    jobId: text("job_id"),
+    result: jsonb("result"),
+    error: text("error"),
+    visitor: text("visitor").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("tool_runs_visitor_idx").on(t.visitor, t.createdAt)],
+);

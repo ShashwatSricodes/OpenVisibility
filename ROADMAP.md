@@ -495,9 +495,15 @@ An MCP server, so Claude, ChatGPT, Cursor or any MCP client can read a workspace
 
 Otterly's free tools are also its marketing. Ours, at `/tools`, need no account:
 
-- [ ] AI crawlability check (from Day P2), content check for a URL (from Day P3), query fan-out for a prompt (ChatGPT's searches, via one Bright Data answer, rate-limited), prompt calculator (how many prompts give a reliable rate), and brand entity check (does AI know your brand: Wikipedia/Wikidata, schema.org Organization, knowledge panel signals).
+- [x] Five tools at `/tools` (in the site's nav), no account, each ending in a sign-up link (`core/tools`, pages in `app/(marketing)/tools`):
+  - **AI crawler check**: one page fetched as the crawlers fetch it, robots.txt per crawler (answers vs training), noindex/nosnippet, text without JavaScript, llms.txt (the Day P2 code).
+  - **AI content check**: the Day P3 score out of 100 for any URL, with the fixes first; the brand check counts only when a brand is given.
+  - **ChatGPT query fan-out**: one real ChatGPT answer through Bright Data (started, then checked on), showing the searches ChatGPT ran and the sources it cited. Three per visitor a day and a daily cap (`OV_FREE_TOOL_DAILY`, default 50: about $2.25 a month at pay-as-you-go), counted in the database (`tool_runs`); visitors are a salted hash, never their address.
+  - **Prompt calculator**: answers needed for a margin of error (±5 points at 95% takes 385), the margin a plan gives per engine and per prompt, and its monthly answers and cost after Bright Data's free 5,000.
+  - **Brand entity check**: a Wikipedia article, a Wikidata entry whose official website (P856) is the brand's domain (namesakes with other sites don't count), Organization markup with a logo and sameAs links, the name in the home page title; each with what to do.
+- URL checks are limited per visitor per hour and go through `safeGet`, which refuses private and internal addresses.
 
-**Done when:** each tool works logged out and links to sign-up.
+**Done when:** each tool works logged out and links to sign-up. ✅ 29 October 2026, signed out, against real sites: the crawler check showed nytimes.com blocking ChatGPT's, Perplexity's and Claude's search crawlers; the content check scored freshbooks.com/invoice 64/100 with structured data as the top fix; the entity check found FreshBooks' Wikipedia article and its Wikidata entry (Q5502916) and that its home page has no Organization markup; fan-out answered with the development stand-in (a real one needs the server's Bright Data key); the calculator updated as numbers changed. Every page ends with "Start tracking free".
 
 ### Day P9: Integrations ⏸
 
@@ -725,8 +731,8 @@ Every Otterly feature found on otterly.ai (feature pages, sitemap, pricing; 20 O
 | Daily tracking | 📅 Day 18 |
 | Prompt tracking with tags (branded, non-branded, funnel) and filters | ✅ Days 13, 32 |
 | Prompt research (from keywords, brand or URL) | ✅ Day 13 (from brand, category, competitors) |
-| Prompt calculator (how many prompts you need) | 📅 Day P8 |
-| Query fan-out | 📅 Day 29 (in answers), Day P8 (free tool) |
+| Prompt calculator (how many prompts you need) | ✅ Day P8 |
+| Query fan-out | ✅ Day 29 (in answers), Day P8 (free tool) |
 | Brand mentions, coverage, average position | 📅 Days 21, 24 |
 | Brand Visibility Index | 📅 Day 24 |
 | Share of voice | 📅 Day 24 |
@@ -751,7 +757,7 @@ Every Otterly feature found on otterly.ai (feature pages, sitemap, pricing; 20 O
 | MCP server | ✅ Day P6 (keys); 📅 OAuth connectors, Day P6b |
 | Unlimited team members, brands, competitors | ✅ competitors; ⏸ members and brands |
 | Workspaces per client, pitch workspaces | ⏸ deferred |
-| Free tools: crawlability, content check, query fan-out, crawler simulation, brand authority | 📅 Day P8 |
+| Free tools: crawlability, content check, query fan-out, crawler simulation, brand authority | ✅ Day P8 |
 | Industry benchmarks (by vertical and country) | ✗ for now: needs data across many customers; possible later on the hosted version |
 | AI agent marketplace (Claude skills, n8n templates on the API) | ✗ for now: falls out of the API and MCP once they exist |
 | Semrush App Center app | ✗ not planned |
