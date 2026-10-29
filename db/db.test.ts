@@ -54,6 +54,7 @@ describe("migrations", () => {
       "search_results",
       "session",
       "site_audits",
+      "tool_runs",
       "user",
       "verification",
       "workspaces",

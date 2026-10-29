@@ -6,7 +6,7 @@
 import { ProviderError } from "./errors";
 import type { EngineId, JobState, Provider, QueryInput, QueryResult } from "./types";
 
-type Reply = Partial<Pick<QueryResult, "text" | "citations" | "links" | "model" | "error">>;
+type Reply = Partial<Pick<QueryResult, "text" | "citations" | "links" | "model" | "error" | "raw">>;
 
 export class FakeProvider implements Provider {
   readonly id = "fake";
@@ -62,7 +62,7 @@ export class FakeProvider implements Provider {
         ok: !reply.error,
         text: reply.error ? "" : (reply.text ?? ""),
         costUsd: 0,
-        raw: { fake: true },
+        raw: { fake: true, ...reply.raw },
       };
     });
   }
