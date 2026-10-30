@@ -8,66 +8,89 @@ const QA: Array<{ q: string; a: ReactNode; open?: boolean }> = [
     open: true,
     a: (
       <>
-        It&rsquo;s open source, and you pay for usage instead of a contract. The architecture is
-        built to be cheap: bring your own keys, smart sampling, cheap models for parsing answers,
-        and caching. It&rsquo;s aimed at small businesses, freelancers, agencies and emerging
-        markets.
+        It&rsquo;s open source, you pay per answer instead of a contract, and it goes past tracking:
+        a site audit, a ranked list of fixes, content briefs and an outreach agent that gets you
+        onto the pages AI cites. It&rsquo;s built for small businesses, freelancers, agencies and
+        emerging markets.
       </>
     ),
   },
   {
-    q: "Do API answers match what people see in the ChatGPT app?",
+    q: "Do your answers match what people see in ChatGPT?",
     a: (
       <>
-        Not exactly, and we won&rsquo;t pretend otherwise. We query the models through their APIs
-        with web search on, so we measure how the models respond. The consumer apps add their own
-        layers on top. Treat the results as a strong signal, not a screenshot.
+        As closely as we can get. Answers come from the ChatGPT and Gemini apps and Google&rsquo;s
+        AI results, logged out and from the country you choose, through Bright Data. Signed-in users
+        get personalised answers, and every answer varies, so we ask each prompt several times and
+        report a rate.
       </>
     ),
   },
   {
-    q: "Do you scrape ChatGPT or Perplexity?",
+    q: "Which engines can you track?",
     a: (
       <>
-        No. Everything goes through official APIs, which keeps tracking within each provider&rsquo;s
-        terms, stable from week to week, and predictable in cost.
+        ChatGPT, Gemini, Google AI Mode and Google AI Overviews. Perplexity is in beta: it often
+        turns requests away. Claude and Copilot need a signed-in account and Grok has no scraper
+        yet, so we don&rsquo;t track them, rather than show you numbers we can&rsquo;t stand behind.
       </>
     ),
   },
   {
-    q: "What does a run actually cost?",
+    q: "What does a run cost?",
     a: (
       <>
-        You see an estimate before every run. Afterwards, each response&rsquo;s exact cost is stored
-        against the run, so you get a per-engine breakdown. On hosted, you top up a wallet and
-        tracking pauses when it runs out, so there&rsquo;s never a surprise invoice.
+        Bright Data charges $0.0015 per answer, and the first 5,000 a month are free on your own
+        account. Every run shows its answer count and cost before it starts, and a monthly limit
+        stops tracking before it goes over.
       </>
     ),
   },
   {
-    q: "Can I self-host with my own API keys?",
+    q: "Does the outreach agent email people on its own?",
     a: (
       <>
-        Yes. Run the Docker image and plug in a Vercel AI Gateway key, an OpenRouter key, or keys
-        for each provider directly. The tracking engine, metrics, dashboard, scheduling and exports
-        are all AGPL-3.0.
+        No. It finds the pages worth getting onto and drafts each pitch; nothing is sent until you
+        approve it, and then it goes from your own mailbox. It writes to each site at most once a
+        quarter, keeps a do-not-contact list, and tracks replies and placements.
       </>
     ),
   },
   {
-    q: "Do you track Google AI Overviews?",
+    q: "Can I use it from Claude or Cursor?",
     a: (
       <>
-        Not yet. AI Overviews has no official API, so it&rsquo;s planned for version 2 through a
-        SERP data provider, alongside GA4 and Search Console integration.
+        Yes. Create a key in settings and add the MCP server to Claude, Cursor or any MCP client.
+        Ask about mention rates, competitors, citations and recommendations, or start a run, from
+        the chat. Keys are read-only unless you allow writes.
+      </>
+    ),
+  },
+  {
+    q: "Can I self-host it?",
+    a: (
+      <>
+        Yes, under AGPL-3.0. You need Postgres and a Bright Data key; an analysis model for
+        sentiment, briefs and pitches is optional, and any OpenAI-compatible one works, including
+        free tiers. A one-command Docker image is on the way.
+      </>
+    ),
+  },
+  {
+    q: "Do you connect Google Analytics and Search Console?",
+    a: (
+      <>
+        That&rsquo;s next. Today you can see AI crawler visits and clicks from AI answers by adding
+        a small snippet to your site or uploading server logs, and every check on the free tools
+        page works without an account.
       </>
     ),
   },
 ];
 
-/* template lays the six rows out as two columns of three */
-const LEFT = QA.slice(0, 3);
-const RIGHT = QA.slice(3);
+/* two columns of four */
+const LEFT = QA.slice(0, 4);
+const RIGHT = QA.slice(4);
 
 function Col({ items, base }: { items: typeof QA; base: number }) {
   return (

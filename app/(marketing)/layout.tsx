@@ -19,11 +19,11 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "OpenVisibility — open-source AI visibility tracking",
   description:
-    "Track how your brand shows up in ChatGPT, Claude, Gemini, Perplexity and Grok answers. Open source, bring your own keys, and pay only for the API calls you run.",
+    "Track how your brand shows up in ChatGPT, Gemini, Google AI Mode and AI Overviews, then get cited: site audit, fixes, briefs and an outreach agent. Open source, from $0.0015 an answer.",
   openGraph: {
     title: "OpenVisibility — open-source AI visibility tracking",
     description:
-      "See how AI answers talk about your brand. Mention rate, share of voice and citations, with a cost estimate before every run.",
+      "See how AI answers talk about your brand, and what to do about it. Mention rate, share of voice, citations, recommendations and outreach.",
     type: "website",
   },
 };

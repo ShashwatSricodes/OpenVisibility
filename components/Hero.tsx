@@ -29,8 +29,9 @@ export function Hero() {
             <Words text={HEADLINE} />
           </h1>
           <p className="hero-sub t-body">
-            Open-source visibility tracking across ChatGPT, Claude, Gemini, Perplexity and Grok. Pay
-            for the calls you run, nothing more.
+            Open-source tracking of the answers ChatGPT, Gemini and Google&rsquo;s AI give your
+            customers, then the fixes, pages and outreach that get you cited. Pay per answer, from
+            $0.0015.
           </p>
         </div>
         <div className="hero-cta">

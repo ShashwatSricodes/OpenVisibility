@@ -21,8 +21,8 @@ const STEPS = [
     ),
   },
   {
-    title: "2 – Pick engines and a preset",
-    body: "Choose the engines, how many samples per prompt, and a schedule. Accurate mirrors each app's default model; Budget gives directional data for less.",
+    title: "2 – Track on a schedule",
+    body: "Pick the engines, how many times to ask each prompt, and a schedule. You see the answers and their cost before anything runs.",
     img: "/tpl/hqYHNdaY2RHeMGJRbY1VkWvic.jpg",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -37,8 +37,8 @@ const STEPS = [
     ),
   },
   {
-    title: "3 – Read the answers",
-    body: "Mention rate, position, share of voice, citations and sentiment, with every answer archived and exportable to CSV.",
+    title: "3 – Act on what you find",
+    body: "Mention rate, share of voice and citations, then a ranked to-do list: crawler and content fixes, pages to write, and the sites to get onto, with outreach drafted for you.",
     img: "/tpl/MtAPMlFG7WjGMRMvNEtWXiIXeI.jpg",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -77,7 +77,7 @@ export function HowItWorks() {
         <Reveal delay={0.1}>
           <h2 className="t-h2">
             Five minutes of setup
-            <span className="dim">, then answers on a schedule.</span>
+            <span className="dim">, then answers and next steps every week.</span>
           </h2>
         </Reveal>
       </div>

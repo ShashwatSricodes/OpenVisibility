@@ -3,15 +3,15 @@ import { Reveal } from "./Reveal";
 
 const OPEN = [
   "Tracking engine, scheduler and multi-sampling",
-  "Metrics, dashboard and answer archive",
-  "CSV export",
-  "Bring your own keys: Vercel AI Gateway, OpenRouter or direct",
-  "Docker image with one-command setup",
+  "Metrics, dashboard, answer archive, CSV and PDF reports",
+  "Site audit, recommendations and the outreach agent",
+  "AI traffic, Google results and the MCP server",
+  "Your own Bright Data account; the first 5,000 answers a month are free",
 ];
 
 const HOSTED = [
-  "Managed keys, no provider accounts needed",
-  "Prepaid wallet with Stripe or Razorpay",
+  "Managed data access, no provider accounts needed",
+  "Prepaid wallet (planned)",
   "Multi-tenant workspaces",
   "Team and agency features",
   "White-label reports (v2)",
@@ -54,8 +54,8 @@ export function OpenCore() {
             <code>
               <span className="c"># clone, add a key, start</span>
               {"\n"}git clone github.com/ShashwatSricodes/OpenVisibility
-              {"\n"}cp .env.example .env <span className="c"># AI_GATEWAY_API_KEY=…</span>
-              {"\n"}docker compose up -d
+              {"\n"}cp .env.example .env.local <span className="c"># BRIGHT_DATA_API_KEY=…</span>
+              {"\n"}npm install && npm run dev <span className="c"># embedded Postgres</span>
             </code>
           </pre>
         </Reveal>

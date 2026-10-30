@@ -19,27 +19,27 @@ const CASES = [
   {
     tab: "Agencies",
     title: "Agencies",
-    body: "Track every client brand from one install. Per-run cost breakdowns make it easy to pass API spend through at cost.",
+    body: "Track every client brand from one install, hand over printable reports and CSVs, and pass the per-answer cost through at cost.",
   },
   {
     tab: "Freelancers",
     title: "SEO & content freelancers",
-    body: "Add AI visibility to your audits. Show clients their mention rate, the competitors beating them, and the pages AI cites instead.",
+    body: "Add AI visibility to your audits: crawler access, content scores, the competitors beating your client, and the pages AI cites instead.",
   },
   {
     tab: "Local markets",
     title: "India & emerging markets",
-    body: "Track by country so answers reflect where your customers are. Top up in rupees with Razorpay, or in any currency with Stripe.",
+    body: "Track by country so answers reflect where your customers are, at a price per answer that works outside US budgets.",
   },
   {
     tab: "Self-hosters",
     title: "Self-hosters",
-    body: "Run the whole stack with Docker and your own provider keys. Your prompts, answers and costs stay in your own Postgres.",
+    body: "Run the whole stack on your own server with your own Bright Data account. Your prompts, answers and costs stay in your own Postgres.",
   },
   {
     tab: "Content teams",
     title: "Content teams",
-    body: "See which third-party pages AI cites in your category, and which of your own pages it never picks up.",
+    body: "See which pages AI cites in your category, get a brief for each gap, and pitch the sites that rank, from your own mailbox.",
   },
 ];
 
