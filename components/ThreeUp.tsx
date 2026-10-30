@@ -14,7 +14,7 @@ function MockEngines() {
             strokeLinecap="round"
           />
         </svg>
-        ChatGPT · web search
+        ChatGPT · the app
       </span>
       <span className="ui-pill">
         <svg viewBox="0 0 14 14" fill="none">
@@ -26,7 +26,7 @@ function MockEngines() {
             strokeLinecap="round"
           />
         </svg>
-        Claude · web search
+        Gemini · the app
       </span>
       <span className="ui-pill">
         <svg viewBox="0 0 14 14" fill="none">
@@ -38,7 +38,7 @@ function MockEngines() {
             strokeLinecap="round"
           />
         </svg>
-        Gemini · Google grounding
+        Google AI Mode · Overviews
       </span>
       <span className="ui-line" />
       <span className="ui-pill on-white">
@@ -50,7 +50,7 @@ function MockEngines() {
             strokeLinejoin="round"
           />
         </svg>
-        5 engines · 1 key · 1 bill
+        By country · with every source
       </span>
     </div>
   );
@@ -94,7 +94,7 @@ function MockEstimate() {
             strokeLinecap="round"
           />
         </svg>
-        Estimate · 1,260 calls · $8.42
+        Estimate · 1,260 answers · $1.89
       </span>
       <span className="ui-line" />
       <span className="ui-pill">
@@ -110,7 +110,7 @@ function MockEstimate() {
           />
           <path d="M2 6h10" stroke="currentColor" strokeWidth="1.2" />
         </svg>
-        Budget cap $25 / month · ok
+        Monthly limit 20,000 answers · ok
       </span>
       <span className="ui-line" />
       <span className="ui-pill on-white">
@@ -124,7 +124,7 @@ function MockEstimate() {
             strokeLinejoin="round"
           />
         </svg>
-        Run approved · wallet $41.20
+        Run started · 3,740 free answers left
       </span>
     </div>
   );
@@ -132,8 +132,8 @@ function MockEstimate() {
 
 const ITEMS = [
   {
-    title: "Every engine, one key",
-    body: "Search-grounded models from OpenAI, Anthropic, Google, Perplexity and xAI through one gateway, so answers come back with the sources they cite.",
+    title: "The answers people actually see",
+    body: "We collect answers from the ChatGPT and Gemini apps, Google AI Mode and AI Overviews, logged out and by country, with every source they cite. Not an API that answers differently.",
     img: "/tpl/FWPrYiWLdnId4bfjvKP4ZIAFc.png",
     ui: <MockEngines />,
   },
@@ -145,7 +145,7 @@ const ITEMS = [
   },
   {
     title: "The cost, before you click run",
-    body: "Every run shows an estimate first, respects your budget cap, and records the exact cost of each response once it lands.",
+    body: "Every run shows how many answers it will use and what they cost, stops at your monthly limit, and counts every answer it was billed for.",
     img: "/tpl/tIICB6xb1ypwFbhAyCfXZX0yQw.png",
     ui: <MockEstimate />,
   },

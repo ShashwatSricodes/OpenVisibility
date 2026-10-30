@@ -1,17 +1,18 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { BRIGHT_DATA_PRICING } from "@/core/providers/registry";
 import { CircleCheck } from "./BrandMark";
 import { Reveal } from "./Reveal";
 
-/* illustrative per-call averages, search tool fees included.
-   Real runs are metered from each Gateway response's reported cost. */
-const PER_CALL = { accurate: 0.018, budget: 0.006 } as const;
-const PARSE_PER_ANSWER = 0.0003;
+/* Bright Data's list price per answer, and the answers free each month */
+const PER_ANSWER = BRIGHT_DATA_PRICING.perAnswerUsd;
+const FREE = BRIGHT_DATA_PRICING.freeAnswersPerMonth;
 const PLATFORM_FEE = 10;
 const MARGIN = 0.07;
 
-const ENGINES = ["ChatGPT", "Claude", "Gemini", "Perplexity", "Grok"];
+const ENGINES = ["ChatGPT", "Gemini", "Google AI Mode", "AI Overviews"];
+const COUNTRIES = [1, 2, 3] as const;
 
 const FREQ = [
   { id: "daily", label: "Daily", runs: 30 },
@@ -19,7 +20,6 @@ const FREQ = [
   { id: "monthly", label: "Monthly", runs: 1 },
 ] as const;
 
-type Preset = keyof typeof PER_CALL;
 type FreqId = (typeof FREQ)[number]["id"];
 
 const usd = (n: number) =>
@@ -31,32 +31,32 @@ const usd = (n: number) =>
   });
 
 const SELF: ReactNode[] = [
-  "The full tracking engine and dashboard",
+  "Tracking, dashboard, archive and exports",
   <>
-    Bring your own keys: <b>Vercel AI Gateway</b>, OpenRouter or direct
+    Your own <b>Bright Data</b> account: 5,000 answers a month free
   </>,
-  "Scheduled runs, multi-sampling and archive",
-  "CSV export of every answer",
-  "Docker image, one-command setup",
+  "Site audit and recommendations",
+  "Outreach agent, from your own mailbox",
+  "AI traffic, Google results and MCP server",
 ];
 
 const HOSTED: ReactNode[] = [
   <>
-    API usage at provider cost <b>+ 7%</b>
+    Answers at Bright Data&rsquo;s price <b>+ 7%</b>
   </>,
-  "Managed keys, no provider accounts",
-  "Prepaid wallet: tracking pauses at zero",
-  "Budget caps and low-balance alerts",
-  "Per-run cost breakdown",
-  "Top up with Stripe, or Razorpay in INR",
+  "Everything in Self-hosted",
+  "No Bright Data account or server needed",
+  "A monthly answer limit you set",
+  "Every answer's cost on the run",
+  "Pay by card, or UPI in India",
 ];
 
 const AGENCY: ReactNode[] = [
   "Everything in Hosted",
   "Team seats and many client brands",
   "White-label reports",
-  "Google AI Overviews tracking",
   "GA4 and Search Console data",
+  "A report link for each client",
 ];
 
 function Included({ items, pad = 0 }: { items: ReactNode[]; pad?: number }) {
@@ -80,12 +80,13 @@ function Estimator() {
   const [samples, setSamples] = useState(3);
   const [engines, setEngines] = useState<string[]>(ENGINES.slice(0, 4));
   const [freq, setFreq] = useState<FreqId>("weekly");
-  const [preset, setPreset] = useState<Preset>("accurate");
+  const [countries, setCountries] = useState<number>(1);
 
   const runs = FREQ.find((f) => f.id === freq)!.runs;
-  const calls = Math.round(prompts * engines.length * samples * runs);
-  const usage = calls * (PER_CALL[preset] + PARSE_PER_ANSWER);
-  const hosted = engines.length ? PLATFORM_FEE + usage * (1 + MARGIN) : 0;
+  const answers = Math.round(prompts * engines.length * countries * samples * runs);
+  const self = Math.max(0, answers - FREE) * PER_ANSWER;
+  const usage = answers * PER_ANSWER * (1 + MARGIN);
+  const hosted = engines.length ? PLATFORM_FEE + usage : 0;
 
   const toggle = (e: string) =>
     setEngines((cur) =>
@@ -167,56 +168,49 @@ function Estimator() {
             </div>
           </div>
           <div className="est-row">
-            <span className="t-small-strong" id="est-preset">
-              Model preset
+            <span className="t-small-strong" id="est-countries">
+              Countries
             </span>
-            <div className="seg" role="radiogroup" aria-labelledby="est-preset">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={preset === "accurate"}
-                onClick={() => setPreset("accurate")}
-              >
-                Accurate
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={preset === "budget"}
-                onClick={() => setPreset("budget")}
-              >
-                Budget
-              </button>
+            <div className="seg" role="radiogroup" aria-labelledby="est-countries">
+              {COUNTRIES.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  role="radio"
+                  aria-checked={countries === n}
+                  onClick={() => setCountries(n)}
+                >
+                  {n}
+                </button>
+              ))}
             </div>
           </div>
         </div>
         <p className="t-small">
-          {preset === "accurate"
-            ? "Accurate matches each app’s default model."
-            : "Budget uses cheaper models for directional data."}
+          One answer is one prompt, asked once, on one engine, in one country.
         </p>
       </div>
 
       <div className="est-out" aria-live="polite">
         <div className="est-line">
-          <span className="t-small">API calls / month</span>
-          <span className="est-num">{calls.toLocaleString("en-US")}</span>
+          <span className="t-small">Answers / month</span>
+          <span className="est-num">{answers.toLocaleString("en-US")}</span>
         </div>
         <div className="est-line">
-          <span className="t-small">Self-hosted, paid to your provider</span>
-          <span className="est-num">{usd(usage)}</span>
+          <span className="t-small">Self-hosted, paid to Bright Data</span>
+          <span className="est-num">{self ? usd(self) : "Free"}</span>
         </div>
         <div className="est-div" />
         <div className="est-total">
           <span className="t-small">Hosted, per month</span>
           <span className="amt">{usd(hosted)}</span>
           <span className="t-small">
-            {usd(PLATFORM_FEE)} platform fee + {usd(usage * (1 + MARGIN))} usage
+            {usd(PLATFORM_FEE)} platform fee + {usd(usage)} answers
           </span>
         </div>
         <p className="est-fine">
-          Illustrative averages, search fees included. Every real run is estimated first, then
-          billed from the exact cost the provider reports.
+          At ${PER_ANSWER} an answer, with the first {FREE.toLocaleString("en-US")} a month free on
+          your own Bright Data account. Every run shows its answers and cost before it starts.
         </p>
       </div>
     </div>
@@ -232,7 +226,7 @@ export function Pricing() {
         </Reveal>
         <Reveal delay={0.1}>
           <h2 className="t-h2">
-            Pay for the calls you run{" "}
+            Pay for the answers you collect{" "}
             <span className="dim">and see the number before you run them.</span>
           </h2>
         </Reveal>
@@ -251,7 +245,7 @@ export function Pricing() {
               </div>
               <div className="price">
                 <span className="amt">$0</span>
-                <span className="per">+ your own API bill</span>
+                <span className="per">+ Bright Data past 5,000 free</span>
               </div>
               <p className="t-small plan-desc">
                 For developers and teams happy to run their own server.
@@ -270,7 +264,7 @@ export function Pricing() {
             <div className="plan-head">
               <div className="plan-top">
                 <span className="t-h3">Hosted</span>
-                <span className="pill">Popular</span>
+                <span className="pill">Early access</span>
               </div>
               <div className="price">
                 <span className="amt">$10</span>
